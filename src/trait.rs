@@ -53,6 +53,39 @@ pub trait FlatbushIndex {
 
         results
     }
+
+    fn neighbors(&self, x: f64, y: f64, max_distance: Option<f64>) -> Vec<usize> {
+        let boxes = self.boxes();
+        let indices = self.indices();
+        let max_distance = max_distance.unwrap_or(f64::INFINITY);
+
+        let mut outer_node_index = Some(boxes.len() - 4);
+
+        let mut results = vec![];
+        let max_dist_squared = max_distance * max_distance;
+
+        'outer: while let Some(node_index) = outer_node_index {
+            // find the end index of the node
+            let end = (node_index + self.node_size() * 4)
+                .min(upper_bound(node_index, self.level_bounds()));
+
+            // add child nodes to the queue
+            for pos in (node_index..end).step_by(4) {
+                let index = indices[pos >> 2];
+
+                let dx = axis_dist(x, boxes[pos], boxes[pos + 2]);
+                let dy = axis_dist(y, boxes[pos + 1], boxes[pos + 3]);
+                let dist = dx * dx + dy * dy;
+                if dist > max_dist_squared {
+                    continue;
+                }
+            }
+
+            // break 'outer;
+        }
+
+        results
+    }
 }
 
 impl FlatbushIndex for OwnedFlatbush {
@@ -130,4 +163,20 @@ fn upper_bound(value: usize, arr: &[usize]) -> usize {
     }
 
     arr[i]
+}
+
+/**
+ * 1D distance from a value to a range.
+ * @param {number} k
+ * @param {number} min
+ * @param {number} max
+ */
+fn axis_dist(k: f64, min: f64, max: f64) -> f64 {
+    if k < min {
+        min - k
+    } else if k <= max {
+        0.0
+    } else {
+        k - max
+    }
 }
