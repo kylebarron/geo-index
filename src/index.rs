@@ -1,0 +1,156 @@
+use bytemuck::cast_slice;
+
+use crate::constants::VERSION;
+use crate::error::FlatbushError;
+use crate::r#trait::FlatbushIndex;
+use crate::util::compute_num_nodes;
+
+pub struct OwnedFlatbush {
+    pub(crate) buffer: Vec<u8>,
+    pub(crate) node_size: usize,
+    pub(crate) num_items: usize,
+    pub(crate) num_nodes: usize,
+    pub(crate) level_bounds: Vec<usize>,
+}
+
+impl OwnedFlatbush {
+    pub fn into_inner(self) -> Vec<u8> {
+        self.buffer
+    }
+
+    pub fn as_flatbush(&self) -> Flatbush {
+        Flatbush {
+            boxes: self.boxes(),
+            indices: self.indices(),
+            node_size: self.node_size,
+            num_items: self.num_items,
+            _num_nodes: self.num_nodes,
+            level_bounds: self.level_bounds.clone(),
+        }
+    }
+}
+
+impl AsRef<[u8]> for OwnedFlatbush {
+    fn as_ref(&self) -> &[u8] {
+        &self.buffer
+    }
+}
+
+pub struct Flatbush<'a> {
+    pub(crate) boxes: &'a [f64],
+    pub(crate) indices: &'a [u32],
+    pub(crate) node_size: usize,
+    pub(crate) num_items: usize,
+    _num_nodes: usize,
+    pub(crate) level_bounds: Vec<usize>,
+}
+
+impl<'a> Flatbush<'a> {
+    pub fn try_new<T: AsRef<[u8]>>(data: &'a T) -> Result<Self, FlatbushError> {
+        let data = data.as_ref();
+
+        let magic = data[0];
+        if magic != 0xfb {
+            return Err(FlatbushError::General(
+                "Data does not appear to be in a Flatbush format.".to_string(),
+            ));
+        }
+
+        let version_and_type = data[1];
+        let version = version_and_type >> 4;
+        if version != VERSION {
+            return Err(FlatbushError::General(
+                format!("Got v{} data when expected v{}.", version, VERSION).to_string(),
+            ));
+        }
+
+        let node_size: u16 = cast_slice(&data[2..4])[0];
+        let num_items: u32 = cast_slice(&data[4..8])[0];
+        let node_size = node_size as usize;
+        let num_items = num_items as usize;
+
+        let (num_nodes, level_bounds) = compute_num_nodes(num_items, node_size);
+
+        let f64_bytes_per_element = 8;
+        let indices_bytes_per_element = 4;
+        let nodes_byte_length = num_nodes * 4 * f64_bytes_per_element;
+        let indices_byte_length = num_nodes * indices_bytes_per_element;
+
+        // TODO: assert length of `data` matches expected
+        let boxes = cast_slice(&data[8..nodes_byte_length]);
+        let indices =
+            cast_slice(&data[8 + nodes_byte_length..8 + nodes_byte_length + indices_byte_length]);
+
+        Ok(Self {
+            boxes,
+            indices,
+            node_size,
+            num_items,
+            _num_nodes: num_nodes,
+            level_bounds,
+        })
+    }
+
+    pub fn search(&self, min_x: f64, min_y: f64, max_x: f64, max_y: f64) -> Vec<usize> {
+        let mut outer_node_index = Some(self.boxes.len() - 4);
+
+        let mut queue = vec![];
+        let mut results = vec![];
+
+        while let Some(node_index) = outer_node_index {
+            // find the end index of the node
+            let end =
+                (node_index + self.node_size * 4).min(upper_bound(node_index, &self.level_bounds));
+
+            // search through child nodes
+            for pos in (node_index..end).step_by(4) {
+                // check if node bbox intersects with query bbox
+                if max_x < self.boxes[pos] {
+                    continue; // maxX < nodeMinX
+                }
+                if max_y < self.boxes[pos + 1] {
+                    continue; // maxY < nodeMinY
+                }
+                if min_x > self.boxes[pos + 2] {
+                    continue; // minX > nodeMaxX
+                }
+                if min_y > self.boxes[pos + 3] {
+                    continue; // minY > nodeMaxY
+                }
+
+                let index = self.indices[pos >> 2];
+
+                if node_index >= self.num_items * 4 {
+                    queue.push(index as usize); // node; add it to the search queue
+                } else {
+                    results.push(index as usize); // leaf item
+                }
+            }
+
+            outer_node_index = queue.pop();
+        }
+
+        results
+    }
+}
+
+/**
+ * Binary search for the first value in the array bigger than the given.
+ * @param {number} value
+ * @param {number[]} arr
+ */
+fn upper_bound(value: usize, arr: &[usize]) -> usize {
+    let mut i = 0;
+    let mut j = arr.len() - 1;
+
+    while i < j {
+        let m = (i + j) >> 1;
+        if arr[m] > value {
+            j = m;
+        } else {
+            i = m + 1;
+        }
+    }
+
+    arr[i]
+}
