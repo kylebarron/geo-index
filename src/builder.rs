@@ -152,10 +152,15 @@ impl FlatbushBuilder {
             }
         }
 
-        // TODO:
-        //
         // sort items by their Hilbert value (for packing later)
-        // sort(hilbertValues, boxes, this._indices, 0, this.numItems - 1, this.nodeSize);
+        sort(
+            &mut hilbert_values,
+            boxes,
+            indices,
+            0,
+            self.num_items - 1,
+            self.node_size,
+        );
 
         {
             // generate nodes at each tree level, bottom-up
@@ -221,6 +226,68 @@ fn data_to_boxes_and_indices(data: &mut [u8], num_nodes: usize) -> (&mut [f64], 
     let boxes = cast_slice_mut(boxes_buf);
     let indices = cast_slice_mut(indices_buf);
     (boxes, indices)
+}
+
+/// Custom quicksort that partially sorts bbox data alongside the hilbert values.
+// Partially taken from static_aabb2d_index under the MIT/Apache license
+fn sort(
+    values: &mut [u32],
+    boxes: &mut [f64],
+    indices: &mut [i32],
+    left: usize,
+    right: usize,
+    node_size: usize,
+) {
+    debug_assert!(left <= right);
+
+    if left / node_size >= right / node_size {
+        return;
+    }
+
+    let midpoint = (left + right) / 2;
+    let pivot = values[midpoint];
+    let mut i = left.wrapping_sub(1);
+    let mut j = right.wrapping_add(1);
+
+    loop {
+        loop {
+            i = i.wrapping_add(1);
+            if values[i] >= pivot {
+                break;
+            }
+        }
+
+        loop {
+            j = j.wrapping_sub(1);
+            if values[j] <= pivot {
+                break;
+            }
+        }
+
+        if i >= j {
+            break;
+        }
+
+        swap(values, boxes, indices, i, j);
+    }
+
+    sort(values, boxes, indices, left, j, node_size);
+    sort(values, boxes, indices, j.wrapping_add(1), right, node_size);
+}
+
+/// Swap two values and two corresponding boxes.
+#[inline]
+fn swap(values: &mut [u32], boxes: &mut [f64], indices: &mut [i32], i: usize, j: usize) {
+    values.swap(i, j);
+
+    let k = 4 * i;
+    let m = 4 * j;
+    boxes.swap(k, m);
+    boxes.swap(k + 1, m + 1);
+    boxes.swap(k + 2, m + 2);
+    boxes.swap(k + 3, m + 3);
+
+    indices.swap(i, j);
 }
 
 // Taken from static_aabb2d_index under the mit/apache license
