@@ -1,11 +1,15 @@
+use std::borrow::Cow;
+
 use bytemuck::cast_slice;
 
-use crate::index::{Flatbush, OwnedFlatbush};
+use crate::index::{FlatbushRef, OwnedFlatbush};
+use crate::indices::Indices;
 
 pub trait FlatbushIndex {
     fn boxes(&self) -> &[f64];
-    fn indices(&self) -> &[u32];
+    fn indices(&self) -> Cow<'_, Indices>;
     fn num_items(&self) -> usize;
+    fn num_nodes(&self) -> usize;
     fn node_size(&self) -> usize;
     fn level_bounds(&self) -> &[usize];
 
@@ -39,12 +43,12 @@ pub trait FlatbushIndex {
                     continue; // minY > nodeMaxY
                 }
 
-                let index = indices[pos >> 2];
+                let index = indices.get(pos >> 2);
 
                 if node_index >= self.num_items() * 4 {
-                    queue.push(index as usize); // node; add it to the search queue
+                    queue.push(index); // node; add it to the search queue
                 } else {
-                    results.push(index as usize); // leaf item
+                    results.push(index); // leaf item
                 }
             }
 
@@ -54,6 +58,7 @@ pub trait FlatbushIndex {
         results
     }
 
+    #[allow(unused_mut, unused_labels, unused_variables)]
     fn neighbors(&self, x: f64, y: f64, max_distance: Option<f64>) -> Vec<usize> {
         let boxes = self.boxes();
         let indices = self.indices();
@@ -71,7 +76,7 @@ pub trait FlatbushIndex {
 
             // add child nodes to the queue
             for pos in (node_index..end).step_by(4) {
-                let index = indices[pos >> 2];
+                let index = indices.get(pos >> 2);
 
                 let dx = axis_dist(x, boxes[pos], boxes[pos + 2]);
                 let dy = axis_dist(y, boxes[pos + 1], boxes[pos + 3]);
@@ -98,15 +103,24 @@ impl FlatbushIndex for OwnedFlatbush {
         cast_slice(&data[8..nodes_byte_length])
     }
 
-    fn indices(&self) -> &[u32] {
+    fn indices(&self) -> Cow<'_, Indices> {
         let data = &self.buffer;
 
         let f64_bytes_per_element = 8;
         let indices_bytes_per_element = 4;
         let nodes_byte_length = self.num_nodes * 4 * f64_bytes_per_element;
         let indices_byte_length = self.num_nodes * indices_bytes_per_element;
+        let indices_buf = &data[8 + nodes_byte_length..8 + nodes_byte_length + indices_byte_length];
 
-        cast_slice(&data[8 + nodes_byte_length..8 + nodes_byte_length + indices_byte_length])
+        if self.num_nodes() < 16384 {
+            Cow::Owned(Indices::U16(cast_slice(indices_buf)))
+        } else {
+            Cow::Owned(Indices::U32(cast_slice(indices_buf)))
+        }
+    }
+
+    fn num_nodes(&self) -> usize {
+        self.num_nodes
     }
 
     fn level_bounds(&self) -> &[usize] {
@@ -122,13 +136,13 @@ impl FlatbushIndex for OwnedFlatbush {
     }
 }
 
-impl FlatbushIndex for Flatbush<'_> {
+impl FlatbushIndex for FlatbushRef<'_> {
     fn boxes(&self) -> &[f64] {
         self.boxes
     }
 
-    fn indices(&self) -> &[u32] {
-        self.indices
+    fn indices(&self) -> Cow<'_, Indices> {
+        Cow::Borrowed(&self.indices)
     }
 
     fn level_bounds(&self) -> &[usize] {
@@ -141,6 +155,10 @@ impl FlatbushIndex for Flatbush<'_> {
 
     fn num_items(&self) -> usize {
         self.num_items
+    }
+
+    fn num_nodes(&self) -> usize {
+        self.num_nodes
     }
 }
 

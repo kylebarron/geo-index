@@ -4,17 +4,20 @@ use bytemuck::cast_slice_mut;
 
 use crate::constants::VERSION;
 use crate::index::OwnedFlatbush;
+use crate::indices::MutableIndices;
 use crate::util::compute_num_nodes;
 
 const ARRAY_TYPE_INDEX: u8 = 8;
 
 pub struct FlatbushBuilder {
-    ///
+    /// data buffer
     data: Vec<u8>,
     num_items: usize,
     node_size: usize,
     num_nodes: usize,
     level_bounds: Vec<usize>,
+    nodes_byte_size: usize,
+    indices_byte_size: usize,
 
     pos: usize,
 
@@ -35,15 +38,16 @@ impl FlatbushBuilder {
 
     pub fn new_with_node_size(num_items: usize, node_size: usize) -> Self {
         assert!((2..=65535).contains(&node_size));
-        // TODO: assert num_items fits in u32
+        assert!(num_items <= u32::MAX.try_into().unwrap());
 
         let (num_nodes, level_bounds) = compute_num_nodes(num_items, node_size);
 
         let f64_bytes_per_element = 8;
         let indices_bytes_per_element = if num_nodes < 16384 { 2 } else { 4 };
         let nodes_byte_size = num_nodes * 4 * f64_bytes_per_element;
+        let indices_byte_size = num_nodes * indices_bytes_per_element;
 
-        let data_buffer_length = 8 + nodes_byte_size + num_nodes * indices_bytes_per_element;
+        let data_buffer_length = 8 + nodes_byte_size + indices_byte_size;
         let mut data = vec![0; data_buffer_length];
 
         // Set data header
@@ -58,6 +62,8 @@ impl FlatbushBuilder {
             num_nodes,
             node_size,
             level_bounds,
+            nodes_byte_size,
+            indices_byte_size,
             pos: 0,
             min_x: f64::INFINITY,
             min_y: f64::INFINITY,
@@ -70,9 +76,14 @@ impl FlatbushBuilder {
     /// Add a given rectangle to the index.
     pub fn add(&mut self, min_x: f64, min_y: f64, max_x: f64, max_y: f64) -> usize {
         let index = self.pos >> 2;
-        let (boxes, indices) = data_to_boxes_and_indices(&mut self.data, self.num_nodes);
+        let (boxes, mut indices) = split_data_borrow(
+            &mut self.data,
+            self.num_nodes,
+            self.nodes_byte_size,
+            self.indices_byte_size,
+        );
 
-        indices[index] = index as i32;
+        indices.set(index, index);
         boxes[self.pos] = min_x;
         self.pos += 1;
         boxes[self.pos] = min_y;
@@ -106,7 +117,12 @@ impl FlatbushBuilder {
             self.pos >> 2,
             self.num_items
         );
-        let (boxes, indices) = data_to_boxes_and_indices(&mut self.data, self.num_nodes);
+        let (boxes, mut indices) = split_data_borrow(
+            &mut self.data,
+            self.num_nodes,
+            self.nodes_byte_size,
+            self.indices_byte_size,
+        );
 
         if self.num_items <= self.node_size {
             // only one node, skip sorting and just fill the root box
@@ -156,7 +172,7 @@ impl FlatbushBuilder {
         sort(
             &mut hilbert_values,
             boxes,
-            indices,
+            &mut indices,
             0,
             self.num_items - 1,
             self.node_size,
@@ -194,7 +210,7 @@ impl FlatbushBuilder {
                     }
 
                     // add the new node to the tree data
-                    indices[self.pos >> 2] = node_index as i32;
+                    indices.set(self.pos >> 2, node_index);
                     boxes[self.pos] = node_min_x;
                     self.pos += 1;
                     boxes[self.pos] = node_min_y;
@@ -218,13 +234,22 @@ impl FlatbushBuilder {
 }
 
 /// Mutable borrow of boxes and indices
-fn data_to_boxes_and_indices(data: &mut [u8], num_nodes: usize) -> (&mut [f64], &mut [i32]) {
-    let (_header, rest) = data.split_at_mut(8);
-    let f64_bytes_per_element = 8;
-    let boxes_byte_length = num_nodes * 4 * f64_bytes_per_element;
-    let (boxes_buf, indices_buf) = rest.split_at_mut(boxes_byte_length);
+fn split_data_borrow(
+    data: &mut [u8],
+    num_nodes: usize,
+    nodes_byte_size: usize,
+    indices_byte_size: usize,
+) -> (&mut [f64], MutableIndices) {
+    let (boxes_buf, indices_buf) = data[8..].split_at_mut(nodes_byte_size);
+    debug_assert_eq!(indices_buf.len(), indices_byte_size);
+
     let boxes = cast_slice_mut(boxes_buf);
-    let indices = cast_slice_mut(indices_buf);
+
+    let indices = if num_nodes < 16384 {
+        MutableIndices::U16(cast_slice_mut(indices_buf))
+    } else {
+        MutableIndices::U32(cast_slice_mut(indices_buf))
+    };
     (boxes, indices)
 }
 
@@ -233,7 +258,7 @@ fn data_to_boxes_and_indices(data: &mut [u8], num_nodes: usize) -> (&mut [f64], 
 fn sort(
     values: &mut [u32],
     boxes: &mut [f64],
-    indices: &mut [i32],
+    indices: &mut MutableIndices,
     left: usize,
     right: usize,
     node_size: usize,
@@ -277,7 +302,7 @@ fn sort(
 
 /// Swap two values and two corresponding boxes.
 #[inline]
-fn swap(values: &mut [u32], boxes: &mut [f64], indices: &mut [i32], i: usize, j: usize) {
+fn swap(values: &mut [u32], boxes: &mut [f64], indices: &mut MutableIndices, i: usize, j: usize) {
     values.swap(i, j);
 
     let k = 4 * i;

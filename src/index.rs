@@ -2,6 +2,7 @@ use bytemuck::cast_slice;
 
 use crate::constants::VERSION;
 use crate::error::FlatbushError;
+use crate::indices::Indices;
 use crate::r#trait::FlatbushIndex;
 use crate::util::compute_num_nodes;
 
@@ -18,13 +19,13 @@ impl OwnedFlatbush {
         self.buffer
     }
 
-    pub fn as_flatbush(&self) -> Flatbush {
-        Flatbush {
+    pub fn as_flatbush(&self) -> FlatbushRef {
+        FlatbushRef {
             boxes: self.boxes(),
-            indices: self.indices(),
+            indices: self.indices().into_owned(),
             node_size: self.node_size,
             num_items: self.num_items,
-            _num_nodes: self.num_nodes,
+            num_nodes: self.num_nodes,
             level_bounds: self.level_bounds.clone(),
         }
     }
@@ -36,18 +37,19 @@ impl AsRef<[u8]> for OwnedFlatbush {
     }
 }
 
-pub struct Flatbush<'a> {
+pub struct FlatbushRef<'a> {
     pub(crate) boxes: &'a [f64],
-    pub(crate) indices: &'a [u32],
+    pub(crate) indices: Indices<'a>,
     pub(crate) node_size: usize,
     pub(crate) num_items: usize,
-    _num_nodes: usize,
+    pub(crate) num_nodes: usize,
     pub(crate) level_bounds: Vec<usize>,
 }
 
-impl<'a> Flatbush<'a> {
+impl<'a> FlatbushRef<'a> {
     pub fn try_new<T: AsRef<[u8]>>(data: &'a T) -> Result<Self, FlatbushError> {
         let data = data.as_ref();
+        // TODO: validate length of slice?
 
         let magic = data[0];
         if magic != 0xfb {
@@ -78,15 +80,20 @@ impl<'a> Flatbush<'a> {
 
         // TODO: assert length of `data` matches expected
         let boxes = cast_slice(&data[8..nodes_byte_length]);
-        let indices =
-            cast_slice(&data[8 + nodes_byte_length..8 + nodes_byte_length + indices_byte_length]);
+        let indices_buf = &data[8 + nodes_byte_length..8 + nodes_byte_length + indices_byte_length];
+
+        let indices = if num_nodes < 16384 {
+            Indices::U16(cast_slice(indices_buf))
+        } else {
+            Indices::U32(cast_slice(indices_buf))
+        };
 
         Ok(Self {
             boxes,
             indices,
             node_size,
             num_items,
-            _num_nodes: num_nodes,
+            num_nodes,
             level_bounds,
         })
     }
@@ -118,12 +125,12 @@ impl<'a> Flatbush<'a> {
                     continue; // minY > nodeMaxY
                 }
 
-                let index = self.indices[pos >> 2];
+                let index = self.indices.get(pos >> 2);
 
                 if node_index >= self.num_items * 4 {
-                    queue.push(index as usize); // node; add it to the search queue
+                    queue.push(index); // node; add it to the search queue
                 } else {
-                    results.push(index as usize); // leaf item
+                    results.push(index); // leaf item
                 }
             }
 
