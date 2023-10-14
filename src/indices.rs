@@ -1,7 +1,19 @@
+use bytemuck::{cast_slice_mut, cast_slice};
+
 #[derive(Debug)]
 pub enum MutableIndices<'a> {
     U16(&'a mut [u16]),
     U32(&'a mut [u32]),
+}
+
+impl<'a> MutableIndices<'a> {
+    pub fn new(slice: &'a mut [u8], num_nodes: usize) -> Self {
+        if num_nodes < 16384 {
+            Self::U16(cast_slice_mut(slice))
+        } else {
+            Self::U32(cast_slice_mut(slice))
+        }
+    }
 }
 
 impl MutableIndices<'_> {
@@ -42,6 +54,16 @@ impl MutableIndices<'_> {
 pub enum Indices<'a> {
     U16(&'a [u16]),
     U32(&'a [u32]),
+}
+
+impl<'a> Indices<'a> {
+    pub fn new(slice: &'a [u8], num_nodes: usize) -> Self {
+        if num_nodes < 16384 {
+            Self::U16(cast_slice(slice))
+        } else {
+            Self::U32(cast_slice(slice))
+        }
+    }
 }
 
 impl Indices<'_> {

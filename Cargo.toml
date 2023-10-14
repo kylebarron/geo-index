@@ -1,5 +1,5 @@
 [package]
-name = "flatbush-rs"
+name = "flatbush"
 version = "0.1.0"
 edition = "2021"
 
@@ -8,3 +8,11 @@ edition = "2021"
 [dependencies]
 bytemuck = "1"
 thiserror = "1"
+
+[dev-dependencies]
+criterion = { version = "0.5", features = ["html_reports"] }
+rstar = "0.11"
+
+[[bench]]
+name = "flatbush"
+harness = false

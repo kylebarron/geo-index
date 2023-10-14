@@ -112,11 +112,7 @@ impl FlatbushIndex for OwnedFlatbush {
         let indices_byte_length = self.num_nodes * indices_bytes_per_element;
         let indices_buf = &data[8 + nodes_byte_length..8 + nodes_byte_length + indices_byte_length];
 
-        if self.num_nodes() < 16384 {
-            Cow::Owned(Indices::U16(cast_slice(indices_buf)))
-        } else {
-            Cow::Owned(Indices::U32(cast_slice(indices_buf)))
-        }
+        Cow::Owned(Indices::new(indices_buf, self.num_nodes()))
     }
 
     fn num_nodes(&self) -> usize {

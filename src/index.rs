@@ -81,12 +81,7 @@ impl<'a> FlatbushRef<'a> {
         // TODO: assert length of `data` matches expected
         let boxes = cast_slice(&data[8..nodes_byte_length]);
         let indices_buf = &data[8 + nodes_byte_length..8 + nodes_byte_length + indices_byte_length];
-
-        let indices = if num_nodes < 16384 {
-            Indices::U16(cast_slice(indices_buf))
-        } else {
-            Indices::U32(cast_slice(indices_buf))
-        };
+        let indices = Indices::new(indices_buf, num_nodes);
 
         Ok(Self {
             boxes,
