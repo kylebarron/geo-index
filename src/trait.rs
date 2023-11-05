@@ -107,7 +107,7 @@ impl FlatbushIndex for OwnedFlatbush {
         let data = &self.buffer;
 
         let f64_bytes_per_element = 8;
-        let indices_bytes_per_element = 4;
+        let indices_bytes_per_element = if self.num_nodes < 16384 { 2 } else { 4 };
         let nodes_byte_length = self.num_nodes * 4 * f64_bytes_per_element;
         let indices_byte_length = self.num_nodes * indices_bytes_per_element;
         let indices_buf = &data[8 + nodes_byte_length..8 + nodes_byte_length + indices_byte_length];
