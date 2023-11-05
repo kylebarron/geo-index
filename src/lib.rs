@@ -10,3 +10,6 @@ pub mod util;
 pub use builder::FlatbushBuilder;
 pub use index::{FlatbushRef, OwnedFlatbush};
 pub use r#trait::FlatbushIndex;
+
+#[cfg(test)]
+pub(crate) mod test;

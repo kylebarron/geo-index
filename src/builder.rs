@@ -54,7 +54,7 @@ impl FlatbushBuilder {
         data[0] = 0xfb;
         data[1] = (VERSION << 4) + ARRAY_TYPE_INDEX;
         cast_slice_mut(&mut data[2..4])[0] = node_size as u16;
-        cast_slice_mut(&mut data[4..8])[0] = node_size as u32;
+        cast_slice_mut(&mut data[4..8])[0] = num_items as u32;
 
         Self {
             data,
