@@ -1,4 +1,4 @@
-use bytemuck::{cast_slice_mut, cast_slice};
+use bytemuck::{cast_slice, cast_slice_mut};
 
 #[derive(Debug)]
 pub enum MutableIndices<'a> {

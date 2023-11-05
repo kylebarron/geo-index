@@ -163,6 +163,7 @@ impl FlatbushIndex for FlatbushRef<'_> {
  * @param {number} value
  * @param {number[]} arr
  */
+#[inline]
 fn upper_bound(value: usize, arr: &[usize]) -> usize {
     let mut i = 0;
     let mut j = arr.len() - 1;
@@ -185,6 +186,7 @@ fn upper_bound(value: usize, arr: &[usize]) -> usize {
  * @param {number} min
  * @param {number} max
  */
+#[inline]
 fn axis_dist(k: f64, min: f64, max: f64) -> f64 {
     if k < min {
         min - k
@@ -192,5 +194,38 @@ fn axis_dist(k: f64, min: f64, max: f64) -> f64 {
         0.0
     } else {
         k - max
+    }
+}
+
+#[cfg(test)]
+mod test {
+    // Replication of tests from flatbush js
+    mod js {
+        use crate::test::{flatbush_js_test_data, flatbush_js_test_index};
+        use crate::FlatbushIndex;
+
+        #[test]
+        fn performs_bbox_search() {
+            let data = flatbush_js_test_data();
+            let index = flatbush_js_test_index();
+            let ids = index.search(40., 40., 60., 60.);
+
+            let mut results: Vec<usize> = vec![];
+            for id in ids {
+                results.push(data[4 * id] as usize);
+                results.push(data[4 * id + 1] as usize);
+                results.push(data[4 * id + 2] as usize);
+                results.push(data[4 * id + 3] as usize);
+            }
+
+            results.sort();
+
+            let mut expected = vec![
+                57, 59, 58, 59, 48, 53, 52, 56, 40, 42, 43, 43, 43, 41, 47, 43,
+            ];
+            expected.sort();
+
+            assert_eq!(results, expected);
+        }
     }
 }

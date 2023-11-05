@@ -12,4 +12,4 @@ pub use index::{FlatbushRef, OwnedFlatbush};
 pub use r#trait::FlatbushIndex;
 
 #[cfg(test)]
-mod test;
+pub(crate) mod test;
