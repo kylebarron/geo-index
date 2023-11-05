@@ -46,6 +46,14 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     let rstar_tree = construct_rstar(rect_vec.to_vec());
     let (min_x, min_y, max_x, max_y) = (-112.007493, 40.633799, -111.920964, 40.694228);
 
+    let flatbush_search_results = flatbush_tree.search(min_x, min_y, max_x, max_y);
+    // let rstar_search_results = {
+    //     let aabb = AABB::from_corners((min_x, min_y), (max_x, max_y));
+    //     rstar_tree.locate_in_envelope(&aabb).collect::<Vec<_>>()
+    // };
+    // assert_eq!(flatbush_search_results.len(), rstar_search_results.len());
+    println!("search results in {} items", flatbush_search_results.len());
+
     c.bench_function("search (flatbush)", |b| {
         b.iter(|| flatbush_tree.search(min_x, min_y, max_x, max_y))
     });
@@ -53,7 +61,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("search (rstar)", |b| {
         b.iter(|| {
             let aabb = AABB::from_corners((min_x, min_y), (max_x, max_y));
-            rstar_tree.locate_in_envelope(&aabb)
+            rstar_tree.locate_in_envelope(&aabb).collect::<Vec<_>>()
         })
     });
 }
