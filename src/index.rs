@@ -6,6 +6,7 @@ use crate::indices::Indices;
 use crate::r#trait::FlatbushIndex;
 use crate::util::compute_num_nodes;
 
+#[derive(Debug, Clone, PartialEq)]
 pub struct OwnedFlatbush {
     pub(crate) buffer: Vec<u8>,
     pub(crate) node_size: usize,
@@ -37,6 +38,7 @@ impl AsRef<[u8]> for OwnedFlatbush {
     }
 }
 
+#[derive(Debug, Clone, PartialEq)]
 pub struct FlatbushRef<'a> {
     pub(crate) boxes: &'a [f64],
     pub(crate) indices: Indices<'a>,
@@ -74,7 +76,7 @@ impl<'a> FlatbushRef<'a> {
         let (num_nodes, level_bounds) = compute_num_nodes(num_items, node_size);
 
         let f64_bytes_per_element = 8;
-        let indices_bytes_per_element = 4;
+        let indices_bytes_per_element = if num_nodes < 16384 { 2 } else { 4 };
         let nodes_byte_length = num_nodes * 4 * f64_bytes_per_element;
         let indices_byte_length = num_nodes * indices_bytes_per_element;
 

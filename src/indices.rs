@@ -50,7 +50,7 @@ impl MutableIndices<'_> {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Indices<'a> {
     U16(&'a [u16]),
     U32(&'a [u32]),
