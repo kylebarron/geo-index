@@ -100,7 +100,7 @@ impl FlatbushIndex for OwnedFlatbush {
         let f64_bytes_per_element = 8;
         let nodes_byte_length = self.num_nodes * 4 * f64_bytes_per_element;
 
-        cast_slice(&data[8..nodes_byte_length])
+        cast_slice(&data[8..8 + nodes_byte_length])
     }
 
     fn indices(&self) -> Cow<'_, Indices> {

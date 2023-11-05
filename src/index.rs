@@ -81,7 +81,7 @@ impl<'a> FlatbushRef<'a> {
         let indices_byte_length = num_nodes * indices_bytes_per_element;
 
         // TODO: assert length of `data` matches expected
-        let boxes = cast_slice(&data[8..nodes_byte_length]);
+        let boxes = cast_slice(&data[8..8 + nodes_byte_length]);
         let indices_buf = &data[8 + nodes_byte_length..8 + nodes_byte_length + indices_byte_length];
         let indices = Indices::new(indices_buf, num_nodes);
 
