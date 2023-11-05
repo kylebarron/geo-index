@@ -1,7 +1,7 @@
 use bytemuck::cast_slice;
 use criterion::{criterion_group, criterion_main, Criterion};
 use flatbush::{FlatbushBuilder, FlatbushIndex, OwnedFlatbush};
-use rstar::primitives::Rectangle;
+use rstar::primitives::{GeomWithData, Rectangle};
 use rstar::{RTree, AABB};
 use std::fs::read;
 
@@ -22,7 +22,9 @@ fn construct_flatbush(boxes_buf: &[f64]) -> OwnedFlatbush {
     builder.finish()
 }
 
-fn construct_rstar(rect_vec: Vec<Rectangle<(f64, f64)>>) -> RTree<Rectangle<(f64, f64)>> {
+fn construct_rstar(
+    rect_vec: Vec<GeomWithData<Rectangle<(f64, f64)>, usize>>,
+) -> RTree<GeomWithData<Rectangle<(f64, f64)>, usize>> {
     RTree::bulk_load(rect_vec)
 }
 
@@ -32,7 +34,11 @@ pub fn criterion_benchmark(c: &mut Criterion) {
         .chunks(4)
         .map(|box_| AABB::from_corners((box_[0], box_[1]), (box_[2], box_[3])))
         .collect();
-    let rect_vec: Vec<Rectangle<_>> = aabb_vec.into_iter().map(|x| x.into()).collect();
+    let rect_vec: Vec<GeomWithData<Rectangle<_>, usize>> = aabb_vec
+        .into_iter()
+        .enumerate()
+        .map(|(idx, aabb)| GeomWithData::new(aabb.into(), idx))
+        .collect();
 
     c.bench_function("construction (flatbush)", |b| {
         b.iter(|| construct_flatbush(&boxes_buf))
@@ -47,12 +53,18 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     let (min_x, min_y, max_x, max_y) = (-112.007493, 40.633799, -111.920964, 40.694228);
 
     let flatbush_search_results = flatbush_tree.search(min_x, min_y, max_x, max_y);
-    // let rstar_search_results = {
-    //     let aabb = AABB::from_corners((min_x, min_y), (max_x, max_y));
-    //     rstar_tree.locate_in_envelope(&aabb).collect::<Vec<_>>()
-    // };
-    // assert_eq!(flatbush_search_results.len(), rstar_search_results.len());
-    println!("search results in {} items", flatbush_search_results.len());
+    let rstar_search_results = {
+        let aabb = AABB::from_corners((min_x, min_y), (max_x, max_y));
+        rstar_tree
+            .locate_in_envelope_intersecting(&aabb)
+            .collect::<Vec<_>>()
+    };
+
+    assert_eq!(flatbush_search_results.len(), rstar_search_results.len());
+    println!(
+        "search() results in {} items",
+        flatbush_search_results.len()
+    );
 
     c.bench_function("search (flatbush)", |b| {
         b.iter(|| flatbush_tree.search(min_x, min_y, max_x, max_y))
@@ -61,7 +73,9 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("search (rstar)", |b| {
         b.iter(|| {
             let aabb = AABB::from_corners((min_x, min_y), (max_x, max_y));
-            rstar_tree.locate_in_envelope(&aabb).collect::<Vec<_>>()
+            rstar_tree
+                .locate_in_envelope_intersecting(&aabb)
+                .collect::<Vec<_>>()
         })
     });
 }
