@@ -368,29 +368,3 @@ fn hilbert(x: u32, y: u32) -> u32 {
 
     (i1 << 1) | i0
 }
-
-#[cfg(test)]
-mod test {
-    use super::*;
-
-    use std::fs::read;
-
-    use bytemuck::cast_slice;
-
-    #[test]
-    fn tmp() {
-        let path = "/Users/kyle/github/kylebarron/flatbush-rs/benches/bounds.raw";
-        let x = read(path).unwrap();
-        let boxes: Vec<f64> = cast_slice(&x).to_vec();
-
-        let mut builder = FlatbushBuilder::new(boxes.len() / 4);
-        for box_ in boxes.chunks(4) {
-            let min_x = box_[0];
-            let min_y = box_[1];
-            let max_x = box_[2];
-            let max_y = box_[3];
-            builder.add(min_x, min_y, max_x, max_y);
-        }
-        let _owned_flatbush = builder.finish();
-    }
-}
