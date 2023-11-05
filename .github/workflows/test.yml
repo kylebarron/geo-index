@@ -20,11 +20,6 @@ jobs:
 
       - uses: Swatinem/rust-cache@v2
 
-      - name: Install build requirements
-        run: |
-          cd build
-          pixi install
-
       - name: Cargo fmt
         run: cargo fmt --all -- --check
 
