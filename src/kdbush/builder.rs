@@ -3,15 +3,12 @@ use std::cmp;
 use bytemuck::cast_slice_mut;
 
 use crate::indices::MutableIndices;
+use crate::kdbush::constants::{KDBUSH_HEADER_SIZE, KDBUSH_MAGIC, KDBUSH_VERSION};
 use crate::kdbush::OwnedKdbush;
 
 // Scalar array type to match js
 // https://github.com/mourner/kdbush/blob/0309d1e9a1a53fd47f65681c6845627c566d63a6/index.js#L2-L5
 const ARRAY_TYPE_INDEX: u8 = 8;
-
-// serialized format version
-const VERSION: u8 = 1;
-const HEADER_SIZE: usize = 8;
 
 const DEFAULT_NODE_SIZE: usize = 64;
 
@@ -24,6 +21,7 @@ pub struct KdbushBuilder {
 
     coords_byte_size: usize,
     ids_byte_size: usize,
+    pad_coords_byte_size: usize,
 
     pos: usize,
 }
@@ -41,14 +39,15 @@ impl KdbushBuilder {
         let coords_byte_size = num_items * 2 * f64_bytes_per_element;
         let indices_bytes_per_element = if num_items < 65536 { 2 } else { 4 };
         let ids_byte_size = num_items * indices_bytes_per_element;
-        let pad_coords = (8 - (ids_byte_size % 8)) % 8;
+        let pad_coords_byte_size = (8 - (ids_byte_size % 8)) % 8;
 
-        let data_buffer_length = HEADER_SIZE + coords_byte_size + ids_byte_size + pad_coords;
+        let data_buffer_length =
+            KDBUSH_HEADER_SIZE + coords_byte_size + ids_byte_size + pad_coords_byte_size;
         let mut data = vec![0; data_buffer_length];
 
         // Set data header;
-        data[0] = 0xdb;
-        data[1] = (VERSION << 4) + ARRAY_TYPE_INDEX;
+        data[0] = KDBUSH_MAGIC;
+        data[1] = (KDBUSH_VERSION << 4) + ARRAY_TYPE_INDEX;
         cast_slice_mut(&mut data[2..4])[0] = node_size as u16;
         cast_slice_mut(&mut data[4..8])[0] = num_items as u32;
 
@@ -58,6 +57,7 @@ impl KdbushBuilder {
             node_size,
             coords_byte_size,
             ids_byte_size,
+            pad_coords_byte_size,
             pos: 0,
         }
     }
@@ -70,6 +70,7 @@ impl KdbushBuilder {
             self.num_items,
             self.ids_byte_size,
             self.coords_byte_size,
+            self.pad_coords_byte_size,
         );
 
         ids.set(index, index);
@@ -95,6 +96,7 @@ impl KdbushBuilder {
             self.num_items,
             self.ids_byte_size,
             self.coords_byte_size,
+            self.pad_coords_byte_size,
         );
 
         // kd-sort both arrays for efficient search
@@ -114,8 +116,10 @@ fn split_data_borrow(
     num_items: usize,
     ids_byte_size: usize,
     coords_byte_size: usize,
+    pad_coords: usize,
 ) -> (&mut [f64], MutableIndices) {
-    let (ids_buf, coords_buf) = data[HEADER_SIZE..].split_at_mut(ids_byte_size);
+    let (ids_buf, padded_coords_buf) = data[KDBUSH_HEADER_SIZE..].split_at_mut(ids_byte_size);
+    let coords_buf = &mut padded_coords_buf[pad_coords..];
     debug_assert_eq!(coords_buf.len(), coords_byte_size);
 
     let ids = if num_items < 65536 {
