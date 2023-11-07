@@ -1,6 +1,6 @@
 use std::borrow::Cow;
 
-use arrayvec::ArrayVec;
+use tinyvec::TinyVec;
 
 use crate::indices::Indices;
 use crate::kdbush::KdbushRef;
@@ -24,8 +24,8 @@ pub trait KdbushIndex {
         let coords = self.coords();
         let node_size = self.node_size();
 
-        // Use arrayvec to avoid heap allocations
-        let mut stack = ArrayVec::<_, 3>::new();
+        // Use TinyVec to avoid heap allocations
+        let mut stack: TinyVec<[usize; 33]> = TinyVec::new();
         stack.push(0);
         stack.push(ids.len() - 1);
         stack.push(0);
@@ -91,8 +91,8 @@ pub trait KdbushIndex {
         let coords = self.coords();
         let node_size = self.node_size();
 
-        // Use arrayvec to avoid heap allocations
-        let mut stack = ArrayVec::<_, 3>::new();
+        // Use TinyVec to avoid heap allocations
+        let mut stack: TinyVec<[usize; 33]> = TinyVec::new();
         stack.push(0);
         stack.push(ids.len() - 1);
         stack.push(0);

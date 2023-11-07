@@ -8,7 +8,7 @@ edition = "2021"
 [dependencies]
 bytemuck = "1"
 thiserror = "1"
-arrayvec = "0.7"
+tinyvec = { version = "1", features = ["alloc", "rustc_1_40"] }
 
 [dev-dependencies]
 criterion = { version = "0.5", features = ["html_reports"] }
