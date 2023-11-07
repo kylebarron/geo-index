@@ -2,7 +2,7 @@ use std::borrow::Cow;
 
 use bytemuck::cast_slice;
 
-use crate::index::{FlatbushRef, OwnedFlatbush};
+use crate::flatbush::index::{FlatbushRef, OwnedFlatbush};
 use crate::indices::Indices;
 
 pub trait FlatbushIndex {

@@ -1,10 +1,10 @@
 use bytemuck::cast_slice;
 
-use crate::constants::VERSION;
-use crate::error::FlatbushError;
+use crate::flatbush::constants::VERSION;
+use crate::flatbush::error::FlatbushError;
+use crate::flatbush::r#trait::FlatbushIndex;
+use crate::flatbush::util::compute_num_nodes;
 use crate::indices::Indices;
-use crate::r#trait::FlatbushIndex;
-use crate::util::compute_num_nodes;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct OwnedFlatbush {

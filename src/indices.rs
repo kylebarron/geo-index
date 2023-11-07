@@ -67,6 +67,17 @@ impl<'a> Indices<'a> {
 }
 
 impl Indices<'_> {
+    pub fn len(&self) -> usize {
+        match self {
+            Self::U16(arr) => arr.len(),
+            Self::U32(arr) => arr.len(),
+        }
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
     #[inline]
     pub fn get(&self, index: usize) -> usize {
         match self {

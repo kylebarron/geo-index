@@ -2,10 +2,10 @@ use std::marker::PhantomData;
 
 use bytemuck::cast_slice_mut;
 
-use crate::constants::VERSION;
-use crate::index::OwnedFlatbush;
+use crate::flatbush::constants::VERSION;
+use crate::flatbush::index::OwnedFlatbush;
+use crate::flatbush::util::compute_num_nodes;
 use crate::indices::MutableIndices;
-use crate::util::compute_num_nodes;
 
 const ARRAY_TYPE_INDEX: u8 = 8;
 
@@ -117,6 +117,7 @@ impl FlatbushBuilder {
             self.pos >> 2,
             self.num_items
         );
+
         let (boxes, mut indices) = split_data_borrow(
             &mut self.data,
             self.num_nodes,

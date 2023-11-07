@@ -8,6 +8,7 @@ edition = "2021"
 [dependencies]
 bytemuck = "1"
 thiserror = "1"
+arrayvec = "0.7"
 
 [dev-dependencies]
 criterion = { version = "0.5", features = ["html_reports"] }
