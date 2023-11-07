@@ -117,6 +117,7 @@ impl FlatbushBuilder {
             self.pos >> 2,
             self.num_items
         );
+
         let (boxes, mut indices) = split_data_borrow(
             &mut self.data,
             self.num_nodes,
