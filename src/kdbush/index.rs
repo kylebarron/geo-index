@@ -16,7 +16,7 @@ impl OwnedKdbush {
         self.buffer
     }
 
-    pub fn as_flatbush(&self) -> KdbushRef {
+    pub fn as_kdbush(&self) -> KdbushRef {
         KdbushRef::try_new(self).unwrap()
     }
 }
