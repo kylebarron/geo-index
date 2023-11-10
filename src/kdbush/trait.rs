@@ -164,7 +164,7 @@ impl KdbushIndex for KdbushRef<'_> {
 }
 
 #[inline]
-fn sq_dist(ax: f64, ay: f64, bx: f64, by: f64) -> f64 {
+pub(crate) fn sq_dist(ax: f64, ay: f64, bx: f64, by: f64) -> f64 {
     let dx = ax - bx;
     let dy = ay - by;
     dx * dx + dy * dy

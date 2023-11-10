@@ -6,3 +6,7 @@ pub mod r#trait;
 
 pub use builder::KdbushBuilder;
 pub use index::{KdbushRef, OwnedKdbush};
+pub use r#trait::KdbushIndex;
+
+#[cfg(test)]
+mod test;
