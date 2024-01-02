@@ -3,9 +3,10 @@ use std::borrow::Cow;
 use bytemuck::cast_slice;
 
 use crate::flatbush::index::{FlatbushRef, OwnedFlatbush};
+use crate::flatbush::traversal::{IntersectionIterator, Node};
 use crate::indices::Indices;
 
-pub trait FlatbushIndex {
+pub trait FlatbushIndex: Sized {
     fn boxes(&self) -> &[f64];
     fn indices(&self) -> Cow<'_, Indices>;
     fn num_items(&self) -> usize;
@@ -90,6 +91,17 @@ pub trait FlatbushIndex {
         }
 
         results
+    }
+
+    fn intersection_candidates_with_other_tree<'a>(
+        &'a self,
+        other: &'a impl FlatbushIndex,
+    ) -> impl Iterator<Item = (usize, usize)> + 'a {
+        IntersectionIterator::from_trees(self, other)
+    }
+
+    fn root(&self) -> Node<'_, Self> {
+        Node::from_root(self)
     }
 }
 
