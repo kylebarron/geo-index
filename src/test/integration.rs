@@ -2,6 +2,7 @@ use std::fs::read;
 
 use bytemuck::cast_slice;
 
+use crate::flatbush::HilbertSort;
 use crate::{FlatbushBuilder, FlatbushRef, OwnedFlatbush};
 
 fn create_flatbush_from_data_path(data_path: &str) -> OwnedFlatbush {
@@ -16,7 +17,7 @@ fn create_flatbush_from_data_path(data_path: &str) -> OwnedFlatbush {
         let max_y = box_[3];
         builder.add(min_x, min_y, max_x, max_y);
     }
-    builder.finish()
+    builder.finish::<HilbertSort>()
 }
 
 fn check_buffer_equality(js_buf: &[u8], rs_buf: &[u8]) {
@@ -50,10 +51,8 @@ pub(crate) fn flatbush_js_test_index() -> OwnedFlatbush {
 }
 
 #[test]
-fn test() {
+fn test_flatbush_js_test_data() {
     let flatbush_js_buf = read("fixtures/data1_flatbush_js.raw").unwrap();
     let flatbush_rs_buf = create_flatbush_from_data_path("fixtures/data1_input.raw").into_inner();
     check_buffer_equality(&flatbush_js_buf, &flatbush_rs_buf);
-
-    dbg!("hi");
 }
