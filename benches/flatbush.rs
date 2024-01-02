@@ -1,5 +1,6 @@
 use bytemuck::cast_slice;
 use criterion::{criterion_group, criterion_main, Criterion};
+use flatbush::flatbush::HilbertSort;
 use flatbush::{FlatbushBuilder, FlatbushIndex, OwnedFlatbush};
 use rstar::primitives::{GeomWithData, Rectangle};
 use rstar::{RTree, AABB};
@@ -19,7 +20,7 @@ fn construct_flatbush(boxes_buf: &[f64]) -> OwnedFlatbush {
         let max_y = box_[3];
         builder.add(min_x, min_y, max_x, max_y);
     }
-    builder.finish()
+    builder.finish::<HilbertSort>()
 }
 
 fn construct_rstar(
