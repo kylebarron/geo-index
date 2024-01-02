@@ -4,6 +4,7 @@ pub mod error;
 pub mod index;
 pub mod sort;
 pub mod r#trait;
+pub mod traversal;
 pub mod util;
 
 pub use builder::FlatbushBuilder;
