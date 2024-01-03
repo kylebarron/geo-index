@@ -1,7 +1,9 @@
 ```
 construction (flatbush) time:   [77.642 ms 77.880 ms 78.153 ms]
-construction (flatbush f64 to f32)
-                        time:   [82.848 ms 82.928 ms 83.016 ms]
+construction (flatbush f64 to f32, including casting)
+                        time:   [86.559 ms 87.194 ms 88.119 ms]
+construction (flatbush f32)
+                        time:   [79.957 ms 80.450 ms 81.125 ms]
 construction (rstar bulk)
                         time:   [154.73 ms 155.12 ms 155.57 ms]
 
