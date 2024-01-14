@@ -48,6 +48,32 @@ impl MutableIndices<'_> {
             Self::U32(arr) => arr[index] = value.try_into().unwrap(),
         }
     }
+
+    pub fn split_at_mut(&mut self, mid: usize) -> (MutableIndices, MutableIndices) {
+        match self {
+            Self::U16(arr) => {
+                let (left, right) = arr.split_at_mut(mid);
+                (MutableIndices::U16(left), MutableIndices::U16(right))
+            }
+            Self::U32(arr) => {
+                let (left, right) = arr.split_at_mut(mid);
+                (MutableIndices::U32(left), MutableIndices::U32(right))
+            }
+        }
+    }
+
+    pub fn chunks_mut(&mut self, chunk_size: usize) -> Vec<MutableIndices> {
+        match self {
+            Self::U16(arr) => arr
+                .chunks_mut(chunk_size)
+                .map(MutableIndices::U16)
+                .collect(),
+            Self::U32(arr) => arr
+                .chunks_mut(chunk_size)
+                .map(MutableIndices::U32)
+                .collect(),
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]
