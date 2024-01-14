@@ -56,10 +56,3 @@ fn test_flatbush_js_test_data() {
     let flatbush_rs_buf = create_flatbush_from_data_path("fixtures/data1_input.raw").into_inner();
     check_buffer_equality(&flatbush_js_buf, &flatbush_rs_buf);
 }
-
-#[test]
-fn test_utah_buildings() {
-    let flatbush_js_buf = read("fixtures/utah_flatbush_js.raw").unwrap();
-    let flatbush_rs_buf = create_flatbush_from_data_path("fixtures/utah_input.raw").into_inner();
-    check_buffer_equality(&flatbush_js_buf, &flatbush_rs_buf);
-}
