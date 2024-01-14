@@ -1,5 +1,6 @@
 use bytemuck::cast_slice;
 use criterion::{criterion_group, criterion_main, Criterion};
+use flatbush::flatbush::sort::STRSort;
 use flatbush::flatbush::util::f64_box_to_f32;
 use flatbush::flatbush::HilbertSort;
 use flatbush::r#type::IndexableNum;
@@ -23,6 +24,18 @@ fn construct_flatbush<N: IndexableNum>(boxes_buf: &[N]) -> OwnedFlatbush<N> {
         builder.add(min_x, min_y, max_x, max_y);
     }
     builder.finish::<HilbertSort>()
+}
+
+fn construct_flatbush_str<N: IndexableNum>(boxes_buf: &[N]) -> OwnedFlatbush<N> {
+    let mut builder = FlatbushBuilder::new(boxes_buf.len() / 4);
+    for box_ in boxes_buf.chunks(4) {
+        let min_x = box_[0];
+        let min_y = box_[1];
+        let max_x = box_[2];
+        let max_y = box_[3];
+        builder.add(min_x, min_y, max_x, max_y);
+    }
+    builder.finish::<STRSort>()
 }
 
 fn construct_flatbush_f32_with_cast(boxes_buf: &[f64]) -> OwnedFlatbush<f32> {
@@ -61,6 +74,10 @@ pub fn criterion_benchmark(c: &mut Criterion) {
         b.iter(|| construct_flatbush(&boxes_buf))
     });
 
+    c.bench_function("construction (flatbush, STRTree)", |b| {
+        b.iter(|| construct_flatbush_str(&boxes_buf))
+    });
+
     c.bench_function(
         "construction (flatbush f64 to f32, including casting)",
         |b| b.iter(|| construct_flatbush_f32_with_cast(&boxes_buf)),
@@ -75,6 +92,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     });
 
     let flatbush_tree = construct_flatbush(&boxes_buf);
+    let flatbush_str_tree = construct_flatbush_str(&boxes_buf);
     let flatbush_f32_tree = construct_flatbush_f32_with_cast(&boxes_buf);
     let rstar_tree = construct_rstar(rect_vec.to_vec());
     let (min_x, min_y, max_x, max_y) = (-112.007493, 40.633799, -111.920964, 40.694228);
@@ -84,6 +102,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     let max_y_f32 = max_y as f32;
 
     let flatbush_search_results = flatbush_tree.search(min_x, min_y, max_x, max_y);
+    let flatbush_str_search_results = flatbush_str_tree.search(min_x, min_y, max_x, max_y);
     let flatbush_f32_search_results =
         flatbush_f32_tree.search(min_x_f32, min_y_f32, max_x_f32, max_y_f32);
     let rstar_search_results = {
@@ -97,6 +116,10 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     println!(
         "search() results in {} items",
         flatbush_search_results.len()
+    );
+    println!(
+        "search() on STRTree results in {} items",
+        flatbush_str_search_results.len()
     );
     println!(
         "search() on f32 results in {} items",
@@ -113,6 +136,10 @@ pub fn criterion_benchmark(c: &mut Criterion) {
 
     c.bench_function("search (flatbush)", |b| {
         b.iter(|| flatbush_tree.search(min_x, min_y, max_x, max_y))
+    });
+
+    c.bench_function("search (flatbush STRTree)", |b| {
+        b.iter(|| flatbush_str_tree.search(min_x, min_y, max_x, max_y))
     });
 
     c.bench_function("search (flatbush f32)", |b| {
