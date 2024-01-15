@@ -42,6 +42,7 @@ pub struct KDTreeRef<'a, N: IndexableNum> {
 impl<'a, N: IndexableNum> KDTreeRef<'a, N> {
     pub fn try_new<T: AsRef<[u8]>>(data: &'a T) -> Result<Self, GeoIndexError> {
         let data = data.as_ref();
+        // TODO: validate length of slice?
 
         if data[0] != KDBUSH_MAGIC {
             return Err(GeoIndexError::General(
@@ -54,6 +55,18 @@ impl<'a, N: IndexableNum> KDTreeRef<'a, N> {
         if version != KDBUSH_VERSION {
             return Err(GeoIndexError::General(
                 format!("Got v{} data when expected v{}.", version, KDBUSH_VERSION).to_string(),
+            ));
+        }
+
+        let type_ = version_and_type & 0x0f;
+        if type_ != N::TYPE_INDEX {
+            return Err(GeoIndexError::General(
+                format!(
+                    "Got type {} data when expected type {}.",
+                    type_,
+                    N::TYPE_INDEX
+                )
+                .to_string(),
             ));
         }
 
