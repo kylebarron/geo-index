@@ -1,8 +1,9 @@
 use bytemuck::cast_slice;
 use criterion::{criterion_group, criterion_main, Criterion};
 use geo_index::r#type::IndexableNum;
+use geo_index::rtree::sort::{HilbertSort, STRSort};
 use geo_index::rtree::util::f64_box_to_f32;
-use geo_index::rtree::{HilbertSort, OwnedRTree, RTreeBuilder, RTreeIndex, STRSort};
+use geo_index::rtree::{OwnedRTree, RTreeBuilder, RTreeIndex};
 use rstar::primitives::{GeomWithData, Rectangle};
 use rstar::{RTree, AABB};
 use std::fs::read;

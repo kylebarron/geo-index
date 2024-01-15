@@ -2,7 +2,7 @@ use std::fs::read;
 
 use bytemuck::cast_slice;
 
-use crate::rtree::HilbertSort;
+use crate::rtree::sort::HilbertSort;
 use crate::rtree::{OwnedRTree, RTreeBuilder, RTreeRef};
 
 fn create_flatbush_from_data_path(data_path: &str) -> OwnedRTree<f64> {

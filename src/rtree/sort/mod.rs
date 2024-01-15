@@ -1,6 +1,6 @@
-pub mod hilbert;
-pub mod str;
-pub mod r#trait;
+mod hilbert;
+mod str;
+mod r#trait;
 
 pub use hilbert::HilbertSort;
 pub use r#str::STRSort;
