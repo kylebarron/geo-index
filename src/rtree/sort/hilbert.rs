@@ -2,7 +2,12 @@ use crate::indices::MutableIndices;
 use crate::r#type::IndexableNum;
 use crate::rtree::sort::{Sort, SortParams};
 
-#[derive(Debug, Clone, Copy)]
+/// An implementation of hilbert sorting.
+///
+/// The implementation is ported from the original [flatbush](https://github.com/mourner/flatbush)
+/// JavaScript library. The hilbert calculations are originally derived from [a C++
+/// implementation](https://github.com/rawrunprotected/hilbert_curves).
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct HilbertSort;
 
 impl<N: IndexableNum> Sort<N> for HilbertSort {

@@ -1,5 +1,8 @@
+//! Data structures to hold indices that may be either `u16` or `u32` to save space.
+
 use bytemuck::{cast_slice, cast_slice_mut};
 
+/// A mutable slice of indices that may be either `u16` or `u32`.
 #[derive(Debug)]
 pub enum MutableIndices<'a> {
     U16(&'a mut [u16]),
@@ -76,7 +79,8 @@ impl MutableIndices<'_> {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+/// A slice of indices that may be either `u16` or `u32`.
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Indices<'a> {
     U16(&'a [u16]),
     U32(&'a [u32]),

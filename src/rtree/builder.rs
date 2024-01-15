@@ -9,6 +9,7 @@ use crate::rtree::index::OwnedRTree;
 use crate::rtree::sort::{Sort, SortParams};
 use crate::rtree::util::compute_num_nodes;
 
+/// A builder to create an [`OwnedRTree`].
 pub struct RTreeBuilder<N: IndexableNum> {
     /// data buffer
     data: Vec<u8>,
@@ -28,10 +29,12 @@ pub struct RTreeBuilder<N: IndexableNum> {
 }
 
 impl<N: IndexableNum> RTreeBuilder<N> {
+    /// Create a new builder with the provided number of items and the default node size.
     pub fn new(num_items: usize) -> Self {
         Self::new_with_node_size(num_items, 16)
     }
 
+    /// Create a new builder with the provided number of items and node size.
     pub fn new_with_node_size(num_items: usize, node_size: usize) -> Self {
         assert!((2..=65535).contains(&node_size));
         assert!(num_items <= u32::MAX.try_into().unwrap());
@@ -104,6 +107,7 @@ impl<N: IndexableNum> RTreeBuilder<N> {
         index
     }
 
+    /// Consume this builder, perfoming the sort and generating an RTree ready for queries.
     pub fn finish<S: Sort<N>>(mut self) -> OwnedRTree<N> {
         assert_eq!(
             self.pos >> 2,

@@ -5,6 +5,10 @@ use crate::indices::MutableIndices;
 use crate::r#type::IndexableNum;
 use crate::rtree::sort::{Sort, SortParams};
 
+/// An implementation of sort-tile-recursive (STR) sorting.
+///
+/// The implementation is derived from [this
+/// paper](https://ia600900.us.archive.org/27/items/nasa_techdoc_19970016975/19970016975.pdf).
 #[derive(Debug, Clone, Copy)]
 pub struct STRSort;
 

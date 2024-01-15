@@ -10,6 +10,7 @@ use crate::r#type::IndexableNum;
 
 const DEFAULT_NODE_SIZE: usize = 64;
 
+/// A builder to create an [`OwnedKDTree`].
 pub struct KDTreeBuilder<N: IndexableNum> {
     /// data buffer
     data: Vec<u8>,
@@ -27,10 +28,12 @@ pub struct KDTreeBuilder<N: IndexableNum> {
 }
 
 impl<N: IndexableNum> KDTreeBuilder<N> {
+    /// Create a new builder with the provided number of items and the default node size.
     pub fn new(num_items: usize) -> Self {
         Self::new_with_node_size(num_items, DEFAULT_NODE_SIZE)
     }
 
+    /// Create a new builder with the provided number of items and node size.
     pub fn new_with_node_size(num_items: usize, node_size: usize) -> Self {
         assert!((2..=65535).contains(&node_size));
         assert!(num_items <= u32::MAX.try_into().unwrap());
@@ -82,6 +85,7 @@ impl<N: IndexableNum> KDTreeBuilder<N> {
         index
     }
 
+    /// Consume this builder, perfoming the k-d sort and generating a KDTree ready for queries.
     pub fn finish(mut self) -> OwnedKDTree<N> {
         assert_eq!(
             self.pos >> 1,

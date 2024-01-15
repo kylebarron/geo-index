@@ -1,9 +1,11 @@
+//! An implementation of a static, ABI-stable RTree.
+
 mod builder;
 mod constants;
 mod index;
 pub mod sort;
 mod r#trait;
-mod traversal;
+pub mod traversal;
 pub mod util;
 
 pub use builder::RTreeBuilder;

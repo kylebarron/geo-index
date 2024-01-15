@@ -7,6 +7,9 @@ use crate::indices::Indices;
 use crate::kdtree::constants::{KDBUSH_HEADER_SIZE, KDBUSH_MAGIC, KDBUSH_VERSION};
 use crate::r#type::IndexableNum;
 
+/// An owned KDTree buffer.
+///
+/// Usually this will be created from scratch via [`KDTreeBuilder`][crate::kdtree::KDTreeBuilder].
 #[derive(Debug, Clone, PartialEq)]
 pub struct OwnedKDTree<N: IndexableNum> {
     pub(crate) buffer: Vec<u8>,
@@ -31,7 +34,11 @@ impl<N: IndexableNum> AsRef<[u8]> for OwnedKDTree<N> {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+/// A reference on an external KDTree buffer.
+///
+/// Usually this will be created from an [`OwnedKDTree`] via its [`as_ref`][OwnedKDTree::as_ref]
+/// method, but it can also be created from any existing data buffer.
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct KDTreeRef<'a, N: IndexableNum> {
     pub(crate) coords: &'a [N],
     pub(crate) ids: Indices<'a>,

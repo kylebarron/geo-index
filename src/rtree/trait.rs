@@ -8,13 +8,26 @@ use crate::rtree::index::{OwnedRTree, RTreeRef};
 use crate::rtree::traversal::{IntersectionIterator, Node};
 
 pub trait RTreeIndex<N: IndexableNum>: Sized {
+    /// A slice representing all the bounding boxes of all elements contained within this tree,
+    /// including the bounding boxes of each internal node.
     fn boxes(&self) -> &[N];
+
+    /// A slice representing the indices within the `boxes` slice, including internal nodes.
     fn indices(&self) -> Cow<'_, Indices>;
+
+    /// The total number of items contained in this RTree.
     fn num_items(&self) -> usize;
+
+    /// The total number of nodes in this RTree, including both leaf and intermediate nodes.
     fn num_nodes(&self) -> usize;
+
+    /// The maximum number of elements in each node.
     fn node_size(&self) -> usize;
     fn level_bounds(&self) -> &[usize];
 
+    /// Search an RTree given the provided bounding box.
+    ///
+    /// Results are the indexes of the inserted objects in insertion order.
     fn search(&self, min_x: N, min_y: N, max_x: N, max_y: N) -> Vec<usize> {
         let boxes = self.boxes();
         let indices = self.indices();
@@ -60,40 +73,44 @@ pub trait RTreeIndex<N: IndexableNum>: Sized {
         results
     }
 
-    #[allow(unused_mut, unused_labels, unused_variables)]
-    fn neighbors(&self, x: N, y: N, max_distance: Option<N>) -> Vec<usize> {
-        let boxes = self.boxes();
-        let indices = self.indices();
-        let max_distance = max_distance.unwrap_or(N::max_value());
+    // #[allow(unused_mut, unused_labels, unused_variables)]
+    // fn neighbors(&self, x: N, y: N, max_distance: Option<N>) -> Vec<usize> {
+    //     let boxes = self.boxes();
+    //     let indices = self.indices();
+    //     let max_distance = max_distance.unwrap_or(N::max_value());
 
-        let mut outer_node_index = Some(boxes.len() - 4);
+    //     let mut outer_node_index = Some(boxes.len() - 4);
 
-        let mut results = vec![];
-        let max_dist_squared = max_distance * max_distance;
+    //     let mut results = vec![];
+    //     let max_dist_squared = max_distance * max_distance;
 
-        'outer: while let Some(node_index) = outer_node_index {
-            // find the end index of the node
-            let end = (node_index + self.node_size() * 4)
-                .min(upper_bound(node_index, self.level_bounds()));
+    //     'outer: while let Some(node_index) = outer_node_index {
+    //         // find the end index of the node
+    //         let end = (node_index + self.node_size() * 4)
+    //             .min(upper_bound(node_index, self.level_bounds()));
 
-            // add child nodes to the queue
-            for pos in (node_index..end).step_by(4) {
-                let index = indices.get(pos >> 2);
+    //         // add child nodes to the queue
+    //         for pos in (node_index..end).step_by(4) {
+    //             let index = indices.get(pos >> 2);
 
-                let dx = axis_dist(x, boxes[pos], boxes[pos + 2]);
-                let dy = axis_dist(y, boxes[pos + 1], boxes[pos + 3]);
-                let dist = dx * dx + dy * dy;
-                if dist > max_dist_squared {
-                    continue;
-                }
-            }
+    //             let dx = axis_dist(x, boxes[pos], boxes[pos + 2]);
+    //             let dy = axis_dist(y, boxes[pos + 1], boxes[pos + 3]);
+    //             let dist = dx * dx + dy * dy;
+    //             if dist > max_dist_squared {
+    //                 continue;
+    //             }
+    //         }
 
-            // break 'outer;
-        }
+    //         // break 'outer;
+    //     }
 
-        results
-    }
+    //     results
+    // }
 
+    /// Returns an iterator over the indexes of objects in this and another tree that intersect.
+    ///
+    /// Each returned object is of the form `(usize, usize)`, where the first is the positional
+    /// index of the "left" tree and the second is the index of the "right" tree.
     fn intersection_candidates_with_other_tree<'a>(
         &'a self,
         other: &'a impl RTreeIndex<N>,
@@ -101,6 +118,7 @@ pub trait RTreeIndex<N: IndexableNum>: Sized {
         IntersectionIterator::from_trees(self, other)
     }
 
+    /// Access the root node of the RTree for manual traversal.
     fn root(&self) -> Node<'_, N, Self> {
         Node::from_root(self)
     }
@@ -168,11 +186,7 @@ impl<N: IndexableNum> RTreeIndex<N> for RTreeRef<'_, N> {
     }
 }
 
-/**
- * Binary search for the first value in the array bigger than the given.
- * @param {number} value
- * @param {number[]} arr
- */
+/// Binary search for the first value in the array bigger than the given.
 #[inline]
 fn upper_bound(value: usize, arr: &[usize]) -> usize {
     let mut i = 0;
@@ -190,12 +204,8 @@ fn upper_bound(value: usize, arr: &[usize]) -> usize {
     arr[i]
 }
 
-/**
- * 1D distance from a value to a range.
- * @param {number} k
- * @param {number} min
- * @param {number} max
- */
+/// 1D distance from a value to a range.
+#[allow(dead_code)]
 #[inline]
 fn axis_dist<N: IndexableNum>(k: N, min: N, max: N) -> N {
     if k < min {
