@@ -137,7 +137,7 @@ fn coords() -> Vec<f64> {
     coords.into_iter().map(|c| c.into()).collect()
 }
 
-fn make_index() -> OwnedKDTree {
+fn make_index() -> OwnedKDTree<f64> {
     let points = points();
 
     let mut builder = KDTreeBuilder::new_with_node_size(points.len(), 10);

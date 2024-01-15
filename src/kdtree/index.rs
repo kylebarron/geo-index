@@ -1,47 +1,51 @@
+use std::marker::PhantomData;
+
 use bytemuck::cast_slice;
 
 use crate::error::GeoIndexError;
 use crate::indices::Indices;
 use crate::kdtree::constants::{KDBUSH_HEADER_SIZE, KDBUSH_MAGIC, KDBUSH_VERSION};
+use crate::r#type::IndexableNum;
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct OwnedKDTree {
+pub struct OwnedKDTree<N: IndexableNum> {
     pub(crate) buffer: Vec<u8>,
     pub(crate) node_size: usize,
     pub(crate) num_items: usize,
+    pub(crate) phantom: PhantomData<N>,
 }
 
-impl OwnedKDTree {
+impl<N: IndexableNum> OwnedKDTree<N> {
     pub fn into_inner(self) -> Vec<u8> {
         self.buffer
     }
 
-    pub fn as_ref(&self) -> KDTreeRef {
+    pub fn as_ref(&self) -> KDTreeRef<N> {
         KDTreeRef::try_new(self).unwrap()
     }
 }
 
-impl AsRef<[u8]> for OwnedKDTree {
+impl<N: IndexableNum> AsRef<[u8]> for OwnedKDTree<N> {
     fn as_ref(&self) -> &[u8] {
         &self.buffer
     }
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct KDTreeRef<'a> {
-    pub(crate) coords: &'a [f64],
+pub struct KDTreeRef<'a, N: IndexableNum> {
+    pub(crate) coords: &'a [N],
     pub(crate) ids: Indices<'a>,
     pub(crate) node_size: usize,
     pub(crate) num_items: usize,
 }
 
-impl<'a> KDTreeRef<'a> {
+impl<'a, N: IndexableNum> KDTreeRef<'a, N> {
     pub fn try_new<T: AsRef<[u8]>>(data: &'a T) -> Result<Self, GeoIndexError> {
         let data = data.as_ref();
 
         if data[0] != KDBUSH_MAGIC {
             return Err(GeoIndexError::General(
-                "Data does not appear to be in a Kdbush format.".to_string(),
+                "Data not in Kdbush format.".to_string(),
             ));
         }
 
@@ -58,8 +62,7 @@ impl<'a> KDTreeRef<'a> {
         let node_size = node_size as usize;
         let num_items = num_items as usize;
 
-        let f64_bytes_per_element = 8;
-        let coords_byte_size = num_items * 2 * f64_bytes_per_element;
+        let coords_byte_size = num_items * 2 * N::BYTES_PER_ELEMENT;
         let indices_bytes_per_element = if num_items < 65536 { 2 } else { 4 };
         let ids_byte_size = num_items * indices_bytes_per_element;
         let pad_coords_byte_size = (8 - (ids_byte_size % 8)) % 8;
