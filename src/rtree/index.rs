@@ -24,7 +24,7 @@ impl<N: IndexableNum> OwnedRTree<N> {
         self.buffer
     }
 
-    pub fn as_flatbush(&self) -> RTreeRef<N> {
+    pub fn as_ref(&self) -> RTreeRef<N> {
         RTreeRef {
             boxes: self.boxes(),
             indices: self.indices().into_owned(),
@@ -60,7 +60,7 @@ impl<'a, N: IndexableNum> RTreeRef<'a, N> {
         let magic = data[0];
         if magic != 0xfb {
             return Err(GeoIndexError::General(
-                "Data does not appear to be in a Flatbush format.".to_string(),
+                "Data not in Flatbush format.".to_string(),
             ));
         }
 

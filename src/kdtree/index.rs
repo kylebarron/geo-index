@@ -16,7 +16,7 @@ impl OwnedKDTree {
         self.buffer
     }
 
-    pub fn as_kdbush(&self) -> KDTreeRef {
+    pub fn as_ref(&self) -> KDTreeRef {
         KDTreeRef::try_new(self).unwrap()
     }
 }
