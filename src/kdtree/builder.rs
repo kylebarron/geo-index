@@ -1,18 +1,16 @@
 use std::cmp;
+use std::marker::PhantomData;
 
 use bytemuck::cast_slice_mut;
 
 use crate::indices::MutableIndices;
 use crate::kdtree::constants::{KDBUSH_HEADER_SIZE, KDBUSH_MAGIC, KDBUSH_VERSION};
 use crate::kdtree::OwnedKDTree;
-
-// Scalar array type to match js
-// https://github.com/mourner/kdbush/blob/0309d1e9a1a53fd47f65681c6845627c566d63a6/index.js#L2-L5
-const ARRAY_TYPE_INDEX: u8 = 8;
+use crate::r#type::IndexableNum;
 
 const DEFAULT_NODE_SIZE: usize = 64;
 
-pub struct KDTreeBuilder {
+pub struct KDTreeBuilder<N: IndexableNum> {
     /// data buffer
     data: Vec<u8>,
 
@@ -20,13 +18,15 @@ pub struct KDTreeBuilder {
     node_size: usize,
 
     coords_byte_size: usize,
-    ids_byte_size: usize,
+    indices_byte_size: usize,
     pad_coords_byte_size: usize,
 
     pos: usize,
+
+    phantom: PhantomData<N>,
 }
 
-impl KDTreeBuilder {
+impl<N: IndexableNum> KDTreeBuilder<N> {
     pub fn new(num_items: usize) -> Self {
         Self::new_with_node_size(num_items, DEFAULT_NODE_SIZE)
     }
@@ -35,20 +35,18 @@ impl KDTreeBuilder {
         assert!((2..=65535).contains(&node_size));
         assert!(num_items <= u32::MAX.try_into().unwrap());
 
-        // TODO: make generic and remove hardcoded f64
-        let f64_bytes_per_element = 8;
-        let coords_byte_size = num_items * 2 * f64_bytes_per_element;
+        let coords_byte_size = num_items * 2 * N::BYTES_PER_ELEMENT;
         let indices_bytes_per_element = if num_items < 65536 { 2 } else { 4 };
-        let ids_byte_size = num_items * indices_bytes_per_element;
-        let pad_coords_byte_size = (8 - (ids_byte_size % 8)) % 8;
+        let indices_byte_size = num_items * indices_bytes_per_element;
+        let pad_coords_byte_size = (8 - (indices_byte_size % 8)) % 8;
 
         let data_buffer_length =
-            KDBUSH_HEADER_SIZE + coords_byte_size + ids_byte_size + pad_coords_byte_size;
+            KDBUSH_HEADER_SIZE + coords_byte_size + indices_byte_size + pad_coords_byte_size;
         let mut data = vec![0; data_buffer_length];
 
         // Set data header;
         data[0] = KDBUSH_MAGIC;
-        data[1] = (KDBUSH_VERSION << 4) + ARRAY_TYPE_INDEX;
+        data[1] = (KDBUSH_VERSION << 4) + N::TYPE_INDEX;
         cast_slice_mut(&mut data[2..4])[0] = node_size as u16;
         cast_slice_mut(&mut data[4..8])[0] = num_items as u32;
 
@@ -57,19 +55,20 @@ impl KDTreeBuilder {
             num_items,
             node_size,
             coords_byte_size,
-            ids_byte_size,
+            indices_byte_size,
             pad_coords_byte_size,
             pos: 0,
+            phantom: PhantomData,
         }
     }
 
     /// Add a point to the index.
-    pub fn add(&mut self, x: f64, y: f64) -> usize {
+    pub fn add(&mut self, x: N, y: N) -> usize {
         let index = self.pos >> 1;
         let (coords, mut ids) = split_data_borrow(
             &mut self.data,
             self.num_items,
-            self.ids_byte_size,
+            self.indices_byte_size,
             self.coords_byte_size,
             self.pad_coords_byte_size,
         );
@@ -83,7 +82,7 @@ impl KDTreeBuilder {
         index
     }
 
-    pub fn finish(mut self) -> OwnedKDTree {
+    pub fn finish(mut self) -> OwnedKDTree<N> {
         assert_eq!(
             self.pos >> 1,
             self.num_items,
@@ -92,10 +91,10 @@ impl KDTreeBuilder {
             self.num_items
         );
 
-        let (coords, mut ids) = split_data_borrow(
+        let (coords, mut ids) = split_data_borrow::<N>(
             &mut self.data,
             self.num_items,
-            self.ids_byte_size,
+            self.indices_byte_size,
             self.coords_byte_size,
             self.pad_coords_byte_size,
         );
@@ -107,19 +106,20 @@ impl KDTreeBuilder {
             buffer: self.data,
             node_size: self.node_size,
             num_items: self.num_items,
+            phantom: PhantomData,
         }
     }
 }
 
 /// Mutable borrow of coords and ids
-fn split_data_borrow(
+fn split_data_borrow<N: IndexableNum>(
     data: &mut [u8],
     num_items: usize,
-    ids_byte_size: usize,
+    indices_byte_size: usize,
     coords_byte_size: usize,
     pad_coords: usize,
-) -> (&mut [f64], MutableIndices) {
-    let (ids_buf, padded_coords_buf) = data[KDBUSH_HEADER_SIZE..].split_at_mut(ids_byte_size);
+) -> (&mut [N], MutableIndices) {
+    let (ids_buf, padded_coords_buf) = data[KDBUSH_HEADER_SIZE..].split_at_mut(indices_byte_size);
     let coords_buf = &mut padded_coords_buf[pad_coords..];
     debug_assert_eq!(coords_buf.len(), coords_byte_size);
 
@@ -133,9 +133,9 @@ fn split_data_borrow(
     (coords, ids)
 }
 
-fn sort(
+fn sort<N: IndexableNum>(
     ids: &mut MutableIndices,
-    coords: &mut [f64],
+    coords: &mut [N],
     node_size: usize,
     left: usize,
     right: usize,
@@ -160,9 +160,9 @@ fn sort(
 /// Custom Floyd-Rivest selection algorithm: sort ids and coords so that [left..k-1] items are
 /// smaller than k-th item (on either x or y axis)
 #[inline]
-fn select(
+fn select<N: IndexableNum>(
     ids: &mut MutableIndices,
-    coords: &mut [f64],
+    coords: &mut [N],
     k: usize,
     mut left: usize,
     mut right: usize,
@@ -223,7 +223,7 @@ fn select(
 }
 
 #[inline]
-fn swap_item(ids: &mut MutableIndices, coords: &mut [f64], i: usize, j: usize) {
+fn swap_item<N: IndexableNum>(ids: &mut MutableIndices, coords: &mut [N], i: usize, j: usize) {
     ids.swap(i, j);
     coords.swap(2 * i, 2 * j);
     coords.swap(2 * i + 1, 2 * j + 1);

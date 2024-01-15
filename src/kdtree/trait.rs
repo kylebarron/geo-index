@@ -4,11 +4,12 @@ use tinyvec::TinyVec;
 
 use crate::indices::Indices;
 use crate::kdtree::KDTreeRef;
+use crate::r#type::IndexableNum;
 
-pub trait KDTreeIndex {
+pub trait KDTreeIndex<N: IndexableNum> {
     fn num_items(&self) -> usize;
     fn node_size(&self) -> usize;
-    fn coords(&self) -> &[f64];
+    fn coords(&self) -> &[N];
     fn ids(&self) -> Cow<'_, Indices>;
 
     /// Search the index for items within a given bounding box.
@@ -19,7 +20,7 @@ pub trait KDTreeIndex {
     /// - max_y: bbox
     ///
     /// Returns indices of found items
-    fn range(&self, min_x: f64, min_y: f64, max_x: f64, max_y: f64) -> Vec<usize> {
+    fn range(&self, min_x: N, min_y: N, max_x: N, max_y: N) -> Vec<usize> {
         let ids = self.ids();
         let coords = self.coords();
         let node_size = self.node_size();
@@ -86,7 +87,7 @@ pub trait KDTreeIndex {
     /// - r: radius
     ///
     /// Returns indices of found items
-    fn within(&self, qx: f64, qy: f64, r: f64) -> Vec<usize> {
+    fn within(&self, qx: N, qy: N, r: N) -> Vec<usize> {
         let ids = self.ids();
         let coords = self.coords();
         let node_size = self.node_size();
@@ -145,7 +146,7 @@ pub trait KDTreeIndex {
     }
 }
 
-impl KDTreeIndex for KDTreeRef<'_> {
+impl<N: IndexableNum> KDTreeIndex<N> for KDTreeRef<'_, N> {
     fn num_items(&self) -> usize {
         self.num_items
     }
@@ -154,7 +155,7 @@ impl KDTreeIndex for KDTreeRef<'_> {
         self.node_size
     }
 
-    fn coords(&self) -> &[f64] {
+    fn coords(&self) -> &[N] {
         self.coords
     }
 
@@ -164,7 +165,7 @@ impl KDTreeIndex for KDTreeRef<'_> {
 }
 
 #[inline]
-pub(crate) fn sq_dist(ax: f64, ay: f64, bx: f64, by: f64) -> f64 {
+pub(crate) fn sq_dist<N: IndexableNum>(ax: N, ay: N, bx: N, by: N) -> N {
     let dx = ax - bx;
     let dy = ay - by;
     dx * dx + dy * dy
