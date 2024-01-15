@@ -1,5 +1,8 @@
 # geo-index
 
+[![crates.io version](https://img.shields.io/crates/v/geo-index.svg)](https://crates.io/crates/geo-index)
+[![docs.rs docs](https://docs.rs/geo-index/badge.svg)](https://docs.rs/geo-index)
+
 A Rust crate for packed, static, zero-copy spatial indexes.
 
 ## Features
@@ -56,25 +59,37 @@ Currently, this library is used under the hood in [`geoarrow-rs`](https://github
 This is just _one_ benchmark; I recommend benchmarking with your own data, but this indicates construction is ~2x faster than `rstar` and search is ~33% faster.
 
 ```ignore
+cargo bench --bench rtree
+```
+
+```ignore
+construction (geo-index, hilbert)
+                        time:   [80.503 ms 80.891 ms 81.350 ms]
+construction (geo-index, STRTree)
+                        time:   [115.60 ms 116.52 ms 117.64 ms]
+construction (geo-index, hilbert, f64 to f32, including casting)
+                        time:   [86.409 ms 86.681 ms 86.984 ms]
+construction (geo-index f32)
+                        time:   [78.292 ms 78.393 ms 78.514 ms]
+construction (rstar bulk)
+                        time:   [158.48 ms 159.34 ms 160.29 ms]
+
+search (flatbush)       time:   [115.97 µs 116.41 µs 116.86 µs]
+search (flatbush STRTree)
+                        time:   [115.85 µs 117.57 µs 118.95 µs]
+search (flatbush f32)   time:   [113.04 µs 114.56 µs 115.99 µs]
+search (rstar)          time:   [151.53 µs 153.62 µs 155.84 µs]
+```
+
+With the `rayon` feature, the sorting phase of the `STRTree` is faster:
+
+```ignore
 cargo bench --bench rtree --features rayon
 ```
 
 ```ignore
-construction (rtree) time:   [77.642 ms 77.880 ms 78.153 ms]
-construction (rtree f64 to f32, including casting)
-                        time:   [86.559 ms 87.194 ms 88.119 ms]
-construction (rtree f32)
-                        time:   [79.957 ms 80.450 ms 81.125 ms]
-construction (rstar bulk)
-                        time:   [154.73 ms 155.12 ms 155.57 ms]
-
-search() results in 34384 items
-search() on f32 results in 34391 items
-
-rtree buffer size: 41533064 bytes
-rtree f32 buffer size: 23073928 bytes
-
-search (rtree)       time:   [98.864 µs 98.967 µs 99.084 µs]
-search (rtree f32)   time:   [104.81 µs 105.86 µs 107.02 µs]
-search (rstar)          time:   [149.09 µs 149.37 µs 149.64 µs]
+construction (geo-index, STRTree)
+                        time:   [71.825 ms 72.099 ms 72.382 ms]
+                        change: [-38.738% -38.125% -37.570%] (p = 0.00 < 0.05)
+                        Performance has improved.
 ```
