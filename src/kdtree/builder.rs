@@ -3,8 +3,8 @@ use std::cmp;
 use bytemuck::cast_slice_mut;
 
 use crate::indices::MutableIndices;
-use crate::kdbush::constants::{KDBUSH_HEADER_SIZE, KDBUSH_MAGIC, KDBUSH_VERSION};
-use crate::kdbush::OwnedKdbush;
+use crate::kdtree::constants::{KDBUSH_HEADER_SIZE, KDBUSH_MAGIC, KDBUSH_VERSION};
+use crate::kdtree::OwnedKDTree;
 
 // Scalar array type to match js
 // https://github.com/mourner/kdbush/blob/0309d1e9a1a53fd47f65681c6845627c566d63a6/index.js#L2-L5
@@ -12,7 +12,7 @@ const ARRAY_TYPE_INDEX: u8 = 8;
 
 const DEFAULT_NODE_SIZE: usize = 64;
 
-pub struct KdbushBuilder {
+pub struct KDTreeBuilder {
     /// data buffer
     data: Vec<u8>,
 
@@ -26,7 +26,7 @@ pub struct KdbushBuilder {
     pos: usize,
 }
 
-impl KdbushBuilder {
+impl KDTreeBuilder {
     pub fn new(num_items: usize) -> Self {
         Self::new_with_node_size(num_items, DEFAULT_NODE_SIZE)
     }
@@ -83,7 +83,7 @@ impl KdbushBuilder {
         index
     }
 
-    pub fn finish(mut self) -> OwnedKdbush {
+    pub fn finish(mut self) -> OwnedKDTree {
         assert_eq!(
             self.pos >> 1,
             self.num_items,
@@ -103,7 +103,7 @@ impl KdbushBuilder {
         // kd-sort both arrays for efficient search
         sort(&mut ids, coords, self.node_size, 0, self.num_items - 1, 0);
 
-        OwnedKdbush {
+        OwnedKDTree {
             buffer: self.data,
             node_size: self.node_size,
             num_items: self.num_items,

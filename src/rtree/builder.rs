@@ -2,14 +2,14 @@ use std::marker::PhantomData;
 
 use bytemuck::cast_slice_mut;
 
-use crate::flatbush::constants::VERSION;
-use crate::flatbush::index::OwnedFlatbush;
-use crate::flatbush::sort::{Sort, SortParams};
-use crate::flatbush::util::compute_num_nodes;
 use crate::indices::MutableIndices;
 use crate::r#type::IndexableNum;
+use crate::rtree::constants::VERSION;
+use crate::rtree::index::OwnedRTree;
+use crate::rtree::sort::{Sort, SortParams};
+use crate::rtree::util::compute_num_nodes;
 
-pub struct FlatbushBuilder<N: IndexableNum> {
+pub struct RTreeBuilder<N: IndexableNum> {
     /// data buffer
     data: Vec<u8>,
     num_items: usize,
@@ -27,7 +27,7 @@ pub struct FlatbushBuilder<N: IndexableNum> {
     max_y: N,
 }
 
-impl<N: IndexableNum> FlatbushBuilder<N> {
+impl<N: IndexableNum> RTreeBuilder<N> {
     pub fn new(num_items: usize) -> Self {
         Self::new_with_node_size(num_items, 16)
     }
@@ -104,7 +104,7 @@ impl<N: IndexableNum> FlatbushBuilder<N> {
         index
     }
 
-    pub fn finish<S: Sort<N>>(mut self) -> OwnedFlatbush<N> {
+    pub fn finish<S: Sort<N>>(mut self) -> OwnedRTree<N> {
         assert_eq!(
             self.pos >> 2,
             self.num_items,
@@ -131,7 +131,7 @@ impl<N: IndexableNum> FlatbushBuilder<N> {
             boxes[self.pos] = self.max_y;
             self.pos += 1;
 
-            return OwnedFlatbush {
+            return OwnedRTree {
                 buffer: self.data,
                 node_size: self.node_size,
                 num_items: self.num_items,
@@ -204,7 +204,7 @@ impl<N: IndexableNum> FlatbushBuilder<N> {
             }
         }
 
-        OwnedFlatbush {
+        OwnedRTree {
             buffer: self.data,
             node_size: self.node_size,
             num_items: self.num_items,

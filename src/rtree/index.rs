@@ -2,15 +2,15 @@ use std::marker::PhantomData;
 
 use bytemuck::cast_slice;
 
-use crate::flatbush::constants::VERSION;
-use crate::flatbush::error::FlatbushError;
-use crate::flatbush::r#trait::FlatbushIndex;
-use crate::flatbush::util::compute_num_nodes;
+use crate::error::GeoIndexError;
 use crate::indices::Indices;
 use crate::r#type::IndexableNum;
+use crate::rtree::constants::VERSION;
+use crate::rtree::r#trait::RTreeIndex;
+use crate::rtree::util::compute_num_nodes;
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct OwnedFlatbush<N: IndexableNum> {
+pub struct OwnedRTree<N: IndexableNum> {
     pub(crate) buffer: Vec<u8>,
     pub(crate) node_size: usize,
     pub(crate) num_items: usize,
@@ -19,13 +19,13 @@ pub struct OwnedFlatbush<N: IndexableNum> {
     pub(crate) phantom: PhantomData<N>,
 }
 
-impl<N: IndexableNum> OwnedFlatbush<N> {
+impl<N: IndexableNum> OwnedRTree<N> {
     pub fn into_inner(self) -> Vec<u8> {
         self.buffer
     }
 
-    pub fn as_flatbush(&self) -> FlatbushRef<N> {
-        FlatbushRef {
+    pub fn as_ref(&self) -> RTreeRef<N> {
+        RTreeRef {
             boxes: self.boxes(),
             indices: self.indices().into_owned(),
             node_size: self.node_size,
@@ -36,14 +36,14 @@ impl<N: IndexableNum> OwnedFlatbush<N> {
     }
 }
 
-impl<N: IndexableNum> AsRef<[u8]> for OwnedFlatbush<N> {
+impl<N: IndexableNum> AsRef<[u8]> for OwnedRTree<N> {
     fn as_ref(&self) -> &[u8] {
         &self.buffer
     }
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct FlatbushRef<'a, N: IndexableNum> {
+pub struct RTreeRef<'a, N: IndexableNum> {
     pub(crate) boxes: &'a [N],
     pub(crate) indices: Indices<'a>,
     pub(crate) node_size: usize,
@@ -52,22 +52,22 @@ pub struct FlatbushRef<'a, N: IndexableNum> {
     pub(crate) level_bounds: Vec<usize>,
 }
 
-impl<'a, N: IndexableNum> FlatbushRef<'a, N> {
-    pub fn try_new<T: AsRef<[u8]>>(data: &'a T) -> Result<Self, FlatbushError> {
+impl<'a, N: IndexableNum> RTreeRef<'a, N> {
+    pub fn try_new<T: AsRef<[u8]>>(data: &'a T) -> Result<Self, GeoIndexError> {
         let data = data.as_ref();
         // TODO: validate length of slice?
 
         let magic = data[0];
         if magic != 0xfb {
-            return Err(FlatbushError::General(
-                "Data does not appear to be in a Flatbush format.".to_string(),
+            return Err(GeoIndexError::General(
+                "Data not in Flatbush format.".to_string(),
             ));
         }
 
         let version_and_type = data[1];
         let version = version_and_type >> 4;
         if version != VERSION {
-            return Err(FlatbushError::General(
+            return Err(GeoIndexError::General(
                 format!("Got v{} data when expected v{}.", version, VERSION).to_string(),
             ));
         }

@@ -1,46 +1,46 @@
 use bytemuck::cast_slice;
 
+use crate::error::GeoIndexError;
 use crate::indices::Indices;
-use crate::kdbush::constants::{KDBUSH_HEADER_SIZE, KDBUSH_MAGIC, KDBUSH_VERSION};
-use crate::kdbush::error::KdbushError;
+use crate::kdtree::constants::{KDBUSH_HEADER_SIZE, KDBUSH_MAGIC, KDBUSH_VERSION};
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct OwnedKdbush {
+pub struct OwnedKDTree {
     pub(crate) buffer: Vec<u8>,
     pub(crate) node_size: usize,
     pub(crate) num_items: usize,
 }
 
-impl OwnedKdbush {
+impl OwnedKDTree {
     pub fn into_inner(self) -> Vec<u8> {
         self.buffer
     }
 
-    pub fn as_kdbush(&self) -> KdbushRef {
-        KdbushRef::try_new(self).unwrap()
+    pub fn as_ref(&self) -> KDTreeRef {
+        KDTreeRef::try_new(self).unwrap()
     }
 }
 
-impl AsRef<[u8]> for OwnedKdbush {
+impl AsRef<[u8]> for OwnedKDTree {
     fn as_ref(&self) -> &[u8] {
         &self.buffer
     }
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct KdbushRef<'a> {
+pub struct KDTreeRef<'a> {
     pub(crate) coords: &'a [f64],
     pub(crate) ids: Indices<'a>,
     pub(crate) node_size: usize,
     pub(crate) num_items: usize,
 }
 
-impl<'a> KdbushRef<'a> {
-    pub fn try_new<T: AsRef<[u8]>>(data: &'a T) -> Result<Self, KdbushError> {
+impl<'a> KDTreeRef<'a> {
+    pub fn try_new<T: AsRef<[u8]>>(data: &'a T) -> Result<Self, GeoIndexError> {
         let data = data.as_ref();
 
         if data[0] != KDBUSH_MAGIC {
-            return Err(KdbushError::General(
+            return Err(GeoIndexError::General(
                 "Data does not appear to be in a Kdbush format.".to_string(),
             ));
         }
@@ -48,7 +48,7 @@ impl<'a> KdbushRef<'a> {
         let version_and_type = data[1];
         let version = version_and_type >> 4;
         if version != KDBUSH_VERSION {
-            return Err(KdbushError::General(
+            return Err(GeoIndexError::General(
                 format!("Got v{} data when expected v{}.", version, KDBUSH_VERSION).to_string(),
             ));
         }

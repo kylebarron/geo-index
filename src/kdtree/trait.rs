@@ -3,9 +3,9 @@ use std::borrow::Cow;
 use tinyvec::TinyVec;
 
 use crate::indices::Indices;
-use crate::kdbush::KdbushRef;
+use crate::kdtree::KDTreeRef;
 
-pub trait KdbushIndex {
+pub trait KDTreeIndex {
     fn num_items(&self) -> usize;
     fn node_size(&self) -> usize;
     fn coords(&self) -> &[f64];
@@ -145,7 +145,7 @@ pub trait KdbushIndex {
     }
 }
 
-impl KdbushIndex for KdbushRef<'_> {
+impl KDTreeIndex for KDTreeRef<'_> {
     fn num_items(&self) -> usize {
         self.num_items
     }

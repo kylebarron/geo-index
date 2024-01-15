@@ -1,5 +1,5 @@
 [package]
-name = "flatbush"
+name = "geo-index"
 version = "0.1.0"
 edition = "2021"
 rust-version = "1.75"
@@ -19,5 +19,5 @@ criterion = { version = "0.5", features = ["html_reports"] }
 rstar = "0.11"
 
 [[bench]]
-name = "flatbush"
+name = "rtree"
 harness = false

@@ -31,7 +31,7 @@ pub fn f64_box_to_f32(min_x: f64, min_y: f64, max_x: f64, max_y: f64) -> (f32, f
 
 #[cfg(test)]
 mod test {
-    use crate::flatbush::util::f64_box_to_f32;
+    use crate::rtree::util::f64_box_to_f32;
 
     #[test]
     fn test_f32_box() {

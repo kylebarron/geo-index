@@ -1,6 +1,6 @@
 use crate::indices::Indices;
-use crate::kdbush::r#trait::sq_dist;
-use crate::{KdbushBuilder, KdbushIndex, OwnedKdbush};
+use crate::kdtree::r#trait::sq_dist;
+use crate::kdtree::{KDTreeBuilder, KDTreeIndex, OwnedKDTree};
 
 fn points() -> Vec<(f64, f64)> {
     let coords: Vec<[i32; 2]> = vec![
@@ -137,10 +137,10 @@ fn coords() -> Vec<f64> {
     coords.into_iter().map(|c| c.into()).collect()
 }
 
-fn make_index() -> OwnedKdbush {
+fn make_index() -> OwnedKDTree {
     let points = points();
 
-    let mut builder = KdbushBuilder::new_with_node_size(points.len(), 10);
+    let mut builder = KDTreeBuilder::new_with_node_size(points.len(), 10);
     for (x, y) in points {
         builder.add(x, y);
     }
@@ -150,7 +150,7 @@ fn make_index() -> OwnedKdbush {
 #[test]
 fn creates_an_index() {
     let owned_index = make_index();
-    let kdbush = owned_index.as_kdbush();
+    let kdbush = owned_index.as_ref();
     let tree_ids = kdbush.ids().into_owned();
     let tree_ids = match tree_ids {
         Indices::U16(arr) => arr,
@@ -168,7 +168,7 @@ fn creates_an_index() {
 #[test]
 fn range_search() {
     let owned_index = make_index();
-    let kdbush = owned_index.as_kdbush();
+    let kdbush = owned_index.as_ref();
 
     let min_x = 20.;
     let min_y = 30.;
@@ -205,7 +205,7 @@ fn range_search() {
 #[test]
 fn radius_search() {
     let owned_index = make_index();
-    let kdbush = owned_index.as_kdbush();
+    let kdbush = owned_index.as_ref();
 
     let [qx, qy] = [50., 50.];
     let r = 20.;
