@@ -211,8 +211,8 @@ fn axis_dist<N: IndexableNum>(k: N, min: N, max: N) -> N {
 mod test {
     // Replication of tests from flatbush js
     mod js {
+        use crate::rtree::RTreeIndex;
         use crate::test::{flatbush_js_test_data, flatbush_js_test_index};
-        use crate::RTreeIndex;
 
         #[test]
         fn performs_bbox_search() {

@@ -1,6 +1,6 @@
 use crate::indices::Indices;
 use crate::kdtree::r#trait::sq_dist;
-use crate::{KdbushBuilder, KdbushIndex, OwnedKdbush};
+use crate::kdtree::{KDTreeBuilder, KDTreeIndex, OwnedKDTree};
 
 fn points() -> Vec<(f64, f64)> {
     let coords: Vec<[i32; 2]> = vec![
@@ -137,10 +137,10 @@ fn coords() -> Vec<f64> {
     coords.into_iter().map(|c| c.into()).collect()
 }
 
-fn make_index() -> OwnedKdbush {
+fn make_index() -> OwnedKDTree {
     let points = points();
 
-    let mut builder = KdbushBuilder::new_with_node_size(points.len(), 10);
+    let mut builder = KDTreeBuilder::new_with_node_size(points.len(), 10);
     for (x, y) in points {
         builder.add(x, y);
     }

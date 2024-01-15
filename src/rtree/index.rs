@@ -2,10 +2,10 @@ use std::marker::PhantomData;
 
 use bytemuck::cast_slice;
 
+use crate::error::GeoIndexError;
 use crate::indices::Indices;
 use crate::r#type::IndexableNum;
 use crate::rtree::constants::VERSION;
-use crate::rtree::error::GeoIndexError;
 use crate::rtree::r#trait::RTreeIndex;
 use crate::rtree::util::compute_num_nodes;
 

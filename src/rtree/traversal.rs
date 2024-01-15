@@ -1,5 +1,5 @@
 use crate::r#type::IndexableNum;
-use crate::RTreeIndex;
+use crate::rtree::RTreeIndex;
 use core::mem::take;
 use std::marker::PhantomData;
 
