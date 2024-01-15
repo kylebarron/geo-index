@@ -1,8 +1,8 @@
 use bytemuck::cast_slice;
 
+use crate::error::GeoIndexError;
 use crate::indices::Indices;
 use crate::kdtree::constants::{KDBUSH_HEADER_SIZE, KDBUSH_MAGIC, KDBUSH_VERSION};
-use crate::kdtree::error::KdbushError;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct OwnedKDTree {
@@ -36,11 +36,11 @@ pub struct KDTreeRef<'a> {
 }
 
 impl<'a> KDTreeRef<'a> {
-    pub fn try_new<T: AsRef<[u8]>>(data: &'a T) -> Result<Self, KdbushError> {
+    pub fn try_new<T: AsRef<[u8]>>(data: &'a T) -> Result<Self, GeoIndexError> {
         let data = data.as_ref();
 
         if data[0] != KDBUSH_MAGIC {
-            return Err(KdbushError::General(
+            return Err(GeoIndexError::General(
                 "Data does not appear to be in a Kdbush format.".to_string(),
             ));
         }
@@ -48,7 +48,7 @@ impl<'a> KDTreeRef<'a> {
         let version_and_type = data[1];
         let version = version_and_type >> 4;
         if version != KDBUSH_VERSION {
-            return Err(KdbushError::General(
+            return Err(GeoIndexError::General(
                 format!("Got v{} data when expected v{}.", version, KDBUSH_VERSION).to_string(),
             ));
         }
