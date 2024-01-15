@@ -72,6 +72,18 @@ impl<'a, N: IndexableNum> RTreeRef<'a, N> {
             ));
         }
 
+        let type_ = version_and_type & 0x0f;
+        if type_ != N::TYPE_INDEX {
+            return Err(GeoIndexError::General(
+                format!(
+                    "Got type {} data when expected type {}.",
+                    type_,
+                    N::TYPE_INDEX
+                )
+                .to_string(),
+            ));
+        }
+
         let node_size: u16 = cast_slice(&data[2..4])[0];
         let num_items: u32 = cast_slice(&data[4..8])[0];
         let node_size = node_size as usize;

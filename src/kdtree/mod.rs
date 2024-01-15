@@ -1,5 +1,5 @@
 mod builder;
-mod constants;
+pub(crate) mod constants;
 mod index;
 mod r#trait;
 
