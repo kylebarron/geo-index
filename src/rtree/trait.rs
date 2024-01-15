@@ -2,8 +2,8 @@ use std::borrow::Cow;
 
 use bytemuck::cast_slice;
 
-use crate::flatbush::index::{FlatbushRef, OwnedFlatbush};
-use crate::flatbush::traversal::{IntersectionIterator, Node};
+use crate::rtree::index::{FlatbushRef, OwnedFlatbush};
+use crate::rtree::traversal::{IntersectionIterator, Node};
 use crate::indices::Indices;
 use crate::r#type::IndexableNum;
 

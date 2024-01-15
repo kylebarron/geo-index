@@ -2,10 +2,10 @@ use std::marker::PhantomData;
 
 use bytemuck::cast_slice;
 
-use crate::flatbush::constants::VERSION;
-use crate::flatbush::error::FlatbushError;
-use crate::flatbush::r#trait::FlatbushIndex;
-use crate::flatbush::util::compute_num_nodes;
+use crate::rtree::constants::VERSION;
+use crate::rtree::error::FlatbushError;
+use crate::rtree::r#trait::FlatbushIndex;
+use crate::rtree::util::compute_num_nodes;
 use crate::indices::Indices;
 use crate::r#type::IndexableNum;
 

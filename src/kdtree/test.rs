@@ -1,5 +1,5 @@
 use crate::indices::Indices;
-use crate::kdbush::r#trait::sq_dist;
+use crate::kdtree::r#trait::sq_dist;
 use crate::{KdbushBuilder, KdbushIndex, OwnedKdbush};
 
 fn points() -> Vec<(f64, f64)> {

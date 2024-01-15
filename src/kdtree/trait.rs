@@ -3,7 +3,7 @@ use std::borrow::Cow;
 use tinyvec::TinyVec;
 
 use crate::indices::Indices;
-use crate::kdbush::KdbushRef;
+use crate::kdtree::KdbushRef;
 
 pub trait KdbushIndex {
     fn num_items(&self) -> usize;

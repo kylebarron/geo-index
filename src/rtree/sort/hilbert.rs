@@ -1,4 +1,4 @@
-use crate::flatbush::sort::{Sort, SortParams};
+use crate::rtree::sort::{Sort, SortParams};
 use crate::indices::MutableIndices;
 use crate::r#type::IndexableNum;
 

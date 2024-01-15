@@ -2,10 +2,10 @@ use std::marker::PhantomData;
 
 use bytemuck::cast_slice_mut;
 
-use crate::flatbush::constants::VERSION;
-use crate::flatbush::index::OwnedFlatbush;
-use crate::flatbush::sort::{Sort, SortParams};
-use crate::flatbush::util::compute_num_nodes;
+use crate::rtree::constants::VERSION;
+use crate::rtree::index::OwnedFlatbush;
+use crate::rtree::sort::{Sort, SortParams};
+use crate::rtree::util::compute_num_nodes;
 use crate::indices::MutableIndices;
 use crate::r#type::IndexableNum;
 

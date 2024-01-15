@@ -1,10 +1,10 @@
 use bytemuck::cast_slice;
 use criterion::{criterion_group, criterion_main, Criterion};
-use flatbush::flatbush::sort::STRSort;
-use flatbush::flatbush::util::f64_box_to_f32;
-use flatbush::flatbush::HilbertSort;
-use flatbush::r#type::IndexableNum;
-use flatbush::{FlatbushBuilder, FlatbushIndex, OwnedFlatbush};
+use geo_index::rtree::sort::STRSort;
+use geo_index::rtree::util::f64_box_to_f32;
+use geo_index::rtree::HilbertSort;
+use geo_index::r#type::IndexableNum;
+use geo_index::{FlatbushBuilder, FlatbushIndex, OwnedFlatbush};
 use rstar::primitives::{GeomWithData, Rectangle};
 use rstar::{RTree, AABB};
 use std::fs::read;

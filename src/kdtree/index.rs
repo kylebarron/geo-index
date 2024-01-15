@@ -1,8 +1,8 @@
 use bytemuck::cast_slice;
 
 use crate::indices::Indices;
-use crate::kdbush::constants::{KDBUSH_HEADER_SIZE, KDBUSH_MAGIC, KDBUSH_VERSION};
-use crate::kdbush::error::KdbushError;
+use crate::kdtree::constants::{KDBUSH_HEADER_SIZE, KDBUSH_MAGIC, KDBUSH_VERSION};
+use crate::kdtree::error::KdbushError;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct OwnedKdbush {

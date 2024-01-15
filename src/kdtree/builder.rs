@@ -3,8 +3,8 @@ use std::cmp;
 use bytemuck::cast_slice_mut;
 
 use crate::indices::MutableIndices;
-use crate::kdbush::constants::{KDBUSH_HEADER_SIZE, KDBUSH_MAGIC, KDBUSH_VERSION};
-use crate::kdbush::OwnedKdbush;
+use crate::kdtree::constants::{KDBUSH_HEADER_SIZE, KDBUSH_MAGIC, KDBUSH_VERSION};
+use crate::kdtree::OwnedKdbush;
 
 // Scalar array type to match js
 // https://github.com/mourner/kdbush/blob/0309d1e9a1a53fd47f65681c6845627c566d63a6/index.js#L2-L5

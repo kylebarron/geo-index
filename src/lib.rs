@@ -1,10 +1,10 @@
-pub mod flatbush;
+pub mod rtree;
 pub mod indices;
-pub mod kdbush;
+pub mod kdtree;
 pub mod r#type;
 
-pub use flatbush::{FlatbushBuilder, FlatbushIndex, FlatbushRef, OwnedFlatbush};
-pub use kdbush::{KdbushBuilder, KdbushIndex, KdbushRef, OwnedKdbush};
+pub use rtree::{FlatbushBuilder, FlatbushIndex, FlatbushRef, OwnedFlatbush};
+pub use kdtree::{KdbushBuilder, KdbushIndex, KdbushRef, OwnedKdbush};
 
 #[cfg(test)]
 pub(crate) mod test;
