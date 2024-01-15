@@ -9,6 +9,9 @@ use crate::rtree::constants::VERSION;
 use crate::rtree::r#trait::RTreeIndex;
 use crate::rtree::util::compute_num_nodes;
 
+/// An owned RTree buffer.
+///
+/// Usually this will be created from scratch via [`RTreeBuilder`][crate::rtree::RTreeBuilder].
 #[derive(Debug, Clone, PartialEq)]
 pub struct OwnedRTree<N: IndexableNum> {
     pub(crate) buffer: Vec<u8>,
@@ -42,6 +45,10 @@ impl<N: IndexableNum> AsRef<[u8]> for OwnedRTree<N> {
     }
 }
 
+/// A reference on an external RTree buffer.
+///
+/// Usually this will be created from an [`OwnedRTree`] via its [`as_ref`][OwnedRTree::as_ref]
+/// method, but it can also be created from any existing data buffer.
 #[derive(Debug, Clone, PartialEq)]
 pub struct RTreeRef<'a, N: IndexableNum> {
     pub(crate) boxes: &'a [N],
@@ -109,67 +116,4 @@ impl<'a, N: IndexableNum> RTreeRef<'a, N> {
             level_bounds,
         })
     }
-
-    pub fn search(&self, min_x: N, min_y: N, max_x: N, max_y: N) -> Vec<usize> {
-        let mut outer_node_index = Some(self.boxes.len() - 4);
-
-        let mut queue = vec![];
-        let mut results = vec![];
-
-        while let Some(node_index) = outer_node_index {
-            // find the end index of the node
-            let end =
-                (node_index + self.node_size * 4).min(upper_bound(node_index, &self.level_bounds));
-
-            // search through child nodes
-            for pos in (node_index..end).step_by(4) {
-                // check if node bbox intersects with query bbox
-                if max_x < self.boxes[pos] {
-                    continue; // maxX < nodeMinX
-                }
-                if max_y < self.boxes[pos + 1] {
-                    continue; // maxY < nodeMinY
-                }
-                if min_x > self.boxes[pos + 2] {
-                    continue; // minX > nodeMaxX
-                }
-                if min_y > self.boxes[pos + 3] {
-                    continue; // minY > nodeMaxY
-                }
-
-                let index = self.indices.get(pos >> 2);
-
-                if node_index >= self.num_items * 4 {
-                    queue.push(index); // node; add it to the search queue
-                } else {
-                    results.push(index); // leaf item
-                }
-            }
-
-            outer_node_index = queue.pop();
-        }
-
-        results
-    }
-}
-
-/**
- * Binary search for the first value in the array bigger than the given.
- * @param {number} value
- * @param {number[]} arr
- */
-fn upper_bound(value: usize, arr: &[usize]) -> usize {
-    let mut i = 0;
-    let mut j = arr.len() - 1;
-
-    while i < j {
-        let m = (i + j) >> 1;
-        if arr[m] > value {
-            j = m;
-        } else {
-            i = m + 1;
-        }
-    }
-
-    arr[i]
 }

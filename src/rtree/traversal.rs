@@ -1,8 +1,11 @@
+//! Utilities to traverse the RTree structure.
+
 use crate::r#type::IndexableNum;
 use crate::rtree::RTreeIndex;
 use core::mem::take;
 use std::marker::PhantomData;
 
+/// An internal node in the RTree.
 #[derive(Clone)]
 pub struct Node<'a, N: IndexableNum, T: RTreeIndex<N>> {
     tree: &'a T,
@@ -11,7 +14,7 @@ pub struct Node<'a, N: IndexableNum, T: RTreeIndex<N>> {
 }
 
 impl<'a, N: IndexableNum, T: RTreeIndex<N>> Node<'a, N, T> {
-    pub fn new(tree: &'a T, index: usize) -> Self {
+    pub(crate) fn new(tree: &'a T, index: usize) -> Self {
         Self {
             tree,
             index,
@@ -19,7 +22,7 @@ impl<'a, N: IndexableNum, T: RTreeIndex<N>> Node<'a, N, T> {
         }
     }
 
-    pub fn from_root(tree: &'a T) -> Self {
+    pub(crate) fn from_root(tree: &'a T) -> Self {
         let root_index = tree.boxes().len() - 4;
         Self {
             tree,
@@ -28,30 +31,37 @@ impl<'a, N: IndexableNum, T: RTreeIndex<N>> Node<'a, N, T> {
         }
     }
 
+    /// Get the minimum `x` value of this node.
     pub fn min_x(&self) -> N {
         self.tree.boxes()[self.index]
     }
 
+    /// Get the minimum `y` value of this node.
     pub fn min_y(&self) -> N {
         self.tree.boxes()[self.index + 1]
     }
 
+    /// Get the maximum `x` value of this node.
     pub fn max_x(&self) -> N {
         self.tree.boxes()[self.index + 2]
     }
 
+    /// Get the maximum `y` value of this node.
     pub fn max_y(&self) -> N {
         self.tree.boxes()[self.index + 3]
     }
 
+    /// Returns `true` if this is a leaf node without children.
     pub fn is_leaf(&self) -> bool {
         self.index >= self.tree.num_items() * 4
     }
 
+    /// Returns `true` if this is an intermediate node with children.
     pub fn is_parent(&self) -> bool {
         !self.is_leaf()
     }
 
+    /// Returns `true` if this node intersects another node.
     pub fn intersects<T2: RTreeIndex<N>>(&self, other: &Node<N, T2>) -> bool {
         if self.max_x() < other.min_x() {
             return false;
@@ -72,6 +82,8 @@ impl<'a, N: IndexableNum, T: RTreeIndex<N>> Node<'a, N, T> {
         true
     }
 
+    /// Returns an iterator over the child nodes of this node. This must only be called if
+    /// `is_parent` is `true`.
     pub fn children(&self) -> impl Iterator<Item = Node<'_, N, T>> {
         // find the end index of the node
         let end = (self.index + self.tree.node_size() * 4)
@@ -86,7 +98,7 @@ impl<'a, N: IndexableNum, T: RTreeIndex<N>> Node<'a, N, T> {
 
 // This is copied from rstar under the MIT/Apache 2 license
 // https://github.com/georust/rstar/blob/6c23af0f3acc0c4668ce6c368820e0fa986a65b4/rstar/src/algorithm/intersection_iterator.rs
-pub struct IntersectionIterator<'a, N, T1, T2>
+pub(crate) struct IntersectionIterator<'a, N, T1, T2>
 where
     N: IndexableNum,
     T1: RTreeIndex<N>,

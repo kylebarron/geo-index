@@ -1,3 +1,5 @@
+//! An implementation of a static, ABI-stable K-D Tree.
+
 mod builder;
 pub(crate) mod constants;
 mod index;

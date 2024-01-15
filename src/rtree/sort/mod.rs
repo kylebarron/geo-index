@@ -1,3 +1,5 @@
+//! Sorting implementations for static RTrees.
+
 mod hilbert;
 mod str;
 mod r#trait;

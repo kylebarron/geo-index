@@ -1,6 +1,8 @@
+//! Utilities for generating RTrees.
+
 use float_next_after::NextAfter;
 
-/// calculate the total number of nodes in the R-tree to allocate space for
+/// Calculate the total number of nodes in the R-tree to allocate space for
 /// and the index of each tree level (used in search later)
 pub fn compute_num_nodes(num_items: usize, node_size: usize) -> (usize, Vec<usize>) {
     let mut n = num_items;
@@ -14,6 +16,8 @@ pub fn compute_num_nodes(num_items: usize, node_size: usize) -> (usize, Vec<usiz
     (num_nodes, level_bounds)
 }
 
+/// Cast a bounding box with `f64` precision to `f32` precision. This uses [float_next_after] to
+/// ensure the resulting box is strictly larger than the `f64` box.
 #[inline]
 pub fn f64_box_to_f32(min_x: f64, min_y: f64, max_x: f64, max_y: f64) -> (f32, f32, f32, f32) {
     let new_min_x = (min_x as f32).next_after(f32::NEG_INFINITY);
