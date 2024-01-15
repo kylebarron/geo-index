@@ -7,7 +7,7 @@ pub mod r#trait;
 pub mod traversal;
 pub mod util;
 
-pub use builder::FlatbushBuilder;
-pub use index::{FlatbushRef, OwnedFlatbush};
-pub use r#trait::FlatbushIndex;
+pub use builder::RTreeBuilder;
+pub use index::{OwnedRTree, RTreeRef};
+pub use r#trait::RTreeIndex;
 pub use sort::HilbertSort;

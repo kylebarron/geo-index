@@ -1,16 +1,16 @@
 use crate::r#type::IndexableNum;
-use crate::FlatbushIndex;
+use crate::RTreeIndex;
 use core::mem::take;
 use std::marker::PhantomData;
 
 #[derive(Clone)]
-pub struct Node<'a, N: IndexableNum, T: FlatbushIndex<N>> {
+pub struct Node<'a, N: IndexableNum, T: RTreeIndex<N>> {
     tree: &'a T,
     index: usize,
     phantom: PhantomData<N>,
 }
 
-impl<'a, N: IndexableNum, T: FlatbushIndex<N>> Node<'a, N, T> {
+impl<'a, N: IndexableNum, T: RTreeIndex<N>> Node<'a, N, T> {
     pub fn new(tree: &'a T, index: usize) -> Self {
         Self {
             tree,
@@ -52,7 +52,7 @@ impl<'a, N: IndexableNum, T: FlatbushIndex<N>> Node<'a, N, T> {
         !self.is_leaf()
     }
 
-    pub fn intersects<T2: FlatbushIndex<N>>(&self, other: &Node<N, T2>) -> bool {
+    pub fn intersects<T2: RTreeIndex<N>>(&self, other: &Node<N, T2>) -> bool {
         if self.max_x() < other.min_x() {
             return false;
         }
@@ -89,8 +89,8 @@ impl<'a, N: IndexableNum, T: FlatbushIndex<N>> Node<'a, N, T> {
 pub struct IntersectionIterator<'a, N, T1, T2>
 where
     N: IndexableNum,
-    T1: FlatbushIndex<N>,
-    T2: FlatbushIndex<N>,
+    T1: RTreeIndex<N>,
+    T2: RTreeIndex<N>,
 {
     left: &'a T1,
     right: &'a T2,
@@ -102,8 +102,8 @@ where
 impl<'a, N, T1, T2> IntersectionIterator<'a, N, T1, T2>
 where
     N: IndexableNum,
-    T1: FlatbushIndex<N>,
-    T2: FlatbushIndex<N>,
+    T1: RTreeIndex<N>,
+    T2: RTreeIndex<N>,
 {
     pub(crate) fn from_trees(root1: &'a T1, root2: &'a T2) -> Self {
         let mut intersections = IntersectionIterator {
@@ -165,8 +165,8 @@ where
 impl<'a, N, T1, T2> Iterator for IntersectionIterator<'a, N, T1, T2>
 where
     N: IndexableNum,
-    T1: FlatbushIndex<N>,
-    T2: FlatbushIndex<N>,
+    T1: RTreeIndex<N>,
+    T2: RTreeIndex<N>,
 {
     type Item = (usize, usize);
 

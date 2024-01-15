@@ -1,9 +1,9 @@
 #[cfg(feature = "rayon")]
 use rayon::iter::{IndexedParallelIterator, IntoParallelIterator, ParallelIterator};
 
-use crate::rtree::sort::{Sort, SortParams};
 use crate::indices::MutableIndices;
 use crate::r#type::IndexableNum;
+use crate::rtree::sort::{Sort, SortParams};
 
 #[derive(Debug, Clone, Copy)]
 pub struct STRSort;

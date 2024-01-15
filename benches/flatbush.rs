@@ -1,10 +1,10 @@
 use bytemuck::cast_slice;
 use criterion::{criterion_group, criterion_main, Criterion};
+use geo_index::r#type::IndexableNum;
 use geo_index::rtree::sort::STRSort;
 use geo_index::rtree::util::f64_box_to_f32;
 use geo_index::rtree::HilbertSort;
-use geo_index::r#type::IndexableNum;
-use geo_index::{FlatbushBuilder, FlatbushIndex, OwnedFlatbush};
+use geo_index::{OwnedRTree, RTreeBuilder, RTreeIndex};
 use rstar::primitives::{GeomWithData, Rectangle};
 use rstar::{RTree, AABB};
 use std::fs::read;
@@ -14,8 +14,8 @@ fn load_data() -> Vec<f64> {
     cast_slice(&buf).to_vec()
 }
 
-fn construct_flatbush<N: IndexableNum>(boxes_buf: &[N]) -> OwnedFlatbush<N> {
-    let mut builder = FlatbushBuilder::new(boxes_buf.len() / 4);
+fn construct_flatbush<N: IndexableNum>(boxes_buf: &[N]) -> OwnedRTree<N> {
+    let mut builder = RTreeBuilder::new(boxes_buf.len() / 4);
     for box_ in boxes_buf.chunks(4) {
         let min_x = box_[0];
         let min_y = box_[1];
@@ -26,8 +26,8 @@ fn construct_flatbush<N: IndexableNum>(boxes_buf: &[N]) -> OwnedFlatbush<N> {
     builder.finish::<HilbertSort>()
 }
 
-fn construct_flatbush_str<N: IndexableNum>(boxes_buf: &[N]) -> OwnedFlatbush<N> {
-    let mut builder = FlatbushBuilder::new(boxes_buf.len() / 4);
+fn construct_flatbush_str<N: IndexableNum>(boxes_buf: &[N]) -> OwnedRTree<N> {
+    let mut builder = RTreeBuilder::new(boxes_buf.len() / 4);
     for box_ in boxes_buf.chunks(4) {
         let min_x = box_[0];
         let min_y = box_[1];
@@ -38,8 +38,8 @@ fn construct_flatbush_str<N: IndexableNum>(boxes_buf: &[N]) -> OwnedFlatbush<N> 
     builder.finish::<STRSort>()
 }
 
-fn construct_flatbush_f32_with_cast(boxes_buf: &[f64]) -> OwnedFlatbush<f32> {
-    let mut builder = FlatbushBuilder::new(boxes_buf.len() / 4);
+fn construct_flatbush_f32_with_cast(boxes_buf: &[f64]) -> OwnedRTree<f32> {
+    let mut builder = RTreeBuilder::new(boxes_buf.len() / 4);
     for box_ in boxes_buf.chunks(4) {
         let min_x = box_[0];
         let min_y = box_[1];

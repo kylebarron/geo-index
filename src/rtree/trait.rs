@@ -2,12 +2,12 @@ use std::borrow::Cow;
 
 use bytemuck::cast_slice;
 
-use crate::rtree::index::{FlatbushRef, OwnedFlatbush};
-use crate::rtree::traversal::{IntersectionIterator, Node};
 use crate::indices::Indices;
 use crate::r#type::IndexableNum;
+use crate::rtree::index::{OwnedRTree, RTreeRef};
+use crate::rtree::traversal::{IntersectionIterator, Node};
 
-pub trait FlatbushIndex<N: IndexableNum>: Sized {
+pub trait RTreeIndex<N: IndexableNum>: Sized {
     fn boxes(&self) -> &[N];
     fn indices(&self) -> Cow<'_, Indices>;
     fn num_items(&self) -> usize;
@@ -96,7 +96,7 @@ pub trait FlatbushIndex<N: IndexableNum>: Sized {
 
     fn intersection_candidates_with_other_tree<'a>(
         &'a self,
-        other: &'a impl FlatbushIndex<N>,
+        other: &'a impl RTreeIndex<N>,
     ) -> impl Iterator<Item = (usize, usize)> + 'a {
         IntersectionIterator::from_trees(self, other)
     }
@@ -106,7 +106,7 @@ pub trait FlatbushIndex<N: IndexableNum>: Sized {
     }
 }
 
-impl<N: IndexableNum> FlatbushIndex<N> for OwnedFlatbush<N> {
+impl<N: IndexableNum> RTreeIndex<N> for OwnedRTree<N> {
     fn boxes(&self) -> &[N] {
         let data = &self.buffer;
 
@@ -142,7 +142,7 @@ impl<N: IndexableNum> FlatbushIndex<N> for OwnedFlatbush<N> {
     }
 }
 
-impl<N: IndexableNum> FlatbushIndex<N> for FlatbushRef<'_, N> {
+impl<N: IndexableNum> RTreeIndex<N> for RTreeRef<'_, N> {
     fn boxes(&self) -> &[N] {
         self.boxes
     }
@@ -212,7 +212,7 @@ mod test {
     // Replication of tests from flatbush js
     mod js {
         use crate::test::{flatbush_js_test_data, flatbush_js_test_index};
-        use crate::FlatbushIndex;
+        use crate::RTreeIndex;
 
         #[test]
         fn performs_bbox_search() {
