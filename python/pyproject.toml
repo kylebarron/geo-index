@@ -3,7 +3,7 @@ requires = ["maturin>=1.4.0,<2.0"]
 build-backend = "maturin"
 
 [project]
-name = "geo-index"
+name = "geoindex-rs"
 requires-python = ">=3.8"
 dependencies = []
 classifiers = [
@@ -14,5 +14,5 @@ classifiers = [
 
 [tool.maturin]
 features = ["pyo3/extension-module"]
-module-name = "geo_index._rust"
+module-name = "geoindex_rs._rust"
 python-source = "python"
