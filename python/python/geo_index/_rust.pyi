@@ -1,9 +1,9 @@
-from typing import Optional, Self, Union
-from .enums import RTreeMethod
+from typing import Literal, Optional, Self, Union
+
 import numpy as np
 from numpy.typing import NDArray
 
-from typing import Literal
+from .enums import RTreeMethod
 
 IntFloat = Union[int, float]
 RTreeMethodT = Literal["hilbert", "str"]
