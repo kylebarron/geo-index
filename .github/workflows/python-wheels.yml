@@ -7,9 +7,10 @@ name: CI
 
 on:
   push:
-    tags:
-      - "py-v*"
-  workflow_dispatch:
+
+  #   tags:
+  #     - "py-v*"
+  # workflow_dispatch:
 
 permissions:
   contents: read
@@ -47,8 +48,8 @@ jobs:
       - name: Upload wheels
         uses: actions/upload-artifact@v4
         with:
-          name: wheels-linux-${{ matrix.platform.target }}
-          path: dist
+          name: wheels
+          path: dist/*.whl
 
   windows:
     runs-on: ${{ matrix.platform.runner }}
@@ -74,8 +75,8 @@ jobs:
       - name: Upload wheels
         uses: actions/upload-artifact@v4
         with:
-          name: wheels-windows-${{ matrix.platform.target }}
-          path: dist
+          name: wheels
+          path: dist/*.whl
 
   macos:
     runs-on: ${{ matrix.platform.runner }}
@@ -100,8 +101,8 @@ jobs:
       - name: Upload wheels
         uses: actions/upload-artifact@v4
         with:
-          name: wheels-macos-${{ matrix.platform.target }}
-          path: dist
+          name: wheels
+          path: dist/*.whl
 
   sdist:
     runs-on: ubuntu-latest
@@ -131,6 +132,9 @@ jobs:
     needs: [linux, windows, macos, sdist]
     steps:
       - uses: actions/download-artifact@v4
+        with:
+          name: wheels
+          path: dist
       - uses: actions/setup-python@v4
         with:
           python-version: 3.8
