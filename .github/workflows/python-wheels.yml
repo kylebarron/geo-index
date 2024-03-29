@@ -7,10 +7,9 @@ name: CI
 
 on:
   push:
-
-  #   tags:
-  #     - "py-v*"
-  # workflow_dispatch:
+    tags:
+      - "py-v*"
+  workflow_dispatch:
 
 permissions:
   contents: read
