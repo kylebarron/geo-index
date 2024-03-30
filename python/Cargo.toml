@@ -22,3 +22,7 @@ geo-index = { path = "../", features = ["rayon"] }
 numpy = "0.20"
 pyo3 = { version = "0.20", features = ["abi3-py38"] }
 thiserror = "1"
+
+[profile.release]
+lto = true
+codegen-units = 1
