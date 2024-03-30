@@ -1,7 +1,15 @@
 # geo-index
 
-[![crates.io version](https://img.shields.io/crates/v/geo-index.svg)](https://crates.io/crates/geo-index)
-[![docs.rs docs](https://docs.rs/geo-index/badge.svg)](https://docs.rs/geo-index)
+[![crates.io version][crates.io_badge]][crates.io_link]
+[![docs.rs docs][docs.rs_badge]][docs.rs_link]
+[![PyPI][pypi_badge]][pypi_link]
+
+[crates.io_badge]: https://img.shields.io/crates/v/geo-index.svg
+[crates.io_link]: https://crates.io/crates/geo-index
+[docs.rs_badge]: https://docs.rs/geo-index/badge.svg
+[docs.rs_link]: https://docs.rs/geo-index
+[pypi_badge]: https://badge.fury.io/py/geoindex-rs.svg
+[pypi_link]: https://pypi.org/project/geoindex-rs/
 
 A Rust crate for packed, static, zero-copy spatial indexes.
 
