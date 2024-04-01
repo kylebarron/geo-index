@@ -19,7 +19,29 @@ pub trait RTreeIndex<N: IndexableNum>: Sized {
 
     /// The maximum number of elements in each node.
     fn node_size(&self) -> usize;
+
+    /// The offsets into [RTreeIndex::boxes] where each level's boxes starts and ends. The tree is
+    /// laid out bottom-up, and there's an implicit initial 0. So the boxes of the lowest level of
+    /// the tree are located from `boxes[0..self.level_bounds()[0]]`.
     fn level_bounds(&self) -> &[usize];
+
+    /// The number of levels (height) of the tree.
+    fn num_levels(&self) -> usize {
+        self.level_bounds().len()
+    }
+
+    /// The tree is laid out from bottom to top. Level 0 is the _base_ of the tree. Each integer
+    /// higher is one level higher of the tree.
+    fn boxes_at_level(&self, level: usize) -> &[N] {
+        let level_bounds = self.level_bounds();
+        if level == 0 {
+            &self.boxes()[0..level_bounds[0]]
+        } else if level == level_bounds.len() {
+            &self.boxes()[level_bounds[level]..]
+        } else {
+            &self.boxes()[level_bounds[level - 1]..level_bounds[level]]
+        }
+    }
 
     /// Search an RTree given the provided bounding box.
     ///
