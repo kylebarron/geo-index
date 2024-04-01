@@ -1,7 +1,3 @@
-use std::borrow::Cow;
-
-use bytemuck::cast_slice;
-
 use crate::indices::Indices;
 use crate::r#type::IndexableNum;
 use crate::rtree::index::{OwnedRTree, RTreeRef};
@@ -13,7 +9,7 @@ pub trait RTreeIndex<N: IndexableNum>: Sized {
     fn boxes(&self) -> &[N];
 
     /// A slice representing the indices within the `boxes` slice, including internal nodes.
-    fn indices(&self) -> Cow<'_, Indices>;
+    fn indices(&self) -> Indices;
 
     /// The total number of items contained in this RTree.
     fn num_items(&self) -> usize;
@@ -126,37 +122,27 @@ pub trait RTreeIndex<N: IndexableNum>: Sized {
 
 impl<N: IndexableNum> RTreeIndex<N> for OwnedRTree<N> {
     fn boxes(&self) -> &[N] {
-        let data = &self.buffer;
-
-        let nodes_byte_length = self.num_nodes * 4 * N::BYTES_PER_ELEMENT;
-        cast_slice(&data[8..8 + nodes_byte_length])
+        self.metadata.boxes_slice(&self.buffer)
     }
 
-    fn indices(&self) -> Cow<'_, Indices> {
-        let data = &self.buffer;
-
-        let indices_bytes_per_element = if self.num_nodes < 16384 { 2 } else { 4 };
-        let nodes_byte_length = self.num_nodes * 4 * N::BYTES_PER_ELEMENT;
-        let indices_byte_length = self.num_nodes * indices_bytes_per_element;
-        let indices_buf = &data[8 + nodes_byte_length..8 + nodes_byte_length + indices_byte_length];
-
-        Cow::Owned(Indices::new(indices_buf, self.num_nodes()))
+    fn indices(&self) -> Indices {
+        self.metadata.indices_slice(&self.buffer)
     }
 
     fn num_nodes(&self) -> usize {
-        self.num_nodes
+        self.metadata.num_nodes
     }
 
     fn level_bounds(&self) -> &[usize] {
-        &self.level_bounds
+        &self.metadata.level_bounds
     }
 
     fn node_size(&self) -> usize {
-        self.node_size
+        self.metadata.node_size
     }
 
     fn num_items(&self) -> usize {
-        self.num_items
+        self.metadata.num_items
     }
 }
 
@@ -165,24 +151,24 @@ impl<N: IndexableNum> RTreeIndex<N> for RTreeRef<'_, N> {
         self.boxes
     }
 
-    fn indices(&self) -> Cow<'_, Indices> {
-        Cow::Borrowed(&self.indices)
+    fn indices(&self) -> Indices {
+        self.indices
     }
 
     fn level_bounds(&self) -> &[usize] {
-        &self.level_bounds
+        &self.metadata.level_bounds
     }
 
     fn node_size(&self) -> usize {
-        self.node_size
+        self.metadata.node_size
     }
 
     fn num_items(&self) -> usize {
-        self.num_items
+        self.metadata.num_items
     }
 
     fn num_nodes(&self) -> usize {
-        self.num_nodes
+        self.metadata.num_nodes
     }
 }
 
