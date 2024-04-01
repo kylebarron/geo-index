@@ -1,11 +1,9 @@
-use std::marker::PhantomData;
-
 use bytemuck::cast_slice_mut;
 
 use crate::indices::MutableIndices;
 use crate::r#type::IndexableNum;
 use crate::rtree::constants::VERSION;
-use crate::rtree::index::OwnedRTree;
+use crate::rtree::index::{OwnedRTree, TreeMetadata};
 use crate::rtree::sort::{Sort, SortParams};
 use crate::rtree::util::compute_num_nodes;
 
@@ -135,13 +133,17 @@ impl<N: IndexableNum> RTreeBuilder<N> {
             boxes[self.pos] = self.max_y;
             self.pos += 1;
 
+            let metadata = unsafe {
+                TreeMetadata::new_unchecked(
+                    self.node_size,
+                    self.num_items,
+                    self.num_nodes,
+                    self.level_bounds,
+                )
+            };
             return OwnedRTree {
                 buffer: self.data,
-                node_size: self.node_size,
-                num_items: self.num_items,
-                num_nodes: self.num_nodes,
-                level_bounds: self.level_bounds,
-                phantom: PhantomData,
+                metadata,
             };
         }
 
@@ -208,13 +210,17 @@ impl<N: IndexableNum> RTreeBuilder<N> {
             }
         }
 
+        let metadata = unsafe {
+            TreeMetadata::new_unchecked(
+                self.node_size,
+                self.num_items,
+                self.num_nodes,
+                self.level_bounds,
+            )
+        };
         OwnedRTree {
             buffer: self.data,
-            node_size: self.node_size,
-            num_items: self.num_items,
-            num_nodes: self.num_nodes,
-            level_bounds: self.level_bounds,
-            phantom: PhantomData,
+            metadata,
         }
     }
 }

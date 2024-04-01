@@ -36,8 +36,14 @@ fn check_buffer_equality(js_buf: &[u8], rs_buf: &[u8]) {
     let js_flatbush = RTreeRef::<f64>::try_new(&js_buf).unwrap();
     let rs_flatbush = RTreeRef::<f64>::try_new(&rs_buf).unwrap();
 
-    assert_eq!(js_flatbush.num_items, rs_flatbush.num_items);
-    assert_eq!(js_flatbush.node_size, rs_flatbush.node_size);
+    assert_eq!(
+        js_flatbush.metadata.num_items,
+        rs_flatbush.metadata.num_items
+    );
+    assert_eq!(
+        js_flatbush.metadata.node_size,
+        rs_flatbush.metadata.node_size
+    );
 }
 
 pub(crate) fn flatbush_js_test_data() -> Vec<f64> {
