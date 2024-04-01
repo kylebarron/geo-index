@@ -129,6 +129,13 @@ impl RTreeInner {
         }
     }
 
+    fn num_bytes(&self) -> usize {
+        match self {
+            Self::Float32(index) => AsRef::as_ref(index).len(),
+            Self::Float64(index) => AsRef::as_ref(index).len(),
+        }
+    }
+
     fn boxes_at_level<'py>(
         &'py self,
         py: Python<'py>,
@@ -292,6 +299,12 @@ impl RTree {
     #[getter]
     fn num_levels(&self) -> usize {
         self.0.num_levels()
+    }
+
+    /// The number of bytes taken up in memory.
+    #[getter]
+    fn num_bytes(&self) -> usize {
+        self.0.num_bytes()
     }
 
     /// The tree is laid out from bottom to top. Level 0 is the _base_ of the tree. Each integer
