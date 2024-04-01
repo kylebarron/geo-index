@@ -7,7 +7,15 @@ rust-version = "1.75"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/kylebarron/geo-index"
 description = "Fast, static, ABI-stable spatial indexes."
-categories = ["science::geo"]
+keywords = [
+    "rtree",
+    "r-tree",
+    "kdtree",
+    "spatial",
+    "spatial-index",
+    "nearest-neighbor",
+]
+categories = ["data-structures", "algorithms", "science::geo"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -21,7 +29,7 @@ tinyvec = { version = "1", features = ["alloc", "rustc_1_40"] }
 
 [dev-dependencies]
 criterion = { version = "0.5", features = ["html_reports"] }
-rstar = "0.11"
+rstar = "0.12"
 
 [[bench]]
 name = "rtree"

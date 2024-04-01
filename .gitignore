@@ -1,3 +1,4 @@
+.vscode
 *.parquet
 node_modules
 *.raw
