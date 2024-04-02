@@ -1,7 +1,9 @@
+use crate::error::Result;
 use crate::indices::Indices;
 use crate::r#type::IndexableNum;
 use crate::rtree::index::{OwnedRTree, RTreeRef};
 use crate::rtree::traversal::{IntersectionIterator, Node};
+use crate::GeoIndexError;
 
 pub trait RTreeIndex<N: IndexableNum>: Sized {
     /// A slice representing all the bounding boxes of all elements contained within this tree,
@@ -32,15 +34,19 @@ pub trait RTreeIndex<N: IndexableNum>: Sized {
 
     /// The tree is laid out from bottom to top. Level 0 is the _base_ of the tree. Each integer
     /// higher is one level higher of the tree.
-    fn boxes_at_level(&self, level: usize) -> &[N] {
+    fn boxes_at_level(&self, level: usize) -> Result<&[N]> {
         let level_bounds = self.level_bounds();
-        if level == 0 {
+        if level >= level_bounds.len() {
+            return Err(GeoIndexError::General("Level out of bounds".to_string()));
+        }
+        let result = if level == 0 {
             &self.boxes()[0..level_bounds[0]]
         } else if level == level_bounds.len() {
             &self.boxes()[level_bounds[level]..]
         } else {
             &self.boxes()[level_bounds[level - 1]..level_bounds[level]]
-        }
+        };
+        Ok(result)
     }
 
     /// Search an RTree given the provided bounding box.
