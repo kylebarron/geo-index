@@ -4,7 +4,7 @@ use geo_index::rtree::{OwnedRTree, RTreeBuilder, RTreeIndex};
 use geo_index::IndexableNum;
 use numpy::ndarray::{ArrayView1, ArrayView2};
 use numpy::{PyArray1, PyReadonlyArray1, PyReadonlyArray2, PyUntypedArray};
-use pyo3::exceptions::{PyTypeError, PyValueError};
+use pyo3::exceptions::{PyIndexError, PyTypeError, PyValueError};
 use pyo3::intern;
 use pyo3::prelude::*;
 use pyo3::types::PyType;
@@ -143,12 +143,16 @@ impl RTreeInner {
     ) -> PyResult<&'py PyUntypedArray> {
         match self {
             Self::Float32(index) => {
-                let boxes = index.boxes_at_level(level);
+                let boxes = index
+                    .boxes_at_level(level)
+                    .map_err(|err| PyIndexError::new_err(err.to_string()))?;
                 let array = PyArray1::from_slice(py, boxes);
                 Ok(array.reshape([boxes.len() / 4, 4])?.as_untyped())
             }
             Self::Float64(index) => {
-                let boxes = index.boxes_at_level(level);
+                let boxes = index
+                    .boxes_at_level(level)
+                    .map_err(|err| PyIndexError::new_err(err.to_string()))?;
                 let array = PyArray1::from_slice(py, boxes);
                 Ok(array.reshape([boxes.len() / 4, 4])?.as_untyped())
             }
@@ -307,6 +311,8 @@ impl RTree {
         self.0.num_bytes()
     }
 
+    /// Access the bounding boxes at the given level of the tree.
+    ///
     /// The tree is laid out from bottom to top. Level 0 is the _base_ of the tree. Each integer
     /// higher is one level higher of the tree.
     fn boxes_at_level<'py>(
@@ -317,6 +323,15 @@ impl RTree {
         self.0.boxes_at_level(py, level)
     }
 
+    /// Search an RTree given the provided bounding box.
+    ///
+    /// Results are the indexes of the inserted objects in insertion order.
+    ///
+    /// Args:
+    ///     min_x: min x coordinate of bounding box
+    ///     min_y: min y coordinate of bounding box
+    ///     max_x: max x coordinate of bounding box
+    ///     max_y: max y coordinate of bounding box
     pub fn search<'py>(
         &'py self,
         py: Python<'py>,
