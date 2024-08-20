@@ -350,9 +350,17 @@ impl RTree {
         (*view).len = data.len() as isize;
         (*view).readonly = 1;
         (*view).itemsize = 1;
+
         (*view).format = if (flags & ffi::PyBUF_FORMAT) == ffi::PyBUF_FORMAT {
             let msg = CString::new("B").unwrap();
             msg.into_raw()
+        } else {
+            ptr::null_mut()
+        };
+
+        (*view).ndim = 1;
+        (*view).shape = if (flags & ffi::PyBUF_ND) == ffi::PyBUF_ND {
+            &mut (*view).len
         } else {
             ptr::null_mut()
         };
@@ -362,9 +370,7 @@ impl RTree {
         } else {
             ptr::null_mut()
         };
-
-        (*view).suboffsets = ptr::null_mut();
-        (*view).internal = ptr::null_mut();
+        
         Ok(())
     }
     #[cfg(any(Py_3_11, not(Py_LIMITED_API)))]
