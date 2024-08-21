@@ -221,6 +221,10 @@ impl PyRTreeRef {
     }
 }
 
+// This will take the place of RTree
+#[pyclass]
+struct RTreeRefWrapper(PyRTreeRef);
+
 /// Search an RTree given the provided bounding box.
 ///
 /// Results are the indexes of the inserted objects in insertion order.
