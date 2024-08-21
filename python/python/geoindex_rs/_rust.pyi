@@ -1,4 +1,4 @@
-from typing import Generic, Literal, Optional, Self, TypeVar, Union
+from typing import Generic, Literal, Optional, Protocol, Self, TypeVar, Union
 
 import numpy as np
 from numpy.typing import NDArray
@@ -32,7 +32,12 @@ class KDTree:
 # https://stackoverflow.com/a/74634650
 T = TypeVar("T", bound=np.generic, covariant=True)
 
+class BufferProtocolExportable(Protocol):
+    def __buffer__(self, flags: int) -> memoryview: ...
+
 class RTree(Generic[T]):
+    def __init__(self, obj: BufferProtocolExportable) -> None: ...
+    def __buffer__(self, flags: int) -> memoryview: ...
     @classmethod
     def from_interleaved(
         cls,
