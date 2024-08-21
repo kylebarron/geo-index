@@ -5,12 +5,11 @@ use geo_index::IndexableNum;
 use numpy::ndarray::{ArrayView1, ArrayView2};
 use numpy::{PyArray1, PyArrayMethods, PyReadonlyArray1, PyReadonlyArray2};
 use pyo3::exceptions::{PyIndexError, PyTypeError, PyValueError};
+use pyo3::ffi;
 use pyo3::intern;
 use pyo3::prelude::*;
 use pyo3::types::PyType;
-use pyo3::ffi;
 use std::os::raw::c_int;
-
 
 pub enum RTreeMethod {
     Hilbert,
@@ -134,14 +133,15 @@ impl RTreeInner {
 
     fn num_bytes(&self) -> usize {
         match self {
-            Self::Float32(index) => AsRef::as_ref(index).len(),
-            Self::Float64(index) => AsRef::as_ref(index).len(),
+            Self::Float32(index) => index.as_ref().len(),
+            Self::Float64(index) => index.as_ref().len(),
         }
     }
+
     fn buffer(&self) -> &[u8] {
         match self {
-            Self::Float32(index) => AsRef::<[u8]>::as_ref(index),
-            Self::Float64(index) => AsRef::<[u8]>::as_ref(index),
+            Self::Float32(index) => index.as_ref(),
+            Self::Float64(index) => index.as_ref(),
         }
     }
 
@@ -287,7 +287,11 @@ impl RTree {
     }
 
     // pre PEP 688 buffer protocol
-    pub unsafe fn __getbuffer__(slf: PyRef<'_, Self>, view: *mut ffi::Py_buffer, flags: c_int) -> PyResult<()> {
+    pub unsafe fn __getbuffer__(
+        slf: PyRef<'_, Self>,
+        view: *mut ffi::Py_buffer,
+        flags: c_int,
+    ) -> PyResult<()> {
         let bytes = slf.0.buffer();
         let ret = ffi::PyBuffer_FillInfo(
             view,
