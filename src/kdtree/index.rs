@@ -23,7 +23,7 @@ impl<N: IndexableNum> OwnedKDTree<N> {
         self.buffer
     }
 
-    pub fn as_ref(&self) -> KDTreeRef<N> {
+    pub fn as_kdtree_ref(&self) -> KDTreeRef<N> {
         KDTreeRef::try_new(self).unwrap()
     }
 }

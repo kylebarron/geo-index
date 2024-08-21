@@ -150,7 +150,7 @@ fn make_index() -> OwnedKDTree<f64> {
 #[test]
 fn creates_an_index() {
     let owned_index = make_index();
-    let kdbush = owned_index.as_ref();
+    let kdbush = owned_index.as_kdtree_ref();
     let tree_ids = kdbush.ids().into_owned();
     let tree_ids = match tree_ids {
         Indices::U16(arr) => arr,
@@ -168,7 +168,7 @@ fn creates_an_index() {
 #[test]
 fn range_search() {
     let owned_index = make_index();
-    let kdbush = owned_index.as_ref();
+    let kdbush = owned_index.as_kdtree_ref();
 
     let min_x = 20.;
     let min_y = 30.;
@@ -205,7 +205,7 @@ fn range_search() {
 #[test]
 fn radius_search() {
     let owned_index = make_index();
-    let kdbush = owned_index.as_ref();
+    let kdbush = owned_index.as_kdtree_ref();
 
     let [qx, qy] = [50., 50.];
     let r = 20.;

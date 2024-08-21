@@ -133,7 +133,7 @@ impl<N: IndexableNum> OwnedRTree<N> {
         self.buffer
     }
 
-    pub fn as_ref(&self) -> RTreeRef<N> {
+    pub fn as_rtree_ref(&self) -> RTreeRef<N> {
         RTreeRef {
             boxes: self.boxes(),
             indices: self.indices(),
