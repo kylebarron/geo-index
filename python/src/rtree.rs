@@ -310,73 +310,41 @@ impl RTree {
     }
 
     #[classmethod]
-    #[pyo3(
-        signature = (buf),
-        text_signature = "(buf)")
-    ]
-    #[allow(clippy::too_many_arguments)]
     pub fn from_buffer(
-        _cls: &PyType,
+        _cls: &Bound<PyType>,
         py: Python,
         buf: PyObject,
     ) -> PyResult<Self> {
         buf.extract::<RTree>(py)
     }
-    #[pyo3(
-        signature = (),
-        text_signature = "()")
-    ]
-    #[allow(clippy::too_many_arguments)]
+
     pub fn to_buffer<'py>(
         &'py self,
         py: Python<'py>,
     ) -> PyObject {
         PyBytes::new_bound(py, self.0.buffer()).into()
     }
+
     // pre PEP 688 buffer protocol
     #[cfg(any(Py_3_11, not(Py_LIMITED_API)))]
     pub unsafe fn __getbuffer__(slf: PyRef<'_, Self>, view: *mut ffi::Py_buffer, flags: c_int) -> PyResult<()> {
-        if view.is_null() {
-            return Err(PyBufferError::new_err("View is null"));
+        let bytes = slf.0.buffer();
+        let ret = ffi::PyBuffer_FillInfo(
+            view,
+            slf.as_ptr() as *mut _,
+            bytes.as_ptr() as *mut _,
+            bytes.len().try_into().unwrap(),
+            1, // read only
+            flags,
+        );
+        if ret == -1 {
+            return Err(PyErr::fetch(slf.py()));
         }
-        if (flags & pyo3::ffi::PyBUF_WRITABLE) == ffi::PyBUF_WRITABLE {
-            return Err(PyBufferError::new_err("Object is not writable"));
-        }
-        let ptr = slf.as_ptr();
-        let data = slf.0.buffer();
-        (*view).obj = ptr;
-        
-        (*view).buf = data.as_ptr() as *mut c_void;
-        (*view).len = data.len() as isize;
-        (*view).readonly = 1;
-        (*view).itemsize = 1;
-
-        (*view).format = if (flags & ffi::PyBUF_FORMAT) == ffi::PyBUF_FORMAT {
-            let msg = CString::new("B").unwrap();
-            msg.into_raw()
-        } else {
-            ptr::null_mut()
-        };
-
-        (*view).ndim = 1;
-        (*view).shape = if (flags & ffi::PyBUF_ND) == ffi::PyBUF_ND {
-            &mut (*view).len
-        } else {
-            ptr::null_mut()
-        };
-
-        (*view).strides = if (flags & ffi::PyBUF_STRIDES) == ffi::PyBUF_STRIDES {
-            &mut (*view).itemsize
-        } else {
-            ptr::null_mut()
-        };
-        
         Ok(())
     }
     #[cfg(any(Py_3_11, not(Py_LIMITED_API)))]
-    pub unsafe fn __releasebuffer__(&self, view: *mut ffi::Py_buffer) {
-        // Release memory held by the format string
-        drop(CString::from_raw((*view).format));
+    pub unsafe fn __releasebuffer__(&self, _view: *mut ffi::Py_buffer) {
+        // is there anything to do here?
     }
 
     /// The total number of items contained in this RTree.
