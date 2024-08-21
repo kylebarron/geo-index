@@ -4,21 +4,12 @@ use geo_index::rtree::{OwnedRTree, RTreeBuilder, RTreeIndex};
 use geo_index::IndexableNum;
 use numpy::ndarray::{ArrayView1, ArrayView2};
 use numpy::{PyArray1, PyArrayMethods, PyReadonlyArray1, PyReadonlyArray2};
-use pyo3::exceptions::{PyBufferError, PyIndexError, PyTypeError, PyValueError};
+use pyo3::exceptions::{PyIndexError, PyTypeError, PyValueError};
 use pyo3::intern;
 use pyo3::prelude::*;
-use pyo3::types::{PyBytes, PyType};
-#[cfg(any(Py_3_11, not(Py_LIMITED_API)))]
-#[path = ""]
-mod buffer_protocol_deps {
-    pub use pyo3::ffi;
-    
-    pub use std::ffi::{c_void, CString};
-    pub use std::os::raw::c_int;
-    pub use std::ptr;
-}
-#[cfg(any(Py_3_11, not(Py_LIMITED_API)))]
-pub use buffer_protocol_deps::*;
+use pyo3::types::PyType;
+use pyo3::ffi;
+use std::os::raw::c_int;
 
 
 pub enum RTreeMethod {
@@ -179,26 +170,12 @@ pub struct RTree(RTreeInner);
 
 // TODO: add support for constructing from a buffer. Need to be able to construct (and validate) an
 // OwnedRTree
-impl<'a> FromPyObject<'a> for RTree {
-    fn extract(ob: &'a PyAny) -> PyResult<Self> {
-        let result = {
-
-            let inner_res = OwnedRTree::<f64>::try_new(ob.extract()?).map_err(|e| {
-                e
-            }).and_then(|inner| {
-                Ok(Self(RTreeInner::Float64(inner)))
-            })
-            .or_else(|f64_err| {
-                let inner = OwnedRTree::<f32>::try_new(ob.extract()?).or_else(|e| {
-                    Err(PyTypeError::new_err(format!("{e} {f64_err}")))
-                })?;
-                Ok(Self(RTreeInner::Float32(inner)))
-            });
-            inner_res
-        };
-        result
-    }
-}
+// impl<'a> FromPyObject<'a> for RTree {
+//     fn extract(ob: &'a PyAny) -> PyResult<Self> {
+//         let s: Vec<u8> = ob.extract()?;
+//         OwnedRTree::from(value)
+//     }
+// }
 
 #[pymethods]
 impl RTree {
@@ -309,24 +286,7 @@ impl RTree {
         result
     }
 
-    #[classmethod]
-    pub fn from_buffer(
-        _cls: &Bound<PyType>,
-        py: Python,
-        buf: PyObject,
-    ) -> PyResult<Self> {
-        buf.extract::<RTree>(py)
-    }
-
-    pub fn to_buffer<'py>(
-        &'py self,
-        py: Python<'py>,
-    ) -> PyObject {
-        PyBytes::new_bound(py, self.0.buffer()).into()
-    }
-
     // pre PEP 688 buffer protocol
-    #[cfg(any(Py_3_11, not(Py_LIMITED_API)))]
     pub unsafe fn __getbuffer__(slf: PyRef<'_, Self>, view: *mut ffi::Py_buffer, flags: c_int) -> PyResult<()> {
         let bytes = slf.0.buffer();
         let ret = ffi::PyBuffer_FillInfo(
@@ -342,7 +302,6 @@ impl RTree {
         }
         Ok(())
     }
-    #[cfg(any(Py_3_11, not(Py_LIMITED_API)))]
     pub unsafe fn __releasebuffer__(&self, _view: *mut ffi::Py_buffer) {
         // is there anything to do here?
     }
