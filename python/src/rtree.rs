@@ -13,6 +13,7 @@ use pyo3::prelude::*;
 use pyo3::types::PyType;
 use std::os::raw::c_int;
 
+/// Method for constructing rtree
 pub enum RTreeMethod {
     Hilbert,
     STR,
@@ -31,6 +32,40 @@ impl<'a> FromPyObject<'a> for RTreeMethod {
     }
 }
 
+/// A Rust buffer that implements the Python buffer protocol
+#[pyclass(name = "Buffer")]
+struct RustBuffer(Vec<u8>);
+
+#[pymethods]
+impl RustBuffer {
+    // pre PEP 688 buffer protocol
+    unsafe fn __getbuffer__(
+        slf: PyRef<'_, Self>,
+        view: *mut ffi::Py_buffer,
+        flags: c_int,
+    ) -> PyResult<()> {
+        let bytes = slf.0.as_slice();
+        let ret = ffi::PyBuffer_FillInfo(
+            view,
+            slf.as_ptr() as *mut _,
+            bytes.as_ptr() as *mut _,
+            bytes.len().try_into().unwrap(),
+            1, // read only
+            flags,
+        );
+        if ret == -1 {
+            return Err(PyErr::fetch(slf.py()));
+        }
+        Ok(())
+    }
+
+    unsafe fn __releasebuffer__(&self, _view: *mut ffi::Py_buffer) {
+        // is there anything to do here?
+    }
+}
+
+/// A Rust representation of a Python object that implements the Python buffer protocol, exporting
+/// a 1-dimensional `&[u8]` slice.
 struct PyU8Buffer(PyBuffer<u8>);
 
 impl<'py> FromPyObject<'py> for PyU8Buffer {
@@ -62,26 +97,37 @@ impl AsRef<[u8]> for PyU8Buffer {
     }
 }
 
-struct Pyf64RTreeRef {
+/// A low-level wrapper around a [PyU8Buffer] that validates that the input is a valid Flatbush
+/// buffer. This wrapper implements [RTreeIndex].
+pub(crate) struct PyRTreeRefInner<N: IndexableNum> {
     buffer: PyU8Buffer,
-    metadata: TreeMetadata<f64>,
+    metadata: TreeMetadata<N>,
 }
 
-impl Pyf64RTreeRef {
+impl<N: IndexableNum> PyRTreeRefInner<N> {
     fn try_new(buffer: PyU8Buffer) -> PyResult<Self> {
         let metadata = TreeMetadata::try_new(buffer.as_ref()).unwrap();
         Ok(Self { buffer, metadata })
     }
+
+    fn from_owned_rtree(py: Python, tree: OwnedRTree<N>) -> PyResult<Self> {
+        let metadata = tree.metadata().clone();
+        let tree_buf = RustBuffer(tree.into_inner());
+        Ok(Self {
+            buffer: tree_buf.into_py(py).extract(py)?,
+            metadata,
+        })
+    }
 }
 
-impl AsRef<[u8]> for Pyf64RTreeRef {
+impl<N: IndexableNum> AsRef<[u8]> for PyRTreeRefInner<N> {
     fn as_ref(&self) -> &[u8] {
         self.buffer.as_ref()
     }
 }
 
-impl RTreeIndex<f64> for Pyf64RTreeRef {
-    fn boxes(&self) -> &[f64] {
+impl<N: IndexableNum> RTreeIndex<N> for PyRTreeRefInner<N> {
+    fn boxes(&self) -> &[N] {
         self.metadata.boxes_slice(self.as_ref())
     }
 
@@ -106,53 +152,11 @@ impl RTreeIndex<f64> for Pyf64RTreeRef {
     }
 }
 
-struct Pyf32RTreeRef {
-    buffer: PyU8Buffer,
-    metadata: TreeMetadata<f32>,
-}
-
-impl Pyf32RTreeRef {
-    fn try_new(buffer: PyU8Buffer) -> PyResult<Self> {
-        let metadata = TreeMetadata::try_new(buffer.as_ref()).unwrap();
-        Ok(Self { buffer, metadata })
-    }
-}
-
-impl AsRef<[u8]> for Pyf32RTreeRef {
-    fn as_ref(&self) -> &[u8] {
-        self.buffer.as_ref()
-    }
-}
-
-impl RTreeIndex<f32> for Pyf32RTreeRef {
-    fn boxes(&self) -> &[f32] {
-        self.metadata.boxes_slice(self.as_ref())
-    }
-
-    fn indices(&self) -> Indices {
-        self.metadata.indices_slice(self.as_ref())
-    }
-
-    fn level_bounds(&self) -> &[usize] {
-        self.metadata.level_bounds()
-    }
-
-    fn node_size(&self) -> usize {
-        self.metadata.node_size()
-    }
-
-    fn num_items(&self) -> usize {
-        self.metadata.num_items()
-    }
-
-    fn num_nodes(&self) -> usize {
-        self.metadata.num_nodes()
-    }
-}
-
+/// An enum wrapper around [PyRTreeRefInner] that allows use of multiple coordinate types from
+/// Python.
 pub(crate) enum PyRTreeRef {
-    Float32(Pyf32RTreeRef),
-    Float64(Pyf64RTreeRef),
+    Float32(PyRTreeRefInner<f32>),
+    Float64(PyRTreeRefInner<f64>),
 }
 
 impl<'py> FromPyObject<'py> for PyRTreeRef {
@@ -160,9 +164,30 @@ impl<'py> FromPyObject<'py> for PyRTreeRef {
         let buffer = PyU8Buffer::extract_bound(ob)?;
         let ct = CoordType::from_buffer(&buffer.as_ref()).unwrap();
         match ct {
-            CoordType::Float32 => Ok(Self::Float32(Pyf32RTreeRef::try_new(buffer)?)),
-            CoordType::Float64 => Ok(Self::Float64(Pyf64RTreeRef::try_new(buffer)?)),
+            CoordType::Float32 => Ok(Self::Float32(PyRTreeRefInner::try_new(buffer)?)),
+            CoordType::Float64 => Ok(Self::Float64(PyRTreeRefInner::try_new(buffer)?)),
             _ => todo!(),
+        }
+    }
+}
+
+impl From<PyRTreeRefInner<f32>> for PyRTreeRef {
+    fn from(value: PyRTreeRefInner<f32>) -> Self {
+        Self::Float32(value)
+    }
+}
+
+impl From<PyRTreeRefInner<f64>> for PyRTreeRef {
+    fn from(value: PyRTreeRefInner<f64>) -> Self {
+        Self::Float64(value)
+    }
+}
+
+impl AsRef<[u8]> for PyRTreeRef {
+    fn as_ref(&self) -> &[u8] {
+        match self {
+            Self::Float32(inner) => inner.as_ref(),
+            Self::Float64(inner) => inner.as_ref(),
         }
     }
 }
@@ -223,9 +248,215 @@ impl PyRTreeRef {
     }
 }
 
-// This will take the place of RTree
 #[pyclass]
-struct RTreeRefWrapper(PyRTreeRef);
+pub(crate) struct RTree(PyRTreeRef);
+
+#[pymethods]
+impl RTree {
+    /// Construct an RTree from an existing RTree buffer
+    #[new]
+    fn new(py: Python, obj: PyObject) -> PyResult<Self> {
+        Ok(Self(obj.extract(py)?))
+    }
+
+    #[classmethod]
+    #[pyo3(
+        signature = (boxes, *, method = RTreeMethod::Hilbert, node_size = None),
+        text_signature = "(boxes, *, method = 'hilbert', node_size = None)")
+    ]
+    pub fn from_interleaved(
+        _cls: &Bound<PyType>,
+        py: Python,
+        boxes: PyObject,
+        method: RTreeMethod,
+        node_size: Option<usize>,
+    ) -> PyResult<Self> {
+        // Convert to numpy array (of the same dtype)
+        let boxes = boxes.call_method0(py, intern!(py, "__array__"))?;
+
+        let result = if let Ok(boxes) = boxes.extract::<PyReadonlyArray2<f64>>(py) {
+            let boxes = boxes.as_array();
+            let tree = py.allow_threads(|| new_interleaved(&boxes, method, node_size));
+            Ok(Self(PyRTreeRefInner::from_owned_rtree(py, tree)?.into()))
+        } else if let Ok(boxes) = boxes.extract::<PyReadonlyArray2<f32>>(py) {
+            let boxes = boxes.as_array();
+            let tree = py.allow_threads(|| new_interleaved(&boxes, method, node_size));
+            Ok(Self(PyRTreeRefInner::from_owned_rtree(py, tree)?.into()))
+        } else {
+            let dtype = boxes.call_method0(py, intern!(py, "dtype"))?.to_string();
+            Err(PyTypeError::new_err(format!(
+                "Expected a numpy array of dtype float32 or float64, got {}",
+                dtype
+            )))
+        };
+        result
+    }
+
+    #[classmethod]
+    #[pyo3(
+        signature = (min_x, min_y, max_x, max_y, *, method = RTreeMethod::Hilbert, node_size = None),
+        text_signature = "(min_x, min_y, max_x, max_y, *, method = 'hilbert', node_size = None)")
+    ]
+    #[allow(clippy::too_many_arguments)]
+    pub fn from_separated(
+        _cls: &Bound<PyType>,
+        py: Python,
+        min_x: PyObject,
+        min_y: PyObject,
+        max_x: PyObject,
+        max_y: PyObject,
+        method: RTreeMethod,
+        node_size: Option<usize>,
+    ) -> PyResult<Self> {
+        // Convert to numpy array (of the same dtype)
+        let min_x = min_x.call_method0(py, intern!(py, "__array__"))?;
+        let min_y = min_y.call_method0(py, intern!(py, "__array__"))?;
+        let max_x = max_x.call_method0(py, intern!(py, "__array__"))?;
+        let max_y = max_y.call_method0(py, intern!(py, "__array__"))?;
+
+        let result = if let Ok(min_x) = min_x.extract::<PyReadonlyArray1<f64>>(py) {
+            let min_y = min_y.extract::<PyReadonlyArray1<f64>>(py)?;
+            let max_x = max_x.extract::<PyReadonlyArray1<f64>>(py)?;
+            let max_y = max_y.extract::<PyReadonlyArray1<f64>>(py)?;
+
+            let min_x_array = min_x.as_array();
+            let min_y_array = min_y.as_array();
+            let max_x_array = max_x.as_array();
+            let max_y_array = max_y.as_array();
+
+            let tree = py.allow_threads(|| {
+                new_separated(
+                    min_x_array,
+                    min_y_array,
+                    max_x_array,
+                    max_y_array,
+                    method,
+                    node_size,
+                )
+            });
+            Ok(Self(PyRTreeRefInner::from_owned_rtree(py, tree)?.into()))
+        } else if let Ok(min_x) = min_x.extract::<PyReadonlyArray1<f32>>(py) {
+            let min_y = min_y.extract::<PyReadonlyArray1<f32>>(py)?;
+            let max_x = max_x.extract::<PyReadonlyArray1<f32>>(py)?;
+            let max_y = max_y.extract::<PyReadonlyArray1<f32>>(py)?;
+
+            let min_x_array = min_x.as_array();
+            let min_y_array = min_y.as_array();
+            let max_x_array = max_x.as_array();
+            let max_y_array = max_y.as_array();
+
+            let tree = py.allow_threads(|| {
+                new_separated(
+                    min_x_array,
+                    min_y_array,
+                    max_x_array,
+                    max_y_array,
+                    method,
+                    node_size,
+                )
+            });
+            Ok(Self(PyRTreeRefInner::from_owned_rtree(py, tree)?.into()))
+        } else {
+            let dtype = min_x.call_method0(py, intern!(py, "dtype"))?.to_string();
+            Err(PyTypeError::new_err(format!(
+                "Expected a numpy array of dtype float32 or float64, got {}",
+                dtype
+            )))
+        };
+        result
+    }
+
+    // pre PEP 688 buffer protocol
+    unsafe fn __getbuffer__(
+        slf: PyRef<'_, Self>,
+        view: *mut ffi::Py_buffer,
+        flags: c_int,
+    ) -> PyResult<()> {
+        let bytes = slf.0.as_ref();
+        let ret = ffi::PyBuffer_FillInfo(
+            view,
+            slf.as_ptr() as *mut _,
+            bytes.as_ptr() as *mut _,
+            bytes.len().try_into().unwrap(),
+            1, // read only
+            flags,
+        );
+        if ret == -1 {
+            return Err(PyErr::fetch(slf.py()));
+        }
+        Ok(())
+    }
+
+    unsafe fn __releasebuffer__(&self, _view: *mut ffi::Py_buffer) {
+        // is there anything to do here?
+    }
+
+    /// The total number of items contained in this RTree.
+    #[getter]
+    pub fn num_items(&self) -> usize {
+        self.0.num_items()
+    }
+
+    /// The total number of nodes in this RTree, including both leaf and intermediate nodes.
+    #[getter]
+    pub fn num_nodes(&self) -> usize {
+        self.0.num_nodes()
+    }
+
+    /// The maximum number of elements in each node.
+    #[getter]
+    pub fn node_size(&self) -> usize {
+        self.0.node_size()
+    }
+
+    /// The height of the tree
+    #[getter]
+    fn num_levels(&self) -> usize {
+        self.0.num_levels()
+    }
+
+    /// The number of bytes taken up in memory.
+    #[getter]
+    fn num_bytes(&self) -> usize {
+        self.0.num_bytes()
+    }
+
+    /// Access the bounding boxes at the given level of the tree.
+    ///
+    /// The tree is laid out from bottom to top. Level 0 is the _base_ of the tree. Each integer
+    /// higher is one level higher of the tree.
+    fn boxes_at_level<'py>(&'py self, py: Python<'py>, level: usize) -> PyResult<PyObject> {
+        self.0.boxes_at_level(py, level)
+    }
+
+    /// Search an RTree given the provided bounding box.
+    ///
+    /// Results are the indexes of the inserted objects in insertion order.
+    ///
+    /// Args:
+    ///     min_x: min x coordinate of bounding box
+    ///     min_y: min y coordinate of bounding box
+    ///     max_x: max x coordinate of bounding box
+    ///     max_y: max y coordinate of bounding box
+    pub fn search<'py>(
+        &'py self,
+        py: Python<'py>,
+        min_x: f64,
+        min_y: f64,
+        max_x: f64,
+        max_y: f64,
+    ) -> Bound<'py, PyArray1<usize>> {
+        let result = py.allow_threads(|| match &self.0 {
+            PyRTreeRef::Float32(tree) => {
+                let (min_x, min_y, max_x, max_y) = f64_box_to_f32(min_x, min_y, max_x, max_y);
+                tree.search(min_x, min_y, max_x, max_y)
+            }
+            PyRTreeRef::Float64(tree) => tree.search(min_x, min_y, max_x, max_y),
+        });
+
+        PyArray1::from_vec_bound(py, result)
+    }
+}
 
 /// Search an RTree given the provided bounding box.
 ///
@@ -394,19 +625,10 @@ impl RTreeInner {
 }
 
 #[pyclass]
-pub struct RTree(RTreeInner);
-
-// TODO: add support for constructing from a buffer. Need to be able to construct (and validate) an
-// OwnedRTree
-// impl<'a> FromPyObject<'a> for RTree {
-//     fn extract(ob: &'a PyAny) -> PyResult<Self> {
-//         let s: Vec<u8> = ob.extract()?;
-//         OwnedRTree::from(value)
-//     }
-// }
+pub struct RTreeOld(RTreeInner);
 
 #[pymethods]
-impl RTree {
+impl RTreeOld {
     #[classmethod]
     #[pyo3(
         signature = (boxes, *, method = RTreeMethod::Hilbert, node_size = None),
@@ -515,7 +737,7 @@ impl RTree {
     }
 
     // pre PEP 688 buffer protocol
-    pub unsafe fn __getbuffer__(
+    unsafe fn __getbuffer__(
         slf: PyRef<'_, Self>,
         view: *mut ffi::Py_buffer,
         flags: c_int,
@@ -534,7 +756,7 @@ impl RTree {
         }
         Ok(())
     }
-    pub unsafe fn __releasebuffer__(&self, _view: *mut ffi::Py_buffer) {
+    unsafe fn __releasebuffer__(&self, _view: *mut ffi::Py_buffer) {
         // is there anything to do here?
     }
 

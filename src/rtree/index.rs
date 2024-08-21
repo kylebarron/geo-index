@@ -153,6 +153,10 @@ impl<N: IndexableNum> OwnedRTree<N> {
             metadata: Cow::Borrowed(&self.metadata),
         }
     }
+
+    pub fn metadata(&self) -> &TreeMetadata<N> {
+        &self.metadata
+    }
 }
 
 impl<N: IndexableNum> AsRef<[u8]> for OwnedRTree<N> {
