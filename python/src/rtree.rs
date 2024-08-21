@@ -7,9 +7,11 @@ use numpy::ndarray::{ArrayView1, ArrayView2};
 use numpy::{PyArray1, PyArrayMethods, PyReadonlyArray1, PyReadonlyArray2};
 use pyo3::buffer::PyBuffer;
 use pyo3::exceptions::{PyIndexError, PyTypeError, PyValueError};
+use pyo3::ffi;
 use pyo3::intern;
 use pyo3::prelude::*;
 use pyo3::types::PyType;
+use std::os::raw::c_int;
 
 pub enum RTreeMethod {
     Hilbert,
@@ -359,8 +361,15 @@ impl RTreeInner {
 
     fn num_bytes(&self) -> usize {
         match self {
-            Self::Float32(index) => AsRef::as_ref(index).len(),
-            Self::Float64(index) => AsRef::as_ref(index).len(),
+            Self::Float32(index) => index.as_ref().len(),
+            Self::Float64(index) => index.as_ref().len(),
+        }
+    }
+
+    fn buffer(&self) -> &[u8] {
+        match self {
+            Self::Float32(index) => index.as_ref(),
+            Self::Float64(index) => index.as_ref(),
         }
     }
 
@@ -503,6 +512,30 @@ impl RTree {
             )))
         };
         result
+    }
+
+    // pre PEP 688 buffer protocol
+    pub unsafe fn __getbuffer__(
+        slf: PyRef<'_, Self>,
+        view: *mut ffi::Py_buffer,
+        flags: c_int,
+    ) -> PyResult<()> {
+        let bytes = slf.0.buffer();
+        let ret = ffi::PyBuffer_FillInfo(
+            view,
+            slf.as_ptr() as *mut _,
+            bytes.as_ptr() as *mut _,
+            bytes.len().try_into().unwrap(),
+            1, // read only
+            flags,
+        );
+        if ret == -1 {
+            return Err(PyErr::fetch(slf.py()));
+        }
+        Ok(())
+    }
+    pub unsafe fn __releasebuffer__(&self, _view: *mut ffi::Py_buffer) {
+        // is there anything to do here?
     }
 
     /// The total number of items contained in this RTree.

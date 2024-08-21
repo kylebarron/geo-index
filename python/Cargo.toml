@@ -25,7 +25,7 @@ geo-index = { path = "../", features = ["rayon"] }
 # This is the fork used by polars
 # https://github.com/pola-rs/polars/blob/fac700d9670feb57f1df32beaeee38377725fccf/py-polars/Cargo.toml#L33-L35
 numpy = { git = "https://github.com/stinodego/rust-numpy.git", rev = "9ba9962ae57ba26e35babdce6f179edf5fe5b9c8", default-features = false }
-pyo3 = { version = "0.21", features = [] }
+pyo3 = { version = "0.21.0", features = ["macros"] }
 thiserror = "1"
 
 [profile.release]
