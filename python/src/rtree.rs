@@ -148,7 +148,7 @@ impl RTreeIndex<f32> for Pyf32RTreeRef {
     }
 }
 
-enum PyRTreeRef {
+pub(crate) enum PyRTreeRef {
     Float32(Pyf32RTreeRef),
     Float64(Pyf64RTreeRef),
 }
@@ -219,6 +219,36 @@ impl PyRTreeRef {
             }
         }
     }
+}
+
+/// Search an RTree given the provided bounding box.
+///
+/// Results are the indexes of the inserted objects in insertion order.
+///
+/// Args:
+///     tree: tree or buffer to search
+///     min_x: min x coordinate of bounding box
+///     min_y: min y coordinate of bounding box
+///     max_x: max x coordinate of bounding box
+///     max_y: max y coordinate of bounding box
+#[pyfunction]
+pub(crate) fn search_rtree(
+    py: Python,
+    tree: PyRTreeRef,
+    min_x: f64,
+    min_y: f64,
+    max_x: f64,
+    max_y: f64,
+) -> Bound<'_, PyArray1<usize>> {
+    let result = py.allow_threads(|| match tree {
+        PyRTreeRef::Float32(tree) => {
+            let (min_x, min_y, max_x, max_y) = f64_box_to_f32(min_x, min_y, max_x, max_y);
+            tree.search(min_x, min_y, max_x, max_y)
+        }
+        PyRTreeRef::Float64(tree) => tree.search(min_x, min_y, max_x, max_y),
+    });
+
+    PyArray1::from_vec_bound(py, result)
 }
 
 enum RTreeInner {
