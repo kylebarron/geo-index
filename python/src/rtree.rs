@@ -1,9 +1,11 @@
+use geo_index::indices::Indices;
 use geo_index::rtree::sort::{HilbertSort, STRSort};
 use geo_index::rtree::util::f64_box_to_f32;
-use geo_index::rtree::{OwnedRTree, RTreeBuilder, RTreeIndex};
-use geo_index::IndexableNum;
+use geo_index::rtree::{OwnedRTree, RTreeBuilder, RTreeIndex, TreeMetadata};
+use geo_index::{CoordType, IndexableNum};
 use numpy::ndarray::{ArrayView1, ArrayView2};
 use numpy::{PyArray1, PyArrayMethods, PyReadonlyArray1, PyReadonlyArray2};
+use pyo3::buffer::PyBuffer;
 use pyo3::exceptions::{PyIndexError, PyTypeError, PyValueError};
 use pyo3::intern;
 use pyo3::prelude::*;
@@ -23,6 +25,198 @@ impl<'a> FromPyObject<'a> for RTreeMethod {
             _ => Err(PyValueError::new_err(
                 "Unexpected method. Should be one of 'hilbert' or 'str'.",
             )),
+        }
+    }
+}
+
+struct PyU8Buffer(PyBuffer<u8>);
+
+impl<'py> FromPyObject<'py> for PyU8Buffer {
+    fn extract_bound(obj: &Bound<'py, PyAny>) -> PyResult<Self> {
+        let buffer = PyBuffer::<u8>::get_bound(obj)?;
+        if !buffer.readonly() {
+            return Err(PyValueError::new_err("Must be read-only byte buffer."));
+        }
+        if buffer.dimensions() != 1 {
+            return Err(PyValueError::new_err("Expected 1-dimensional array."));
+        }
+        // Note: this is probably superfluous for 1D array
+        if !buffer.is_c_contiguous() {
+            return Err(PyValueError::new_err("Expected c-contiguous array."));
+        }
+        if buffer.len_bytes() == 0 {
+            return Err(PyValueError::new_err("Buffer has no data."));
+        }
+
+        Ok(Self(buffer))
+    }
+}
+
+impl AsRef<[u8]> for PyU8Buffer {
+    fn as_ref(&self) -> &[u8] {
+        let len = self.0.item_count();
+        let data = self.0.buf_ptr() as *const u8;
+        unsafe { std::slice::from_raw_parts(data, len) }
+    }
+}
+
+struct Pyf64RTreeRef {
+    buffer: PyU8Buffer,
+    metadata: TreeMetadata<f64>,
+}
+
+impl Pyf64RTreeRef {
+    fn try_new(buffer: PyU8Buffer) -> PyResult<Self> {
+        let metadata = TreeMetadata::try_new(buffer.as_ref()).unwrap();
+        Ok(Self { buffer, metadata })
+    }
+}
+
+impl AsRef<[u8]> for Pyf64RTreeRef {
+    fn as_ref(&self) -> &[u8] {
+        self.buffer.as_ref()
+    }
+}
+
+impl RTreeIndex<f64> for Pyf64RTreeRef {
+    fn boxes(&self) -> &[f64] {
+        self.metadata.boxes_slice(self.as_ref())
+    }
+
+    fn indices(&self) -> Indices {
+        self.metadata.indices_slice(self.as_ref())
+    }
+
+    fn level_bounds(&self) -> &[usize] {
+        self.metadata.level_bounds()
+    }
+
+    fn node_size(&self) -> usize {
+        self.metadata.node_size()
+    }
+
+    fn num_items(&self) -> usize {
+        self.metadata.num_items()
+    }
+
+    fn num_nodes(&self) -> usize {
+        self.metadata.num_nodes()
+    }
+}
+
+struct Pyf32RTreeRef {
+    buffer: PyU8Buffer,
+    metadata: TreeMetadata<f32>,
+}
+
+impl Pyf32RTreeRef {
+    fn try_new(buffer: PyU8Buffer) -> PyResult<Self> {
+        let metadata = TreeMetadata::try_new(buffer.as_ref()).unwrap();
+        Ok(Self { buffer, metadata })
+    }
+}
+
+impl AsRef<[u8]> for Pyf32RTreeRef {
+    fn as_ref(&self) -> &[u8] {
+        self.buffer.as_ref()
+    }
+}
+
+impl RTreeIndex<f32> for Pyf32RTreeRef {
+    fn boxes(&self) -> &[f32] {
+        self.metadata.boxes_slice(self.as_ref())
+    }
+
+    fn indices(&self) -> Indices {
+        self.metadata.indices_slice(self.as_ref())
+    }
+
+    fn level_bounds(&self) -> &[usize] {
+        self.metadata.level_bounds()
+    }
+
+    fn node_size(&self) -> usize {
+        self.metadata.node_size()
+    }
+
+    fn num_items(&self) -> usize {
+        self.metadata.num_items()
+    }
+
+    fn num_nodes(&self) -> usize {
+        self.metadata.num_nodes()
+    }
+}
+
+enum PyRTreeRef {
+    Float32(Pyf32RTreeRef),
+    Float64(Pyf64RTreeRef),
+}
+
+impl<'py> FromPyObject<'py> for PyRTreeRef {
+    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
+        let buffer = PyU8Buffer::extract_bound(ob)?;
+        let ct = CoordType::from_buffer(&buffer.as_ref()).unwrap();
+        match ct {
+            CoordType::Float32 => Ok(Self::Float32(Pyf32RTreeRef::try_new(buffer)?)),
+            CoordType::Float64 => Ok(Self::Float64(Pyf64RTreeRef::try_new(buffer)?)),
+            _ => todo!(),
+        }
+    }
+}
+
+impl PyRTreeRef {
+    fn num_items(&self) -> usize {
+        match self {
+            Self::Float32(index) => index.num_items(),
+            Self::Float64(index) => index.num_items(),
+        }
+    }
+
+    fn num_nodes(&self) -> usize {
+        match self {
+            Self::Float32(index) => index.num_nodes(),
+            Self::Float64(index) => index.num_nodes(),
+        }
+    }
+
+    fn node_size(&self) -> usize {
+        match self {
+            Self::Float32(index) => index.node_size(),
+            Self::Float64(index) => index.node_size(),
+        }
+    }
+
+    fn num_levels(&self) -> usize {
+        match self {
+            Self::Float32(index) => index.num_levels(),
+            Self::Float64(index) => index.num_levels(),
+        }
+    }
+
+    fn num_bytes(&self) -> usize {
+        match self {
+            Self::Float32(index) => AsRef::as_ref(index).len(),
+            Self::Float64(index) => AsRef::as_ref(index).len(),
+        }
+    }
+
+    fn boxes_at_level<'py>(&'py self, py: Python<'py>, level: usize) -> PyResult<PyObject> {
+        match self {
+            Self::Float32(index) => {
+                let boxes = index
+                    .boxes_at_level(level)
+                    .map_err(|err| PyIndexError::new_err(err.to_string()))?;
+                let array = PyArray1::from_slice_bound(py, boxes);
+                Ok(array.reshape([boxes.len() / 4, 4])?.into_py(py))
+            }
+            Self::Float64(index) => {
+                let boxes = index
+                    .boxes_at_level(level)
+                    .map_err(|err| PyIndexError::new_err(err.to_string()))?;
+                let array = PyArray1::from_slice_bound(py, boxes);
+                Ok(array.reshape([boxes.len() / 4, 4])?.into_py(py))
+            }
         }
     }
 }

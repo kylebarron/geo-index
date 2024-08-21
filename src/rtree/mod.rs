@@ -9,5 +9,5 @@ pub mod traversal;
 pub mod util;
 
 pub use builder::RTreeBuilder;
-pub use index::{OwnedRTree, RTreeRef};
+pub use index::{OwnedRTree, RTreeRef, TreeMetadata};
 pub use r#trait::RTreeIndex;

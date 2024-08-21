@@ -12,7 +12,7 @@ use crate::rtree::util::compute_num_nodes;
 
 /// Common metadata to describe a tree
 #[derive(Debug, Clone, PartialEq)]
-pub(crate) struct TreeMetadata<N: IndexableNum> {
+pub struct TreeMetadata<N: IndexableNum> {
     pub(crate) node_size: usize,
     pub(crate) num_items: usize,
     pub(crate) num_nodes: usize,
@@ -111,6 +111,19 @@ impl<N: IndexableNum> TreeMetadata<N> {
         let indices_buf = &data
             [8 + self.nodes_byte_length..8 + self.nodes_byte_length + self.indices_byte_length];
         Indices::new(indices_buf, self.num_nodes)
+    }
+
+    pub fn node_size(&self) -> usize {
+        self.node_size
+    }
+    pub fn num_items(&self) -> usize {
+        self.num_items
+    }
+    pub fn num_nodes(&self) -> usize {
+        self.num_nodes
+    }
+    pub fn level_bounds(&self) -> &[usize] {
+        self.level_bounds.as_slice()
     }
 }
 
