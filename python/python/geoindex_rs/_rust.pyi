@@ -34,6 +34,11 @@ T = TypeVar("T", bound=np.generic, covariant=True)
 
 class RTree(Generic[T]):
     @classmethod
+    def from_buffer(
+        cls,
+        buffer: Union[bytes, bytearray, memoryview],
+    ) -> Self: ...
+    @classmethod
     def from_interleaved(
         cls,
         boxes: NDArray[T],
@@ -66,3 +71,6 @@ class RTree(Generic[T]):
     def search(
         self, min_x: IntFloat, min_y: IntFloat, max_x: IntFloat, max_y: IntFloat
     ) -> NDArray[np.uintc]: ...
+    def to_buffer(
+        self
+    ) -> bytes: ...

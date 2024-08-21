@@ -1,13 +1,16 @@
 use geo_index::rtree::sort::{HilbertSort, STRSort};
 use geo_index::rtree::util::f64_box_to_f32;
-use geo_index::rtree::{OwnedRTree, RTreeBuilder, RTreeIndex};
+use geo_index::rtree::{OwnedRTree, RTreeBuilder, RTreeIndex, RTreeRef};
 use geo_index::IndexableNum;
 use numpy::ndarray::{ArrayView1, ArrayView2};
 use numpy::{PyArray1, PyArrayMethods, PyReadonlyArray1, PyReadonlyArray2};
+use pyo3::buffer::PyBuffer;
 use pyo3::exceptions::{PyIndexError, PyTypeError, PyValueError};
 use pyo3::intern;
 use pyo3::prelude::*;
 use pyo3::types::PyType;
+use pyo3::ffi;
+use std::os::raw::c_int;
 
 pub enum RTreeMethod {
     Hilbert,
@@ -133,6 +136,12 @@ impl RTreeInner {
         match self {
             Self::Float32(index) => AsRef::as_ref(index).len(),
             Self::Float64(index) => AsRef::as_ref(index).len(),
+        }
+    }
+    fn buffer(&self) -> &[u8] {
+        match self {
+            Self::Float32(index) => AsRef::<[u8]>::as_ref(index),
+            Self::Float64(index) => AsRef::<[u8]>::as_ref(index),
         }
     }
 
@@ -277,6 +286,26 @@ impl RTree {
         result
     }
 
+    // pre PEP 688 buffer protocol
+    pub unsafe fn __getbuffer__(slf: PyRef<'_, Self>, view: *mut ffi::Py_buffer, flags: c_int) -> PyResult<()> {
+        let bytes = slf.0.buffer();
+        let ret = ffi::PyBuffer_FillInfo(
+            view,
+            slf.as_ptr() as *mut _,
+            bytes.as_ptr() as *mut _,
+            bytes.len().try_into().unwrap(),
+            1, // read only
+            flags,
+        );
+        if ret == -1 {
+            return Err(PyErr::fetch(slf.py()));
+        }
+        Ok(())
+    }
+    pub unsafe fn __releasebuffer__(&self, _view: *mut ffi::Py_buffer) {
+        // is there anything to do here?
+    }
+
     /// The total number of items contained in this RTree.
     #[getter]
     pub fn num_items(&self) -> usize {
@@ -342,4 +371,34 @@ impl RTree {
 
         PyArray1::from_vec_bound(py, result)
     }
+}
+
+#[pyfunction]
+#[pyo3(name = "search_rtree")]
+pub fn search<'py>(
+    py: Python<'py>,
+    buf: &Bound<'py, PyAny>,
+    min_x: f64,
+    min_y: f64,
+    max_x: f64,
+    max_y: f64,
+) -> PyResult<Bound<'py, PyArray1<usize>>> {
+    let buffer = PyBuffer::<u8>::get_bound(buf)?;
+    if !buffer.readonly() {
+        return Err(PyValueError::new_err("Must be read-only byte buffer"));
+    }
+    let slice = buffer
+        .as_slice(py)
+        .ok_or_else(|| PyTypeError::new_err("Must be a contiguous sequence of bytes"))?;
+    let transmuted_slice: &'static [u8] = unsafe { std::mem::transmute(slice) };
+    // now, attempt to read it
+    let result = if let Ok(tree_ref) = RTreeRef::<'_, f64>::try_new(&transmuted_slice) {
+        Ok(py.allow_threads(|| tree_ref.search(min_x, min_y, max_x, max_y)))
+    } else if let Ok(tree_ref) = RTreeRef::<'_, f32>::try_new(&transmuted_slice) {
+        let (min_x, min_y, max_x, max_y) = f64_box_to_f32(min_x, min_y, max_x, max_y);
+        Ok(py.allow_threads(|| tree_ref.search(min_x, min_y, max_x, max_y)))
+    } else {
+        Err(PyTypeError::new_err("Unrecognizable buffer contents"))
+    };
+    Ok(PyArray1::from_vec_bound(py, result?))
 }

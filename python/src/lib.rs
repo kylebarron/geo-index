@@ -13,6 +13,7 @@ fn ___version() -> &'static str {
 #[pymodule]
 fn _rust(_py: Python, m: &Bound<PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(___version))?;
+    m.add_wrapped(wrap_pyfunction!(rtree::search))?;
 
     m.add_class::<rtree::RTree>()?;
     m.add_class::<kdtree::KDTree>()?;
