@@ -1,5 +1,6 @@
-pub mod kdtree;
-pub mod rtree;
+mod common;
+mod kdtree;
+mod rtree;
 
 use pyo3::prelude::*;
 
