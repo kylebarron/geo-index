@@ -12,7 +12,7 @@ def generate_random_boxes():
 def test_buffer_protocol():
     boxes = generate_random_boxes()
     initial = RTree.from_interleaved(boxes)
-    second = RTree(initial)
+    second = RTree.from_buffer(initial)
 
     assert initial is not second, "Not the same object"
 
