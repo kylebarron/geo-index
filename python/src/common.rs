@@ -16,7 +16,7 @@ impl RustBuffer {
 
 #[pymethods]
 impl RustBuffer {
-    // pre PEP 688 buffer protocol
+    /// Implements the buffer protocol export
     unsafe fn __getbuffer__(
         slf: PyRef<'_, Self>,
         view: *mut ffi::Py_buffer,
@@ -68,6 +68,7 @@ impl<'py> FromPyObject<'py> for PyU8Buffer {
 }
 
 impl AsRef<[u8]> for PyU8Buffer {
+    /// Extract a slice from a Python object implementing the buffer protocol
     fn as_ref(&self) -> &[u8] {
         let len = self.0.item_count();
         let data = self.0.buf_ptr() as *const u8;

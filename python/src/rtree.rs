@@ -91,6 +91,12 @@ impl<N: IndexableNum> RTreeIndex<N> for PyRTreeBuffer<N> {
 /// An enum wrapper around [PyRTreeBuffer] that allows use of multiple coordinate types from
 /// Python.
 pub(crate) enum PyRTreeRef {
+    Int8(PyRTreeBuffer<i8>),
+    Int16(PyRTreeBuffer<i16>),
+    Int32(PyRTreeBuffer<i32>),
+    UInt8(PyRTreeBuffer<u8>),
+    UInt16(PyRTreeBuffer<u16>),
+    UInt32(PyRTreeBuffer<u32>),
     Float32(PyRTreeBuffer<f32>),
     Float64(PyRTreeBuffer<f64>),
 }
@@ -122,6 +128,12 @@ impl From<PyRTreeBuffer<f64>> for PyRTreeRef {
 impl AsRef<[u8]> for PyRTreeRef {
     fn as_ref(&self) -> &[u8] {
         match self {
+            Self::Int8(inner) => inner.as_ref(),
+            Self::Int16(inner) => inner.as_ref(),
+            Self::Int32(inner) => inner.as_ref(),
+            Self::UInt8(inner) => inner.as_ref(),
+            Self::UInt16(inner) => inner.as_ref(),
+            Self::UInt32(inner) => inner.as_ref(),
             Self::Float32(inner) => inner.as_ref(),
             Self::Float64(inner) => inner.as_ref(),
         }
@@ -131,6 +143,12 @@ impl AsRef<[u8]> for PyRTreeRef {
 impl PyRTreeRef {
     fn num_items(&self) -> usize {
         match self {
+            Self::Int8(index) => index.num_items(),
+            Self::Int16(index) => index.num_items(),
+            Self::Int32(index) => index.num_items(),
+            Self::UInt8(index) => index.num_items(),
+            Self::UInt16(index) => index.num_items(),
+            Self::UInt32(index) => index.num_items(),
             Self::Float32(index) => index.num_items(),
             Self::Float64(index) => index.num_items(),
         }
@@ -138,6 +156,12 @@ impl PyRTreeRef {
 
     fn num_nodes(&self) -> usize {
         match self {
+            Self::Int8(index) => index.num_nodes(),
+            Self::Int16(index) => index.num_nodes(),
+            Self::Int32(index) => index.num_nodes(),
+            Self::UInt8(index) => index.num_nodes(),
+            Self::UInt16(index) => index.num_nodes(),
+            Self::UInt32(index) => index.num_nodes(),
             Self::Float32(index) => index.num_nodes(),
             Self::Float64(index) => index.num_nodes(),
         }
@@ -145,6 +169,12 @@ impl PyRTreeRef {
 
     fn node_size(&self) -> usize {
         match self {
+            Self::Int8(index) => index.node_size(),
+            Self::Int16(index) => index.node_size(),
+            Self::Int32(index) => index.node_size(),
+            Self::UInt8(index) => index.node_size(),
+            Self::UInt16(index) => index.node_size(),
+            Self::UInt32(index) => index.node_size(),
             Self::Float32(index) => index.node_size(),
             Self::Float64(index) => index.node_size(),
         }
@@ -152,6 +182,12 @@ impl PyRTreeRef {
 
     fn num_levels(&self) -> usize {
         match self {
+            Self::Int8(index) => index.num_levels(),
+            Self::Int16(index) => index.num_levels(),
+            Self::Int32(index) => index.num_levels(),
+            Self::UInt8(index) => index.num_levels(),
+            Self::UInt16(index) => index.num_levels(),
+            Self::UInt32(index) => index.num_levels(),
             Self::Float32(index) => index.num_levels(),
             Self::Float64(index) => index.num_levels(),
         }
@@ -159,29 +195,41 @@ impl PyRTreeRef {
 
     fn num_bytes(&self) -> usize {
         match self {
-            Self::Float32(index) => AsRef::as_ref(index).len(),
-            Self::Float64(index) => AsRef::as_ref(index).len(),
+            Self::Int8(index) => index.as_ref().len(),
+            Self::Int16(index) => index.as_ref().len(),
+            Self::Int32(index) => index.as_ref().len(),
+            Self::UInt8(index) => index.as_ref().len(),
+            Self::UInt16(index) => index.as_ref().len(),
+            Self::UInt32(index) => index.as_ref().len(),
+            Self::Float32(index) => index.as_ref().len(),
+            Self::Float64(index) => index.as_ref().len(),
         }
     }
 
     fn boxes_at_level<'py>(&'py self, py: Python<'py>, level: usize) -> PyResult<PyObject> {
         match self {
-            Self::Float32(index) => {
-                let boxes = index
-                    .boxes_at_level(level)
-                    .map_err(|err| PyIndexError::new_err(err.to_string()))?;
-                let array = PyArray1::from_slice_bound(py, boxes);
-                Ok(array.reshape([boxes.len() / 4, 4])?.into_py(py))
-            }
-            Self::Float64(index) => {
-                let boxes = index
-                    .boxes_at_level(level)
-                    .map_err(|err| PyIndexError::new_err(err.to_string()))?;
-                let array = PyArray1::from_slice_bound(py, boxes);
-                Ok(array.reshape([boxes.len() / 4, 4])?.into_py(py))
-            }
+            Self::Int8(index) => _boxes_at_level(py, index, level),
+            Self::Int16(index) => _boxes_at_level(py, index, level),
+            Self::Int32(index) => _boxes_at_level(py, index, level),
+            Self::UInt8(index) => _boxes_at_level(py, index, level),
+            Self::UInt16(index) => _boxes_at_level(py, index, level),
+            Self::UInt32(index) => _boxes_at_level(py, index, level),
+            Self::Float32(index) => _boxes_at_level(py, index, level),
+            Self::Float64(index) => _boxes_at_level(py, index, level),
         }
     }
+}
+
+fn _boxes_at_level<N: IndexableNum + numpy::Element>(
+    py: Python,
+    index: &PyRTreeBuffer<N>,
+    level: usize,
+) -> PyResult<PyObject> {
+    let boxes = index
+        .boxes_at_level(level)
+        .map_err(|err| PyIndexError::new_err(err.to_string()))?;
+    let array = PyArray1::from_slice_bound(py, boxes);
+    Ok(array.reshape([boxes.len() / 4, 4])?.into_py(py))
 }
 
 #[pyclass]
@@ -190,8 +238,8 @@ pub(crate) struct RTree(PyRTreeRef);
 #[pymethods]
 impl RTree {
     /// Construct an RTree from an existing RTree buffer
-    #[new]
-    fn new(py: Python, obj: PyObject) -> PyResult<Self> {
+    #[classmethod]
+    fn from_buffer(_cls: &Bound<PyType>, py: Python, obj: PyObject) -> PyResult<Self> {
         Ok(Self(obj.extract(py)?))
     }
 
@@ -377,51 +425,74 @@ impl RTree {
     pub fn search<'py>(
         &'py self,
         py: Python<'py>,
-        min_x: f64,
-        min_y: f64,
-        max_x: f64,
-        max_y: f64,
-    ) -> Bound<'py, PyArray1<usize>> {
-        let result = py.allow_threads(|| match &self.0 {
-            PyRTreeRef::Float32(tree) => {
-                let (min_x, min_y, max_x, max_y) = f64_box_to_f32(min_x, min_y, max_x, max_y);
-                tree.search(min_x, min_y, max_x, max_y)
+        min_x: PyObject,
+        min_y: PyObject,
+        max_x: PyObject,
+        max_y: PyObject,
+    ) -> PyResult<Bound<'py, PyArray1<usize>>> {
+        let result: Result<_, PyErr> = match &self.0 {
+            PyRTreeRef::Int8(tree) => {
+                let min_x = min_x.extract(py)?;
+                let min_y = min_y.extract(py)?;
+                let max_x = max_x.extract(py)?;
+                let max_y = max_y.extract(py)?;
+                Ok(py.allow_threads(|| tree.search(min_x, min_y, max_x, max_y)))
             }
-            PyRTreeRef::Float64(tree) => tree.search(min_x, min_y, max_x, max_y),
-        });
+            PyRTreeRef::Int16(tree) => {
+                let min_x = min_x.extract(py)?;
+                let min_y = min_y.extract(py)?;
+                let max_x = max_x.extract(py)?;
+                let max_y = max_y.extract(py)?;
+                Ok(py.allow_threads(|| tree.search(min_x, min_y, max_x, max_y)))
+            }
+            PyRTreeRef::Int32(tree) => {
+                let min_x = min_x.extract(py)?;
+                let min_y = min_y.extract(py)?;
+                let max_x = max_x.extract(py)?;
+                let max_y = max_y.extract(py)?;
+                Ok(py.allow_threads(|| tree.search(min_x, min_y, max_x, max_y)))
+            }
+            PyRTreeRef::UInt8(tree) => {
+                let min_x = min_x.extract(py)?;
+                let min_y = min_y.extract(py)?;
+                let max_x = max_x.extract(py)?;
+                let max_y = max_y.extract(py)?;
+                Ok(py.allow_threads(|| tree.search(min_x, min_y, max_x, max_y)))
+            }
+            PyRTreeRef::UInt16(tree) => {
+                let min_x = min_x.extract(py)?;
+                let min_y = min_y.extract(py)?;
+                let max_x = max_x.extract(py)?;
+                let max_y = max_y.extract(py)?;
+                Ok(py.allow_threads(|| tree.search(min_x, min_y, max_x, max_y)))
+            }
+            PyRTreeRef::UInt32(tree) => {
+                let min_x = min_x.extract(py)?;
+                let min_y = min_y.extract(py)?;
+                let max_x = max_x.extract(py)?;
+                let max_y = max_y.extract(py)?;
+                Ok(py.allow_threads(|| tree.search(min_x, min_y, max_x, max_y)))
+            }
+            PyRTreeRef::Float32(tree) => {
+                let min_x = min_x.extract::<f64>(py)?;
+                let min_y = min_y.extract::<f64>(py)?;
+                let max_x = max_x.extract::<f64>(py)?;
+                let max_y = max_y.extract::<f64>(py)?;
 
-        PyArray1::from_vec_bound(py, result)
+                let (min_x, min_y, max_x, max_y) = f64_box_to_f32(min_x, min_y, max_x, max_y);
+                Ok(py.allow_threads(|| tree.search(min_x, min_y, max_x, max_y)))
+            }
+            PyRTreeRef::Float64(tree) => {
+                let min_x = min_x.extract(py)?;
+                let min_y = min_y.extract(py)?;
+                let max_x = max_x.extract(py)?;
+                let max_y = max_y.extract(py)?;
+                Ok(py.allow_threads(|| tree.search(min_x, min_y, max_x, max_y)))
+            }
+        };
+
+        Ok(PyArray1::from_vec_bound(py, result?))
     }
-}
-
-/// Search an RTree given the provided bounding box.
-///
-/// Results are the indexes of the inserted objects in insertion order.
-///
-/// Args:
-///     tree: tree or buffer to search
-///     min_x: min x coordinate of bounding box
-///     min_y: min y coordinate of bounding box
-///     max_x: max x coordinate of bounding box
-///     max_y: max y coordinate of bounding box
-#[pyfunction]
-pub(crate) fn search_rtree(
-    py: Python,
-    tree: PyRTreeRef,
-    min_x: f64,
-    min_y: f64,
-    max_x: f64,
-    max_y: f64,
-) -> Bound<'_, PyArray1<usize>> {
-    let result = py.allow_threads(|| match tree {
-        PyRTreeRef::Float32(tree) => {
-            let (min_x, min_y, max_x, max_y) = f64_box_to_f32(min_x, min_y, max_x, max_y);
-            tree.search(min_x, min_y, max_x, max_y)
-        }
-        PyRTreeRef::Float64(tree) => tree.search(min_x, min_y, max_x, max_y),
-    });
-
-    PyArray1::from_vec_bound(py, result)
 }
 
 /// These constructors are separated out so they can be generic
