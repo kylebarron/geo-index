@@ -1,5 +1,7 @@
+use geo_index::IndexableNum;
+use numpy::{dtype_bound, PyArray1, PyArrayDescr, PyUntypedArray};
 use pyo3::buffer::PyBuffer;
-use pyo3::exceptions::PyValueError;
+use pyo3::exceptions::{PyTypeError, PyValueError};
 use pyo3::ffi;
 use pyo3::prelude::*;
 use std::os::raw::c_int;
@@ -74,4 +76,94 @@ impl AsRef<[u8]> for PyU8Buffer {
         let data = self.0.buf_ptr() as *const u8;
         unsafe { std::slice::from_raw_parts(data, len) }
     }
+}
+
+pub(crate) enum PyTypedArrayRef<'py, N: IndexableNum + numpy::Element> {
+    // Arrow((ArrayRef, PhantomData<N>)),
+    Numpy(&'py PyArray1<N>),
+}
+
+impl<'py, N: IndexableNum + numpy::Element> PyTypedArrayRef<'py, N> {
+    pub(crate) fn as_slice(&self) -> &[N] {
+        match self {
+            Self::Numpy(arr) => unsafe { arr.as_slice() }.unwrap(),
+        }
+    }
+}
+
+pub(crate) enum PyArray<'py> {
+    Int8(PyTypedArrayRef<'py, i8>),
+    Int16(PyTypedArrayRef<'py, i16>),
+    Int32(PyTypedArrayRef<'py, i32>),
+    UInt8(PyTypedArrayRef<'py, u8>),
+    UInt16(PyTypedArrayRef<'py, u16>),
+    UInt32(PyTypedArrayRef<'py, u32>),
+    Float32(PyTypedArrayRef<'py, f32>),
+    Float64(PyTypedArrayRef<'py, f64>),
+}
+
+impl<'py> FromPyObject<'py> for PyArray<'py> {
+    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
+        let mut ob = ob.to_owned();
+        // call __array__ if it exists
+        if ob.hasattr("__array__")? {
+            ob = ob.call_method0("__array__")?;
+        }
+
+        if let Ok(array) = ob.extract::<&'py PyUntypedArray>() {
+            if array.ndim() != 1 {
+                return Err(PyValueError::new_err("Expected 1-dimensional array."));
+            }
+
+            let dtype = array.dtype();
+
+            if is_type::<i8>(dtype) {
+                let arr = array.downcast::<PyArray1<i8>>()?;
+                return Ok(Self::Int8(PyTypedArrayRef::Numpy(arr)));
+            }
+
+            if is_type::<i16>(dtype) {
+                let arr = array.downcast::<PyArray1<i16>>()?;
+                return Ok(Self::Int16(PyTypedArrayRef::Numpy(arr)));
+            }
+
+            if is_type::<i32>(dtype) {
+                let arr = array.downcast::<PyArray1<i32>>()?;
+                return Ok(Self::Int32(PyTypedArrayRef::Numpy(arr)));
+            }
+
+            if is_type::<u8>(dtype) {
+                let arr = array.downcast::<PyArray1<u8>>()?;
+                return Ok(Self::UInt8(PyTypedArrayRef::Numpy(arr)));
+            }
+
+            if is_type::<u16>(dtype) {
+                let arr = array.downcast::<PyArray1<u16>>()?;
+                return Ok(Self::UInt16(PyTypedArrayRef::Numpy(arr)));
+            }
+
+            if is_type::<u32>(dtype) {
+                let arr = array.downcast::<PyArray1<u32>>()?;
+                return Ok(Self::UInt32(PyTypedArrayRef::Numpy(arr)));
+            }
+
+            if is_type::<f32>(dtype) {
+                let arr = array.downcast::<PyArray1<f32>>()?;
+                return Ok(Self::Float32(PyTypedArrayRef::Numpy(arr)));
+            }
+
+            if is_type::<f64>(dtype) {
+                let arr = array.downcast::<PyArray1<f64>>()?;
+                return Ok(Self::Float64(PyTypedArrayRef::Numpy(arr)));
+            }
+
+            return Err(PyTypeError::new_err("Unexpected dtype of numpy array."));
+        }
+
+        Err(PyTypeError::new_err("Expected numpy array input."))
+    }
+}
+
+fn is_type<T: numpy::Element>(dtype: &PyArrayDescr) -> bool {
+    Python::with_gil(|py| dtype.is_equiv_to(dtype_bound::<T>(py).as_gil_ref()))
 }

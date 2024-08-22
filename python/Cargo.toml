@@ -17,6 +17,7 @@ name = "_rust"
 crate-type = ["cdylib"]
 
 [dependencies]
+# arrow = "52"
 bytes = "1"
 geo-index = { path = "../", features = ["rayon"] }
 # numpy = "0.21"
@@ -26,6 +27,7 @@ geo-index = { path = "../", features = ["rayon"] }
 # https://github.com/pola-rs/polars/blob/fac700d9670feb57f1df32beaeee38377725fccf/py-polars/Cargo.toml#L33-L35
 numpy = { git = "https://github.com/stinodego/rust-numpy.git", rev = "9ba9962ae57ba26e35babdce6f179edf5fe5b9c8", default-features = false }
 pyo3 = { version = "0.21.0", features = ["macros"] }
+# pyo3-arrow = "*"
 thiserror = "1"
 
 [profile.release]

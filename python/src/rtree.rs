@@ -3,8 +3,8 @@ use geo_index::rtree::sort::{HilbertSort, STRSort};
 use geo_index::rtree::util::f64_box_to_f32;
 use geo_index::rtree::{OwnedRTree, RTreeBuilder, RTreeIndex, TreeMetadata};
 use geo_index::{CoordType, IndexableNum};
-use numpy::ndarray::{ArrayView1, ArrayView2};
-use numpy::{PyArray1, PyArrayMethods, PyReadonlyArray1, PyReadonlyArray2};
+use numpy::ndarray::ArrayView2;
+use numpy::{PyArray1, PyArrayMethods, PyReadonlyArray2};
 use pyo3::exceptions::{PyIndexError, PyTypeError, PyValueError};
 use pyo3::ffi;
 use pyo3::intern;
@@ -12,7 +12,7 @@ use pyo3::prelude::*;
 use pyo3::types::PyType;
 use std::os::raw::c_int;
 
-use crate::common::{PyU8Buffer, RustBuffer};
+use crate::common::{PyArray, PyU8Buffer, RustBuffer};
 
 /// Method for constructing rtree
 enum RTreeMethod {
@@ -110,6 +110,42 @@ impl<'py> FromPyObject<'py> for PyRTreeRef {
             CoordType::Float64 => Ok(Self::Float64(PyRTreeBuffer::try_new(buffer)?)),
             _ => todo!(),
         }
+    }
+}
+
+impl From<PyRTreeBuffer<i8>> for PyRTreeRef {
+    fn from(value: PyRTreeBuffer<i8>) -> Self {
+        Self::Int8(value)
+    }
+}
+
+impl From<PyRTreeBuffer<i16>> for PyRTreeRef {
+    fn from(value: PyRTreeBuffer<i16>) -> Self {
+        Self::Int16(value)
+    }
+}
+
+impl From<PyRTreeBuffer<i32>> for PyRTreeRef {
+    fn from(value: PyRTreeBuffer<i32>) -> Self {
+        Self::Int32(value)
+    }
+}
+
+impl From<PyRTreeBuffer<u8>> for PyRTreeRef {
+    fn from(value: PyRTreeBuffer<u8>) -> Self {
+        Self::UInt8(value)
+    }
+}
+
+impl From<PyRTreeBuffer<u16>> for PyRTreeRef {
+    fn from(value: PyRTreeBuffer<u16>) -> Self {
+        Self::UInt16(value)
+    }
+}
+
+impl From<PyRTreeBuffer<u32>> for PyRTreeRef {
+    fn from(value: PyRTreeBuffer<u32>) -> Self {
+        Self::UInt32(value)
     }
 }
 
@@ -282,72 +318,158 @@ impl RTree {
         text_signature = "(min_x, min_y, max_x, max_y, *, method = 'hilbert', node_size = None)")
     ]
     #[allow(clippy::too_many_arguments)]
-    fn from_separated(
+    fn from_separated<'py>(
         _cls: &Bound<PyType>,
-        py: Python,
-        min_x: PyObject,
-        min_y: PyObject,
-        max_x: PyObject,
-        max_y: PyObject,
+        py: Python<'py>,
+        min_x: PyArray<'py>,
+        min_y: PyArray<'py>,
+        max_x: PyArray<'py>,
+        max_y: PyArray<'py>,
         method: RTreeMethod,
         node_size: Option<usize>,
     ) -> PyResult<Self> {
-        // Convert to numpy array (of the same dtype)
-        let min_x = min_x.call_method0(py, intern!(py, "__array__"))?;
-        let min_y = min_y.call_method0(py, intern!(py, "__array__"))?;
-        let max_x = max_x.call_method0(py, intern!(py, "__array__"))?;
-        let max_y = max_y.call_method0(py, intern!(py, "__array__"))?;
-
-        let result = if let Ok(min_x) = min_x.extract::<PyReadonlyArray1<f64>>(py) {
-            let min_y = min_y.extract::<PyReadonlyArray1<f64>>(py)?;
-            let max_x = max_x.extract::<PyReadonlyArray1<f64>>(py)?;
-            let max_y = max_y.extract::<PyReadonlyArray1<f64>>(py)?;
-
-            let min_x_array = min_x.as_array();
-            let min_y_array = min_y.as_array();
-            let max_x_array = max_x.as_array();
-            let max_y_array = max_y.as_array();
-
-            let tree = py.allow_threads(|| {
-                new_separated(
-                    min_x_array,
-                    min_y_array,
-                    max_x_array,
-                    max_y_array,
+        match (min_x, min_y, max_x, max_y) {
+            (
+                PyArray::Int8(min_x),
+                PyArray::Int8(min_y),
+                PyArray::Int8(max_x),
+                PyArray::Int8(max_y),
+            ) => {
+                let tree = new_separated_slice(
+                    min_x.as_slice(),
+                    min_y.as_slice(),
+                    max_x.as_slice(),
+                    max_y.as_slice(),
                     method,
                     node_size,
-                )
-            });
-            Ok(Self(PyRTreeBuffer::from_owned_rtree(py, tree)?.into()))
-        } else if let Ok(min_x) = min_x.extract::<PyReadonlyArray1<f32>>(py) {
-            let min_y = min_y.extract::<PyReadonlyArray1<f32>>(py)?;
-            let max_x = max_x.extract::<PyReadonlyArray1<f32>>(py)?;
-            let max_y = max_y.extract::<PyReadonlyArray1<f32>>(py)?;
+                );
 
-            let min_x_array = min_x.as_array();
-            let min_y_array = min_y.as_array();
-            let max_x_array = max_x.as_array();
-            let max_y_array = max_y.as_array();
-
-            let tree = py.allow_threads(|| {
-                new_separated(
-                    min_x_array,
-                    min_y_array,
-                    max_x_array,
-                    max_y_array,
+                Ok(Self(PyRTreeBuffer::from_owned_rtree(py, tree)?.into()))
+            }
+            (
+                PyArray::Int16(min_x),
+                PyArray::Int16(min_y),
+                PyArray::Int16(max_x),
+                PyArray::Int16(max_y),
+            ) => {
+                let tree = new_separated_slice(
+                    min_x.as_slice(),
+                    min_y.as_slice(),
+                    max_x.as_slice(),
+                    max_y.as_slice(),
                     method,
                     node_size,
-                )
-            });
-            Ok(Self(PyRTreeBuffer::from_owned_rtree(py, tree)?.into()))
-        } else {
-            let dtype = min_x.call_method0(py, intern!(py, "dtype"))?.to_string();
-            Err(PyTypeError::new_err(format!(
-                "Expected a numpy array of dtype float32 or float64, got {}",
-                dtype
-            )))
-        };
-        result
+                );
+
+                Ok(Self(PyRTreeBuffer::from_owned_rtree(py, tree)?.into()))
+            }
+            (
+                PyArray::Int32(min_x),
+                PyArray::Int32(min_y),
+                PyArray::Int32(max_x),
+                PyArray::Int32(max_y),
+            ) => {
+                let tree = new_separated_slice(
+                    min_x.as_slice(),
+                    min_y.as_slice(),
+                    max_x.as_slice(),
+                    max_y.as_slice(),
+                    method,
+                    node_size,
+                );
+
+                Ok(Self(PyRTreeBuffer::from_owned_rtree(py, tree)?.into()))
+            }
+            (
+                PyArray::UInt8(min_x),
+                PyArray::UInt8(min_y),
+                PyArray::UInt8(max_x),
+                PyArray::UInt8(max_y),
+            ) => {
+                let tree = new_separated_slice(
+                    min_x.as_slice(),
+                    min_y.as_slice(),
+                    max_x.as_slice(),
+                    max_y.as_slice(),
+                    method,
+                    node_size,
+                );
+
+                Ok(Self(PyRTreeBuffer::from_owned_rtree(py, tree)?.into()))
+            }
+            (
+                PyArray::UInt16(min_x),
+                PyArray::UInt16(min_y),
+                PyArray::UInt16(max_x),
+                PyArray::UInt16(max_y),
+            ) => {
+                let tree = new_separated_slice(
+                    min_x.as_slice(),
+                    min_y.as_slice(),
+                    max_x.as_slice(),
+                    max_y.as_slice(),
+                    method,
+                    node_size,
+                );
+
+                Ok(Self(PyRTreeBuffer::from_owned_rtree(py, tree)?.into()))
+            }
+            (
+                PyArray::UInt32(min_x),
+                PyArray::UInt32(min_y),
+                PyArray::UInt32(max_x),
+                PyArray::UInt32(max_y),
+            ) => {
+                let tree = new_separated_slice(
+                    min_x.as_slice(),
+                    min_y.as_slice(),
+                    max_x.as_slice(),
+                    max_y.as_slice(),
+                    method,
+                    node_size,
+                );
+
+                Ok(Self(PyRTreeBuffer::from_owned_rtree(py, tree)?.into()))
+            }
+
+            (
+                PyArray::Float32(min_x),
+                PyArray::Float32(min_y),
+                PyArray::Float32(max_x),
+                PyArray::Float32(max_y),
+            ) => {
+                let tree = new_separated_slice(
+                    min_x.as_slice(),
+                    min_y.as_slice(),
+                    max_x.as_slice(),
+                    max_y.as_slice(),
+                    method,
+                    node_size,
+                );
+
+                Ok(Self(PyRTreeBuffer::from_owned_rtree(py, tree)?.into()))
+            }
+            (
+                PyArray::Float64(min_x),
+                PyArray::Float64(min_y),
+                PyArray::Float64(max_x),
+                PyArray::Float64(max_y),
+            ) => {
+                let tree = new_separated_slice(
+                    min_x.as_slice(),
+                    min_y.as_slice(),
+                    max_x.as_slice(),
+                    max_y.as_slice(),
+                    method,
+                    node_size,
+                );
+
+                Ok(Self(PyRTreeBuffer::from_owned_rtree(py, tree)?.into()))
+            }
+            _ => Err(PyTypeError::new_err(
+                "Expected all input arrays to have the same data type",
+            )),
+        }
     }
 
     // pre PEP 688 buffer protocol
@@ -528,11 +650,11 @@ fn new_interleaved<N: IndexableNum + numpy::Element>(
     }
 }
 
-fn new_separated<N: IndexableNum + numpy::Element>(
-    min_x: ArrayView1<N>,
-    min_y: ArrayView1<N>,
-    max_x: ArrayView1<N>,
-    max_y: ArrayView1<N>,
+fn new_separated_slice<N: IndexableNum + numpy::Element>(
+    min_x: &[N],
+    min_y: &[N],
+    max_x: &[N],
+    max_y: &[N],
     method: RTreeMethod,
     node_size: Option<usize>,
 ) -> OwnedRTree<N> {
