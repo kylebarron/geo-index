@@ -7,6 +7,18 @@
 
 Fast, memory-efficient 2D spatial indexes for Python.
 
+## Install
+
+```
+pip install geoindex-rs
+```
+
+or with Conda:
+
+```
+conda install geoindex-rs
+```
+
 ## API
 
 ### `KDTree`
