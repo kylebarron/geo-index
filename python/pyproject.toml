@@ -4,7 +4,7 @@ build-backend = "maturin"
 
 [project]
 name = "geoindex-rs"
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 dependencies = []
 dynamic = ["version"]
 classifiers = [
@@ -18,21 +18,5 @@ features = ["pyo3/extension-module"]
 module-name = "geoindex_rs._rust"
 python-source = "python"
 
-[tool.poetry]
-name = "geoindex-rs"
-version = "0.0.0"
-description = ""
-authors = []
-packages = [{ include = "python/geoindex_rs" }]
-
-[tool.poetry.dependencies]
-# Note: this is only for dev dependencies
-python = "^3.9"
-
-[tool.poetry.group.dev.dependencies]
-pytest = "^8.0.0"
-maturin = "^1.4.0"
-numpy = "*"
-
-[tool.poetry.scripts]
-test = "pytest:main"
+[tool.uv]
+dev-dependencies = ["maturin>=1.7.4", "numpy>=1", "pytest>=8"]

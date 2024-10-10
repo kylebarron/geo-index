@@ -50,19 +50,17 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
-      - name: Install and configure Poetry
-        uses: snok/install-poetry@v1
+
+      - name: Install a specific version of uv
+        uses: astral-sh/setup-uv@v3
         with:
-          version: 1.7.0
-          virtualenvs-create: true
-          virtualenvs-in-project: true
-          installer-parallel: true
-      - name: Install poetry venv
-        working-directory: python
-        run: poetry install
+          enable-cache: true
+          version: "0.4.x"
+
       - name: maturin venv Build
         working-directory: python
-        run: poetry run maturin develop
+        run: uv run maturin develop
+
       - name: Run pytest
         working-directory: python
-        run: poetry run test
+        run: uv run pytest
