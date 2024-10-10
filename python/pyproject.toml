@@ -19,4 +19,9 @@ module-name = "geoindex_rs._rust"
 python-source = "python"
 
 [tool.uv]
-dev-dependencies = ["maturin>=1.7.4", "numpy>=1", "pytest>=8"]
+dev-dependencies = [
+    "maturin>=1.7.4",
+    "numpy>=1",
+    "pip>=24.2",
+    "pytest>=8",
+]
