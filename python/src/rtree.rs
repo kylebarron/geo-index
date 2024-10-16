@@ -1,3 +1,5 @@
+use arrow::buffer::Buffer;
+use arrow::datatypes::DataType;
 use geo_index::indices::Indices;
 use geo_index::rtree::sort::{HilbertSort, STRSort};
 use geo_index::rtree::util::f64_box_to_f32;
@@ -10,9 +12,8 @@ use pyo3::ffi;
 use pyo3::intern;
 use pyo3::prelude::*;
 use pyo3::types::PyType;
+use pyo3_arrow::buffer::PyArrowBuffer;
 use std::os::raw::c_int;
-
-use crate::common::{PyArray, PyU8Buffer, RustBuffer};
 
 /// Method for constructing rtree
 enum RTreeMethod {
@@ -21,7 +22,7 @@ enum RTreeMethod {
 }
 
 impl<'a> FromPyObject<'a> for RTreeMethod {
-    fn extract(ob: &'a PyAny) -> PyResult<Self> {
+    fn extract_bound(ob: &Bound<'a, PyAny>) -> PyResult<Self> {
         let s: String = ob.extract()?;
         match s.to_lowercase().as_str() {
             "hilbert" => Ok(Self::Hilbert),
@@ -33,26 +34,24 @@ impl<'a> FromPyObject<'a> for RTreeMethod {
     }
 }
 
-/// A low-level wrapper around a [PyU8Buffer] that validates that the input is a valid Flatbush
+/// A low-level wrapper around a [PyArrowBuffer] that validates that the input is a valid Flatbush
 /// buffer. This wrapper implements [RTreeIndex].
 pub(crate) struct PyRTreeBuffer<N: IndexableNum> {
-    buffer: PyU8Buffer,
+    buffer: PyArrowBuffer,
     metadata: TreeMetadata<N>,
 }
 
 impl<N: IndexableNum> PyRTreeBuffer<N> {
-    fn try_new(buffer: PyU8Buffer) -> PyResult<Self> {
+    fn try_new(buffer: PyArrowBuffer) -> PyResult<Self> {
         let metadata = TreeMetadata::try_new(buffer.as_ref()).unwrap();
         Ok(Self { buffer, metadata })
     }
 
     fn from_owned_rtree(py: Python, tree: OwnedRTree<N>) -> PyResult<Self> {
         let metadata = tree.metadata().clone();
-        let tree_buf = RustBuffer::new(tree.into_inner());
-        Ok(Self {
-            buffer: tree_buf.into_py(py).extract(py)?,
-            metadata,
-        })
+        // let buf = tree.into_inner();
+        let buffer = PyArrowBuffer(Buffer::from_vec(tree.into_inner()));
+        Ok(Self { buffer, metadata })
     }
 }
 
@@ -103,12 +102,17 @@ pub(crate) enum PyRTreeRef {
 
 impl<'py> FromPyObject<'py> for PyRTreeRef {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        let buffer = PyU8Buffer::extract_bound(ob)?;
-        let ct = CoordType::from_buffer(&buffer.as_ref()).unwrap();
+        let buffer = ob.extract::<PyArrowBuffer>()?;
+        let ct = CoordType::from_buffer(&buffer.as_ref().as_ref()).unwrap();
         match ct {
+            CoordType::Int8 => Ok(Self::Int8(PyRTreeBuffer::try_new(buffer)?)),
+            CoordType::Int16 => Ok(Self::Int16(PyRTreeBuffer::try_new(buffer)?)),
+            CoordType::Int32 => Ok(Self::Int32(PyRTreeBuffer::try_new(buffer)?)),
+            CoordType::UInt8 => Ok(Self::UInt8(PyRTreeBuffer::try_new(buffer)?)),
+            CoordType::UInt16 => Ok(Self::UInt16(PyRTreeBuffer::try_new(buffer)?)),
+            CoordType::UInt32 => Ok(Self::UInt32(PyRTreeBuffer::try_new(buffer)?)),
             CoordType::Float32 => Ok(Self::Float32(PyRTreeBuffer::try_new(buffer)?)),
             CoordType::Float64 => Ok(Self::Float64(PyRTreeBuffer::try_new(buffer)?)),
-            _ => todo!(),
         }
     }
 }
@@ -287,12 +291,11 @@ impl RTree {
     fn from_interleaved(
         _cls: &Bound<PyType>,
         py: Python,
-        boxes: PyObject,
+        boxes: pyo3_arrow::PyArray,
         method: RTreeMethod,
         node_size: Option<usize>,
     ) -> PyResult<Self> {
-        // Convert to numpy array (of the same dtype)
-        let boxes = boxes.call_method0(py, intern!(py, "__array__"))?;
+        let data_type = boxes.array().data_type();
 
         let result = if let Ok(boxes) = boxes.extract::<PyReadonlyArray2<f64>>(py) {
             let boxes = boxes.as_array();
@@ -321,10 +324,10 @@ impl RTree {
     fn from_separated<'py>(
         _cls: &Bound<PyType>,
         py: Python<'py>,
-        min_x: PyArray<'py>,
-        min_y: PyArray<'py>,
-        max_x: PyArray<'py>,
-        max_y: PyArray<'py>,
+        min_x: pyo3_arrow::PyArray,
+        min_y: pyo3_arrow::PyArray,
+        max_x: pyo3_arrow::PyArray,
+        max_y: pyo3_arrow::PyArray,
         method: RTreeMethod,
         node_size: Option<usize>,
     ) -> PyResult<Self> {

@@ -1,4 +1,3 @@
-mod common;
 mod kdtree;
 mod rtree;
 
