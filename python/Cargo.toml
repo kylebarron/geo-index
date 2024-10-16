@@ -23,7 +23,7 @@ geo-index = { path = "../", features = ["rayon"] }
 numpy = "0.22"
 pyo3 = { version = "0.22.0", features = ["macros"] }
 # pyo3-arrow = "0.5.1"
-pyo3-arrow = { git = "https://github.com/kylebarron/arro3", rev = "64a659133d79f0f875cf8e87f30ccd1c34fc8ad3" }
+pyo3-arrow = { git = "https://github.com/kylebarron/arro3", rev = "45be4a12dd62cee025c5d0ecf8c8c081e13643ea" }
 thiserror = "1"
 
 [profile.release]

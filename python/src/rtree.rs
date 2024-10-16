@@ -13,6 +13,7 @@ use pyo3::intern;
 use pyo3::prelude::*;
 use pyo3::types::PyType;
 use pyo3_arrow::buffer::PyArrowBuffer;
+use pyo3_arrow::PyArray;
 use std::os::raw::c_int;
 
 /// Method for constructing rtree
@@ -47,10 +48,9 @@ impl<N: IndexableNum> PyRTreeBuffer<N> {
         Ok(Self { buffer, metadata })
     }
 
-    fn from_owned_rtree(py: Python, tree: OwnedRTree<N>) -> PyResult<Self> {
+    fn from_owned_rtree(tree: OwnedRTree<N>) -> PyResult<Self> {
         let metadata = tree.metadata().clone();
-        // let buf = tree.into_inner();
-        let buffer = PyArrowBuffer(Buffer::from_vec(tree.into_inner()));
+        let buffer = PyArrowBuffer::new(Buffer::from_vec(tree.into_inner()));
         Ok(Self { buffer, metadata })
     }
 }
@@ -103,7 +103,7 @@ pub(crate) enum PyRTreeRef {
 impl<'py> FromPyObject<'py> for PyRTreeRef {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
         let buffer = ob.extract::<PyArrowBuffer>()?;
-        let ct = CoordType::from_buffer(&buffer.as_ref().as_ref()).unwrap();
+        let ct = CoordType::from_buffer(&buffer).unwrap();
         match ct {
             CoordType::Int8 => Ok(Self::Int8(PyRTreeBuffer::try_new(buffer)?)),
             CoordType::Int16 => Ok(Self::Int16(PyRTreeBuffer::try_new(buffer)?)),
@@ -278,9 +278,11 @@ pub(crate) struct RTree(PyRTreeRef);
 #[pymethods]
 impl RTree {
     /// Construct an RTree from an existing RTree buffer
+    ///
+    /// You can pass any buffer protocol object into this constructor.
     #[classmethod]
-    fn from_buffer(_cls: &Bound<PyType>, py: Python, obj: PyObject) -> PyResult<Self> {
-        Ok(Self(obj.extract(py)?))
+    fn from_buffer(_cls: &Bound<PyType>, obj: PyRTreeRef) -> Self {
+        Self(obj)
     }
 
     #[classmethod]
@@ -291,7 +293,7 @@ impl RTree {
     fn from_interleaved(
         _cls: &Bound<PyType>,
         py: Python,
-        boxes: pyo3_arrow::PyArray,
+        boxes: PyArray,
         method: RTreeMethod,
         node_size: Option<usize>,
     ) -> PyResult<Self> {
@@ -324,10 +326,10 @@ impl RTree {
     fn from_separated<'py>(
         _cls: &Bound<PyType>,
         py: Python<'py>,
-        min_x: pyo3_arrow::PyArray,
-        min_y: pyo3_arrow::PyArray,
-        max_x: pyo3_arrow::PyArray,
-        max_y: pyo3_arrow::PyArray,
+        min_x: PyArray,
+        min_y: PyArray,
+        max_x: PyArray,
+        max_y: PyArray,
         method: RTreeMethod,
         node_size: Option<usize>,
     ) -> PyResult<Self> {
