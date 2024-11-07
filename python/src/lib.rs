@@ -1,5 +1,5 @@
-pub mod kdtree;
-pub mod rtree;
+mod kdtree;
+mod rtree;
 
 use pyo3::exceptions::PyRuntimeWarning;
 use pyo3::intern;
