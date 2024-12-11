@@ -174,7 +174,7 @@ where
     }
 }
 
-impl<'a, N, T1, T2> Iterator for IntersectionIterator<'a, N, T1, T2>
+impl<N, T1, T2> Iterator for IntersectionIterator<'_, N, T1, T2>
 where
     N: IndexableNum,
     T1: RTreeIndex<N>,
