@@ -7,6 +7,8 @@ use crate::rtree::index::{OwnedRTree, TreeMetadata};
 use crate::rtree::sort::{Sort, SortParams};
 use crate::rtree::util::compute_num_nodes;
 
+const DEFAULT_NODE_SIZE: u16 = 16;
+
 /// A builder to create an [`OwnedRTree`].
 pub struct RTreeBuilder<N: IndexableNum> {
     /// data buffer
@@ -28,16 +30,19 @@ pub struct RTreeBuilder<N: IndexableNum> {
 
 impl<N: IndexableNum> RTreeBuilder<N> {
     /// Create a new builder with the provided number of items and the default node size.
-    pub fn new(num_items: usize) -> Self {
-        Self::new_with_node_size(num_items, 16)
+    pub fn new(num_items: u32) -> Self {
+        Self::new_with_node_size(num_items, DEFAULT_NODE_SIZE)
     }
 
     /// Create a new builder with the provided number of items and node size.
-    pub fn new_with_node_size(num_items: usize, node_size: usize) -> Self {
+    pub fn new_with_node_size(num_items: u32, node_size: u16) -> Self {
         assert!((2..=65535).contains(&node_size));
-        assert!(num_items <= u32::MAX.try_into().unwrap());
 
         let (num_nodes, level_bounds) = compute_num_nodes(num_items, node_size);
+
+        // The public API uses u32 and u16 types but internally we use usize
+        let num_items = num_items as usize;
+        let node_size = node_size as usize;
 
         let indices_bytes_per_element = if num_nodes < 16384 { 2 } else { 4 };
         let nodes_byte_size = num_nodes * 4 * N::BYTES_PER_ELEMENT;

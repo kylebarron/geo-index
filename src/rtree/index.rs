@@ -53,10 +53,11 @@ impl<N: IndexableNum> TreeMetadata<N> {
 
         let node_size: u16 = cast_slice(&data[2..4])[0];
         let num_items: u32 = cast_slice(&data[4..8])[0];
-        let node_size = node_size as usize;
-        let num_items = num_items as usize;
 
         let (num_nodes, level_bounds) = compute_num_nodes(num_items, node_size);
+
+        let node_size = node_size as usize;
+        let num_items = num_items as usize;
 
         let indices_bytes_per_element = if num_nodes < 16384 { 2 } else { 4 };
         let nodes_byte_length = num_nodes * 4 * N::BYTES_PER_ELEMENT;

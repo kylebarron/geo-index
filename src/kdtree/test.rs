@@ -140,7 +140,7 @@ fn coords() -> Vec<f64> {
 fn make_index() -> OwnedKDTree<f64> {
     let points = points();
 
-    let mut builder = KDTreeBuilder::new_with_node_size(points.len(), 10);
+    let mut builder = KDTreeBuilder::new_with_node_size(points.len() as _, 10);
     for (x, y) in points {
         builder.add(x, y);
     }

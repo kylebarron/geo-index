@@ -8,7 +8,7 @@ use crate::kdtree::constants::{KDBUSH_HEADER_SIZE, KDBUSH_MAGIC, KDBUSH_VERSION}
 use crate::kdtree::OwnedKDTree;
 use crate::r#type::IndexableNum;
 
-const DEFAULT_NODE_SIZE: usize = 64;
+const DEFAULT_NODE_SIZE: u16 = 64;
 
 /// A builder to create an [`OwnedKDTree`].
 pub struct KDTreeBuilder<N: IndexableNum> {
@@ -29,14 +29,17 @@ pub struct KDTreeBuilder<N: IndexableNum> {
 
 impl<N: IndexableNum> KDTreeBuilder<N> {
     /// Create a new builder with the provided number of items and the default node size.
-    pub fn new(num_items: usize) -> Self {
+    pub fn new(num_items: u32) -> Self {
         Self::new_with_node_size(num_items, DEFAULT_NODE_SIZE)
     }
 
     /// Create a new builder with the provided number of items and node size.
-    pub fn new_with_node_size(num_items: usize, node_size: usize) -> Self {
+    pub fn new_with_node_size(num_items: u32, node_size: u16) -> Self {
         assert!((2..=65535).contains(&node_size));
-        assert!(num_items <= u32::MAX.try_into().unwrap());
+
+        // The public API uses u32 and u16 types but internally we use usize
+        let num_items = num_items as usize;
+        let node_size = node_size as usize;
 
         let coords_byte_size = num_items * 2 * N::BYTES_PER_ELEMENT;
         let indices_bytes_per_element = if num_items < 65536 { 2 } else { 4 };
