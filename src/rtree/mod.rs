@@ -1,4 +1,4 @@
-//! An implementation of a static, ABI-stable RTree.
+//! An implementation of an immutable, ABI-stable RTree.
 
 mod builder;
 mod constants;
