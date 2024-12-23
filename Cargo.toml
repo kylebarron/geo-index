@@ -6,7 +6,7 @@ edition = "2021"
 rust-version = "1.75"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/kylebarron/geo-index"
-description = "Fast, static, ABI-stable spatial indexes."
+description = "Fast, immutable, ABI-stable spatial indexes."
 keywords = [
     "rtree",
     "r-tree",
