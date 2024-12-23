@@ -38,7 +38,7 @@ enum RTreeInner {
 fn new_interleaved<N: IndexableNum + numpy::Element>(
     boxes: &ArrayView2<N>,
     method: RTreeMethod,
-    node_size: Option<usize>,
+    node_size: Option<u16>,
 ) -> OwnedRTree<N> {
     let shape = boxes.shape();
     assert_eq!(shape.len(), 2);
@@ -47,9 +47,9 @@ fn new_interleaved<N: IndexableNum + numpy::Element>(
     let num_items = shape[0];
 
     let mut builder = if let Some(node_size) = node_size {
-        RTreeBuilder::new_with_node_size(num_items, node_size)
+        RTreeBuilder::new_with_node_size(num_items.try_into().unwrap(), node_size)
     } else {
-        RTreeBuilder::new(num_items)
+        RTreeBuilder::new(num_items.try_into().unwrap())
     };
 
     for i in 0..num_items {
@@ -73,7 +73,7 @@ fn new_separated<N: IndexableNum + numpy::Element>(
     max_x: ArrayView1<N>,
     max_y: ArrayView1<N>,
     method: RTreeMethod,
-    node_size: Option<usize>,
+    node_size: Option<u16>,
 ) -> OwnedRTree<N> {
     assert_eq!(min_x.len(), min_y.len());
     assert_eq!(min_x.len(), max_x.len());
@@ -82,9 +82,9 @@ fn new_separated<N: IndexableNum + numpy::Element>(
     let num_items = min_x.len();
 
     let mut builder = if let Some(node_size) = node_size {
-        RTreeBuilder::new_with_node_size(num_items, node_size)
+        RTreeBuilder::new_with_node_size(num_items.try_into().unwrap(), node_size)
     } else {
-        RTreeBuilder::new(num_items)
+        RTreeBuilder::new(num_items.try_into().unwrap())
     };
 
     for i in 0..num_items {
@@ -189,7 +189,7 @@ impl RTree {
         py: Python,
         boxes: PyObject,
         method: RTreeMethod,
-        node_size: Option<usize>,
+        node_size: Option<u16>,
     ) -> PyResult<Self> {
         // Convert to numpy array (of the same dtype)
         let boxes = boxes.call_method0(py, intern!(py, "__array__"))?;
@@ -226,7 +226,7 @@ impl RTree {
         max_x: PyObject,
         max_y: PyObject,
         method: RTreeMethod,
-        node_size: Option<usize>,
+        node_size: Option<u16>,
     ) -> PyResult<Self> {
         // Convert to numpy array (of the same dtype)
         let min_x = min_x.call_method0(py, intern!(py, "__array__"))?;

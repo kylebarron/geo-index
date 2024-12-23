@@ -9,7 +9,7 @@ fn create_flatbush_from_data_path(data_path: &str) -> OwnedRTree<f64> {
     let buffer = read(data_path).unwrap();
     let boxes_buf: &[f64] = cast_slice(&buffer);
 
-    let mut builder = RTreeBuilder::new(boxes_buf.len() / 4);
+    let mut builder = RTreeBuilder::new((boxes_buf.len() / 4) as _);
     for box_ in boxes_buf.chunks(4) {
         let min_x = box_[0];
         let min_y = box_[1];
