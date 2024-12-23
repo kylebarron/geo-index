@@ -16,7 +16,7 @@ impl KDTree {
     pub fn from_interleaved(
         _cls: &Bound<PyType>,
         coords: PyReadonlyArray2<f64>,
-        node_size: Option<usize>,
+        node_size: Option<u16>,
     ) -> Self {
         let shape = coords.shape();
         assert_eq!(shape.len(), 2);
@@ -27,9 +27,9 @@ impl KDTree {
         let coords = coords.as_array();
 
         let mut builder = if let Some(node_size) = node_size {
-            KDTreeBuilder::new_with_node_size(num_items, node_size)
+            KDTreeBuilder::new_with_node_size(num_items.try_into().unwrap(), node_size)
         } else {
-            KDTreeBuilder::new(num_items)
+            KDTreeBuilder::new(num_items.try_into().unwrap())
         };
 
         for i in 0..num_items {
@@ -48,7 +48,7 @@ impl KDTree {
         _cls: &Bound<PyType>,
         x: PyReadonlyArray1<f64>,
         y: PyReadonlyArray1<f64>,
-        node_size: Option<usize>,
+        node_size: Option<u16>,
     ) -> Self {
         assert_eq!(x.len(), y.len());
 
@@ -58,9 +58,9 @@ impl KDTree {
         let y = y.as_array();
 
         let mut builder = if let Some(node_size) = node_size {
-            KDTreeBuilder::new_with_node_size(num_items, node_size)
+            KDTreeBuilder::new_with_node_size(num_items.try_into().unwrap(), node_size)
         } else {
-            KDTreeBuilder::new(num_items)
+            KDTreeBuilder::new(num_items.try_into().unwrap())
         };
 
         for i in 0..num_items {
