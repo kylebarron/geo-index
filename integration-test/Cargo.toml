@@ -1,0 +1,12 @@
+[package]
+name = "integration-test"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+geo = "0.28.0"
+geo-index = { path = "../" }
+rstar = "0.12.0"
+geozero = "0.12"
