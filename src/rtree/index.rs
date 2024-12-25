@@ -131,6 +131,9 @@ pub struct OwnedRTree<N: IndexableNum> {
 }
 
 impl<N: IndexableNum> OwnedRTree<N> {
+    /// Access the underlying buffer of this RTree.
+    ///
+    /// This buffer can then be persisted and passed to `RTreeRef::try_new`.
     pub fn into_inner(self) -> Vec<u8> {
         self.buffer
     }
@@ -154,6 +157,12 @@ pub struct RTreeRef<'a, N: IndexableNum> {
 }
 
 impl<'a, N: IndexableNum> RTreeRef<'a, N> {
+    /// Construct a new RTree from an external byte slice.
+    ///
+    /// This byte slice must conform to the "flatbush ABI", that is, the ABI originally implemented
+    /// by the JavaScript [`flatbush` library](https://github.com/mourner/flatbush). You can
+    /// extract such a buffer either via [`OwnedRTree::into_inner`] or from the `.data` attribute
+    /// of the JavaScript `Flatbush` object.
     pub fn try_new<T: AsRef<[u8]>>(data: &'a T) -> Result<Self> {
         let data = data.as_ref();
         let metadata = RTreeMetadata::try_new_from_slice(data)?;

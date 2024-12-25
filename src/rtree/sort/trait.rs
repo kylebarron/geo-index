@@ -3,11 +3,17 @@ use crate::r#type::IndexableNum;
 
 /// Parameters that are passed in to the `sort` function of the `Sort` trait.
 pub struct SortParams<N: IndexableNum> {
+    /// The number of items in this RTree
     pub num_items: usize,
+    /// The node size of this RTree
     pub node_size: usize,
+    /// The global min_x of this RTree
     pub min_x: N,
+    /// The global min_y of this RTree
     pub min_y: N,
+    /// The global max_x of this RTree
     pub max_x: N,
+    /// The global max_y of this RTree
     pub max_y: N,
 }
 

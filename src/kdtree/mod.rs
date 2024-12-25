@@ -1,7 +1,5 @@
 //! An implementation of an immutable, ABI-stable K-D Tree.
 
-#![warn(missing_docs)]
-
 mod builder;
 pub(crate) mod constants;
 mod index;

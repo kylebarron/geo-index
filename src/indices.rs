@@ -5,7 +5,9 @@ use bytemuck::{cast_slice, cast_slice_mut};
 /// A mutable slice of indices that may be either `u16` or `u32`.
 #[derive(Debug)]
 pub enum MutableIndices<'a> {
+    /// Indices stored as a u16 byte slice
     U16(&'a mut [u16]),
+    /// Indices stored as a u32 byte slice
     U32(&'a mut [u32]),
 }
 
@@ -85,7 +87,9 @@ impl MutableIndices<'_> {
 /// A slice of indices that may be either `u16` or `u32`.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Indices<'a> {
+    /// Indices stored as a u16 byte slice
     U16(&'a [u16]),
+    /// Indices stored as a u32 byte slice
     U32(&'a [u32]),
 }
 
@@ -100,6 +104,7 @@ impl<'a> Indices<'a> {
 }
 
 impl Indices<'_> {
+    /// The number of indices in this byte slice
     pub fn len(&self) -> usize {
         match self {
             Self::U16(arr) => arr.len(),
@@ -107,10 +112,14 @@ impl Indices<'_> {
         }
     }
 
+    /// Whether this slice is empty
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
 
+    /// A helper to access a single index from this slice.
+    ///
+    /// Values are casted from u16 or u32 to usize.
     #[inline]
     pub fn get(&self, index: usize) -> usize {
         match self {
