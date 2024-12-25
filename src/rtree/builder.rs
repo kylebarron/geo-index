@@ -4,9 +4,8 @@ use geo_traits::{CoordTrait, RectTrait};
 use crate::indices::MutableIndices;
 use crate::r#type::IndexableNum;
 use crate::rtree::constants::VERSION;
-use crate::rtree::index::{OwnedRTree, TreeMetadata};
+use crate::rtree::index::{OwnedRTree, RTreeMetadata};
 use crate::rtree::sort::{Sort, SortParams};
-use crate::rtree::util::compute_num_nodes;
 
 const DEFAULT_NODE_SIZE: u16 = 16;
 
@@ -14,15 +13,8 @@ const DEFAULT_NODE_SIZE: u16 = 16;
 pub struct RTreeBuilder<N: IndexableNum> {
     /// data buffer
     data: Vec<u8>,
-    num_items: usize,
-    node_size: usize,
-    num_nodes: usize,
-    level_bounds: Vec<usize>,
-    nodes_byte_size: usize,
-    indices_byte_size: usize,
-
+    metadata: RTreeMetadata<N>,
     pos: usize,
-
     min_x: N,
     min_y: N,
     max_x: N,
@@ -37,35 +29,18 @@ impl<N: IndexableNum> RTreeBuilder<N> {
 
     /// Create a new builder with the provided number of items and node size.
     pub fn new_with_node_size(num_items: u32, node_size: u16) -> Self {
-        assert!((2..=65535).contains(&node_size));
-
-        let (num_nodes, level_bounds) = compute_num_nodes(num_items, node_size);
-
-        // The public API uses u32 and u16 types but internally we use usize
-        let num_items = num_items as usize;
-        let node_size = node_size as usize;
-
-        let indices_bytes_per_element = if num_nodes < 16384 { 2 } else { 4 };
-        let nodes_byte_size = num_nodes * 4 * N::BYTES_PER_ELEMENT;
-        let indices_byte_size = num_nodes * indices_bytes_per_element;
-
-        let data_buffer_length = 8 + nodes_byte_size + indices_byte_size;
-        let mut data = vec![0; data_buffer_length];
+        let metadata = RTreeMetadata::new(num_items, node_size);
+        let mut data = vec![0; metadata.data_buffer_length()];
 
         // Set data header
         data[0] = 0xfb;
         data[1] = (VERSION << 4) + N::TYPE_INDEX;
-        cast_slice_mut(&mut data[2..4])[0] = node_size as u16;
-        cast_slice_mut(&mut data[4..8])[0] = num_items as u32;
+        cast_slice_mut(&mut data[2..4])[0] = node_size;
+        cast_slice_mut(&mut data[4..8])[0] = num_items;
 
         Self {
             data,
-            num_items,
-            num_nodes,
-            node_size,
-            level_bounds,
-            nodes_byte_size,
-            indices_byte_size,
+            metadata,
             pos: 0,
             min_x: N::max_value(),
             min_y: N::max_value(),
@@ -80,12 +55,7 @@ impl<N: IndexableNum> RTreeBuilder<N> {
     #[inline]
     pub fn add(&mut self, min_x: N, min_y: N, max_x: N, max_y: N) -> usize {
         let index = self.pos >> 2;
-        let (boxes, mut indices) = split_data_borrow(
-            &mut self.data,
-            self.num_nodes,
-            self.nodes_byte_size,
-            self.indices_byte_size,
-        );
+        let (boxes, mut indices) = split_data_borrow(&mut self.data, &self.metadata);
 
         indices.set(index, index);
         boxes[self.pos] = min_x;
@@ -130,20 +100,15 @@ impl<N: IndexableNum> RTreeBuilder<N> {
     pub fn finish<S: Sort<N>>(mut self) -> OwnedRTree<N> {
         assert_eq!(
             self.pos >> 2,
-            self.num_items,
+            self.metadata.num_items,
             "Added {} items when expected {}.",
             self.pos >> 2,
-            self.num_items
+            self.metadata.num_items
         );
 
-        let (boxes, mut indices) = split_data_borrow(
-            &mut self.data,
-            self.num_nodes,
-            self.nodes_byte_size,
-            self.indices_byte_size,
-        );
+        let (boxes, mut indices) = split_data_borrow(&mut self.data, &self.metadata);
 
-        if self.num_items <= self.node_size {
+        if self.metadata.num_items <= self.metadata.node_size {
             // only one node, skip sorting and just fill the root box
             boxes[self.pos] = self.min_x;
             self.pos += 1;
@@ -154,23 +119,15 @@ impl<N: IndexableNum> RTreeBuilder<N> {
             boxes[self.pos] = self.max_y;
             self.pos += 1;
 
-            let metadata = unsafe {
-                TreeMetadata::new_unchecked(
-                    self.node_size,
-                    self.num_items,
-                    self.num_nodes,
-                    self.level_bounds,
-                )
-            };
             return OwnedRTree {
                 buffer: self.data,
-                metadata,
+                metadata: self.metadata,
             };
         }
 
         let mut sort_params = SortParams {
-            num_items: self.num_items,
-            node_size: self.node_size,
+            num_items: self.metadata.num_items,
+            node_size: self.metadata.node_size,
             min_x: self.min_x,
             min_y: self.min_y,
             max_x: self.max_x,
@@ -181,7 +138,7 @@ impl<N: IndexableNum> RTreeBuilder<N> {
         {
             // generate nodes at each tree level, bottom-up
             let mut pos = 0;
-            for end in self.level_bounds[..self.level_bounds.len() - 1].iter() {
+            for end in self.metadata.level_bounds[..self.metadata.level_bounds.len() - 1].iter() {
                 while pos < *end {
                     let node_index = pos;
 
@@ -194,7 +151,7 @@ impl<N: IndexableNum> RTreeBuilder<N> {
                     pos += 1;
                     let mut node_max_y = boxes[pos];
                     pos += 1;
-                    for _ in 1..self.node_size {
+                    for _ in 1..self.metadata.node_size {
                         if pos >= *end {
                             break;
                         }
@@ -231,32 +188,22 @@ impl<N: IndexableNum> RTreeBuilder<N> {
             }
         }
 
-        let metadata = unsafe {
-            TreeMetadata::new_unchecked(
-                self.node_size,
-                self.num_items,
-                self.num_nodes,
-                self.level_bounds,
-            )
-        };
         OwnedRTree {
             buffer: self.data,
-            metadata,
+            metadata: self.metadata,
         }
     }
 }
 
 /// Mutable borrow of boxes and indices
-fn split_data_borrow<N: IndexableNum>(
-    data: &mut [u8],
-    num_nodes: usize,
-    nodes_byte_size: usize,
-    indices_byte_size: usize,
-) -> (&mut [N], MutableIndices) {
-    let (boxes_buf, indices_buf) = data[8..].split_at_mut(nodes_byte_size);
-    debug_assert_eq!(indices_buf.len(), indices_byte_size);
+fn split_data_borrow<'a, N: IndexableNum>(
+    data: &'a mut [u8],
+    metadata: &'a RTreeMetadata<N>,
+) -> (&'a mut [N], MutableIndices<'a>) {
+    let (boxes_buf, indices_buf) = data[8..].split_at_mut(metadata.nodes_byte_length);
+    debug_assert_eq!(indices_buf.len(), metadata.indices_byte_length);
 
     let boxes = cast_slice_mut(boxes_buf);
-    let indices = MutableIndices::new(indices_buf, num_nodes);
+    let indices = MutableIndices::new(indices_buf, metadata.num_nodes);
     (boxes, indices)
 }

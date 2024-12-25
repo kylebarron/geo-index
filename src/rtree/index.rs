@@ -10,20 +10,48 @@ use crate::rtree::constants::VERSION;
 use crate::rtree::r#trait::RTreeIndex;
 use crate::rtree::util::compute_num_nodes;
 
-/// Common metadata to describe a tree
+/// Common metadata to describe an RTree
 #[derive(Debug, Clone, PartialEq)]
-pub(crate) struct TreeMetadata<N: IndexableNum> {
+pub(crate) struct RTreeMetadata<N: IndexableNum> {
     pub(crate) node_size: usize,
     pub(crate) num_items: usize,
     pub(crate) num_nodes: usize,
     pub(crate) level_bounds: Vec<usize>,
-    nodes_byte_length: usize,
-    indices_byte_length: usize,
+    pub(crate) nodes_byte_length: usize,
+    pub(crate) indices_byte_length: usize,
     phantom: PhantomData<N>,
 }
 
-impl<N: IndexableNum> TreeMetadata<N> {
-    fn try_new(data: &[u8]) -> Result<Self> {
+impl<N: IndexableNum> RTreeMetadata<N> {
+    pub(crate) fn new(num_items: u32, node_size: u16) -> Self {
+        assert!((2..=65535).contains(&node_size));
+
+        let (num_nodes, level_bounds) = compute_num_nodes(num_items, node_size);
+
+        // The public API uses u32 and u16 types but internally we use usize
+        let num_items = num_items as usize;
+        let node_size = node_size as usize;
+
+        let indices_bytes_per_element = if num_nodes < 16384 { 2 } else { 4 };
+        let nodes_byte_length = num_nodes * 4 * N::BYTES_PER_ELEMENT;
+        let indices_byte_length = num_nodes * indices_bytes_per_element;
+
+        Self {
+            node_size,
+            num_items,
+            num_nodes,
+            level_bounds,
+            nodes_byte_length,
+            indices_byte_length,
+            phantom: PhantomData,
+        }
+    }
+
+    pub(crate) fn data_buffer_length(&self) -> usize {
+        8 + self.nodes_byte_length + self.indices_byte_length
+    }
+
+    fn try_new_from_slice(data: &[u8]) -> Result<Self> {
         let magic = data[0];
         if magic != 0xfb {
             return Err(GeoIndexError::General(
@@ -83,32 +111,11 @@ impl<N: IndexableNum> TreeMetadata<N> {
         })
     }
 
-    pub(crate) unsafe fn new_unchecked(
-        node_size: usize,
-        num_items: usize,
-        num_nodes: usize,
-        level_bounds: Vec<usize>,
-    ) -> Self {
-        let indices_bytes_per_element = if num_nodes < 16384 { 2 } else { 4 };
-        let nodes_byte_length = num_nodes * 4 * N::BYTES_PER_ELEMENT;
-        let indices_byte_length = num_nodes * indices_bytes_per_element;
-
-        Self {
-            node_size,
-            num_items,
-            num_nodes,
-            level_bounds,
-            nodes_byte_length,
-            indices_byte_length,
-            phantom: PhantomData,
-        }
-    }
-
-    pub fn boxes_slice<'a>(&self, data: &'a [u8]) -> &'a [N] {
+    pub(crate) fn boxes_slice<'a>(&self, data: &'a [u8]) -> &'a [N] {
         cast_slice(&data[8..8 + self.nodes_byte_length])
     }
 
-    pub fn indices_slice<'a>(&self, data: &'a [u8]) -> Indices<'a> {
+    pub(crate) fn indices_slice<'a>(&self, data: &'a [u8]) -> Indices<'a> {
         let indices_buf = &data
             [8 + self.nodes_byte_length..8 + self.nodes_byte_length + self.indices_byte_length];
         Indices::new(indices_buf, self.num_nodes)
@@ -121,12 +128,12 @@ impl<N: IndexableNum> TreeMetadata<N> {
 #[derive(Debug, Clone, PartialEq)]
 pub struct OwnedRTree<N: IndexableNum> {
     pub(crate) buffer: Vec<u8>,
-    pub(crate) metadata: TreeMetadata<N>,
+    pub(crate) metadata: RTreeMetadata<N>,
 }
 
 impl<N: IndexableNum> OwnedRTree<N> {
     pub fn try_new(buffer: Vec<u8>) -> Result<Self> {
-        let metadata = TreeMetadata::try_new(&buffer)?;
+        let metadata = RTreeMetadata::try_new_from_slice(&buffer)?;
         Ok(Self { buffer, metadata })
     }
 
@@ -134,6 +141,7 @@ impl<N: IndexableNum> OwnedRTree<N> {
         self.buffer
     }
 
+    // TODO: remove
     pub fn as_rtree_ref(&self) -> RTreeRef<N> {
         RTreeRef {
             boxes: self.boxes(),
@@ -157,13 +165,13 @@ impl<N: IndexableNum> AsRef<[u8]> for OwnedRTree<N> {
 pub struct RTreeRef<'a, N: IndexableNum> {
     pub(crate) boxes: &'a [N],
     pub(crate) indices: Indices<'a>,
-    pub(crate) metadata: Cow<'a, TreeMetadata<N>>,
+    pub(crate) metadata: Cow<'a, RTreeMetadata<N>>,
 }
 
 impl<'a, N: IndexableNum> RTreeRef<'a, N> {
     pub fn try_new<T: AsRef<[u8]>>(data: &'a T) -> Result<Self> {
         let data = data.as_ref();
-        let metadata = TreeMetadata::try_new(data)?;
+        let metadata = RTreeMetadata::try_new_from_slice(data)?;
         let boxes = metadata.boxes_slice(data);
         let indices = metadata.indices_slice(data);
 
