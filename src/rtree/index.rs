@@ -1,4 +1,3 @@
-use std::borrow::Cow;
 use std::marker::PhantomData;
 
 use bytemuck::cast_slice;
@@ -153,7 +152,7 @@ impl<N: IndexableNum> AsRef<[u8]> for OwnedRTree<N> {
 pub struct RTreeRef<'a, N: IndexableNum> {
     pub(crate) boxes: &'a [N],
     pub(crate) indices: Indices<'a>,
-    pub(crate) metadata: Cow<'a, RTreeMetadata<N>>,
+    pub(crate) metadata: RTreeMetadata<N>,
 }
 
 impl<'a, N: IndexableNum> RTreeRef<'a, N> {
@@ -172,7 +171,7 @@ impl<'a, N: IndexableNum> RTreeRef<'a, N> {
         Ok(Self {
             boxes,
             indices,
-            metadata: Cow::Owned(metadata),
+            metadata,
         })
     }
 }
