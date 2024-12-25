@@ -1,5 +1,3 @@
-use std::borrow::Cow;
-
 use geo_traits::{CoordTrait, RectTrait};
 use tinyvec::TinyVec;
 
@@ -11,7 +9,7 @@ pub trait KDTreeIndex<N: IndexableNum> {
     fn num_items(&self) -> usize;
     fn node_size(&self) -> usize;
     fn coords(&self) -> &[N];
-    fn ids(&self) -> Cow<'_, Indices>;
+    fn ids(&self) -> Indices;
 
     /// Search the index for items within a given bounding box.
     ///
@@ -182,8 +180,8 @@ impl<N: IndexableNum> KDTreeIndex<N> for KDTreeRef<'_, N> {
         self.coords
     }
 
-    fn ids(&self) -> Cow<'_, Indices> {
-        Cow::Borrowed(&self.ids)
+    fn ids(&self) -> Indices {
+        self.ids
     }
 }
 

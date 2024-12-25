@@ -151,7 +151,7 @@ fn make_index() -> OwnedKDTree<f64> {
 fn creates_an_index() {
     let owned_index = make_index();
     let kdbush = owned_index.as_kdtree_ref();
-    let tree_ids = kdbush.ids().into_owned();
+    let tree_ids = kdbush.ids();
     let tree_ids = match tree_ids {
         Indices::U16(arr) => arr,
         _ => unimplemented!(),
