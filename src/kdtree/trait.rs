@@ -33,18 +33,21 @@ pub trait KDTreeIndex<N: IndexableNum> {
         let node_size = self.node_size();
 
         // Use TinyVec to avoid heap allocations
-        let mut stack: TinyVec<[usize; 33]> = TinyVec::new();
-        stack.push(0);
-        stack.push(indices.len() - 1);
-        stack.push(0);
+        let mut stack_axis: TinyVec<[usize; 33]> = TinyVec::new();
+        let mut stack_right: TinyVec<[usize; 33]> = TinyVec::new();
+        let mut stack_left: TinyVec<[usize; 33]> = TinyVec::new();
+        stack_axis.push(0);
+        stack_right.push(indices.len() - 1);
+        stack_left.push(0);
 
         let mut result = vec![];
 
         // recursively search for items in range in the kd-sorted arrays
-        while !stack.is_empty() {
-            let axis = stack.pop().unwrap_or(0);
-            let right = stack.pop().unwrap_or(0);
-            let left = stack.pop().unwrap_or(0);
+        // Invariant: each stack has the same length
+        while !stack_axis.is_empty() {
+            let axis = stack_axis.pop().unwrap_or(0);
+            let right = stack_right.pop().unwrap_or(0);
+            let left = stack_left.pop().unwrap_or(0);
 
             // if we reached "tree node", search linearly
             if right - left <= node_size {
@@ -71,16 +74,16 @@ pub trait KDTreeIndex<N: IndexableNum> {
             // queue search in halves that intersect the query
             let lte = if axis == 0 { min_x <= x } else { min_y <= y };
             if lte {
-                stack.push(left);
-                stack.push(m - 1);
-                stack.push(1 - axis);
+                stack_axis.push(left);
+                stack_right.push(m - 1);
+                stack_left.push(1 - axis);
             }
 
             let gte = if axis == 0 { max_x >= x } else { max_y >= y };
             if gte {
-                stack.push(m + 1);
-                stack.push(right);
-                stack.push(1 - axis);
+                stack_axis.push(m + 1);
+                stack_right.push(right);
+                stack_left.push(1 - axis);
             }
         }
 
@@ -112,19 +115,22 @@ pub trait KDTreeIndex<N: IndexableNum> {
         let node_size = self.node_size();
 
         // Use TinyVec to avoid heap allocations
-        let mut stack: TinyVec<[usize; 33]> = TinyVec::new();
-        stack.push(0);
-        stack.push(indices.len() - 1);
-        stack.push(0);
+        let mut stack_axis: TinyVec<[usize; 33]> = TinyVec::new();
+        let mut stack_right: TinyVec<[usize; 33]> = TinyVec::new();
+        let mut stack_left: TinyVec<[usize; 33]> = TinyVec::new();
+        stack_axis.push(0);
+        stack_right.push(indices.len() - 1);
+        stack_left.push(0);
 
         let mut result = vec![];
         let r2 = r * r;
 
         // recursively search for items within radius in the kd-sorted arrays
-        while !stack.is_empty() {
-            let axis = stack.pop().unwrap_or(0);
-            let right = stack.pop().unwrap_or(0);
-            let left = stack.pop().unwrap_or(0);
+        // Invariant: each stack has the same length
+        while !stack_axis.is_empty() {
+            let axis = stack_axis.pop().unwrap_or(0);
+            let right = stack_right.pop().unwrap_or(0);
+            let left = stack_left.pop().unwrap_or(0);
 
             // if we reached "tree node", search linearly
             if right - left <= node_size {
@@ -149,16 +155,16 @@ pub trait KDTreeIndex<N: IndexableNum> {
             // queue search in halves that intersect the query
             let lte = if axis == 0 { qx - r <= x } else { qy - r <= y };
             if lte {
-                stack.push(left);
-                stack.push(m - 1);
-                stack.push(1 - axis);
+                stack_axis.push(left);
+                stack_right.push(m - 1);
+                stack_left.push(1 - axis);
             }
 
             let gte = if axis == 0 { qx + r >= x } else { qy + r >= y };
             if gte {
-                stack.push(m + 1);
-                stack.push(right);
-                stack.push(1 - axis);
+                stack_axis.push(m + 1);
+                stack_right.push(right);
+                stack_left.push(1 - axis);
             }
         }
         result

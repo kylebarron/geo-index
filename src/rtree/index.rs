@@ -145,9 +145,6 @@ impl<N: IndexableNum> AsRef<[u8]> for OwnedRTree<N> {
 }
 
 /// A reference on an external RTree buffer.
-///
-/// Usually this will be created from an [`OwnedRTree`] via its [`as_ref`][OwnedRTree::as_ref]
-/// method, but it can also be created from any existing data buffer.
 #[derive(Debug, Clone, PartialEq)]
 pub struct RTreeRef<'a, N: IndexableNum> {
     pub(crate) boxes: &'a [N],
