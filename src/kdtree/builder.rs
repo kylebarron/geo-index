@@ -2,11 +2,14 @@ use std::cmp;
 use std::marker::PhantomData;
 
 use bytemuck::cast_slice_mut;
+use geo_traits::{CoordTrait, PointTrait};
 
+use crate::error::Result;
 use crate::indices::MutableIndices;
 use crate::kdtree::constants::{KDBUSH_HEADER_SIZE, KDBUSH_MAGIC, KDBUSH_VERSION};
 use crate::kdtree::OwnedKDTree;
 use crate::r#type::IndexableNum;
+use crate::GeoIndexError;
 
 const DEFAULT_NODE_SIZE: u16 = 64;
 
@@ -68,7 +71,10 @@ impl<N: IndexableNum> KDTreeBuilder<N> {
         }
     }
 
-    /// Add a point to the index.
+    /// Add a point to the KDTree.
+    ///
+    /// This returns a positional index that provides a lookup back into the original data.
+    #[inline]
     pub fn add(&mut self, x: N, y: N) -> usize {
         let index = self.pos >> 1;
         let (coords, mut ids) = split_data_borrow(
@@ -86,6 +92,29 @@ impl<N: IndexableNum> KDTreeBuilder<N> {
         self.pos += 1;
 
         index
+    }
+
+    /// Add a coord to the KDTree.
+    ///
+    /// This returns a positional index that provides a lookup back into the original data.
+    #[inline]
+    pub fn add_coord(&mut self, coord: &impl CoordTrait<T = N>) -> usize {
+        self.add(coord.x(), coord.y())
+    }
+
+    /// Add a point to the KDTree.
+    ///
+    /// This returns a positional index that provides a lookup back into the original data.
+    ///
+    /// ## Errors
+    ///
+    /// - If the point is empty.
+    #[inline]
+    pub fn add_point(&mut self, point: &impl PointTrait<T = N>) -> Result<usize> {
+        let coord = point.coord().ok_or(GeoIndexError::General(
+            "Unable to add empty point to KDTree".to_string(),
+        ))?;
+        Ok(self.add_coord(&coord))
     }
 
     /// Consume this builder, perfoming the k-d sort and generating a KDTree ready for queries.

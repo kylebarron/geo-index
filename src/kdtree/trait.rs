@@ -1,5 +1,6 @@
 use std::borrow::Cow;
 
+use geo_traits::{CoordTrait, RectTrait};
 use tinyvec::TinyVec;
 
 use crate::indices::Indices;
@@ -80,6 +81,18 @@ pub trait KDTreeIndex<N: IndexableNum> {
         result
     }
 
+    /// Search the index for items within a given bounding box.
+    ///
+    /// Returns indices of found items
+    fn range_rect(&self, rect: &impl RectTrait<T = N>) -> Vec<usize> {
+        self.range(
+            rect.min().x(),
+            rect.min().y(),
+            rect.max().x(),
+            rect.max().y(),
+        )
+    }
+
     /// Search the index for items within a given radius.
     ///
     /// - qx: x value of query point
@@ -143,6 +156,16 @@ pub trait KDTreeIndex<N: IndexableNum> {
             }
         }
         result
+    }
+
+    /// Search the index for items within a given radius.
+    ///
+    /// - coord: coordinate of query point
+    /// - r: radius
+    ///
+    /// Returns indices of found items
+    fn within_coord(&self, coord: &impl CoordTrait<T = N>, r: N) -> Vec<usize> {
+        self.within(coord.x(), coord.y(), r)
     }
 }
 

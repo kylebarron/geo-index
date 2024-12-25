@@ -23,7 +23,7 @@ pub(crate) struct TreeMetadata<N: IndexableNum> {
 }
 
 impl<N: IndexableNum> TreeMetadata<N> {
-    pub fn try_new(data: &[u8]) -> Result<Self> {
+    fn try_new(data: &[u8]) -> Result<Self> {
         let magic = data[0];
         if magic != 0xfb {
             return Err(GeoIndexError::General(

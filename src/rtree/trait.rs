@@ -1,3 +1,5 @@
+use geo_traits::{CoordTrait, RectTrait};
+
 use crate::error::Result;
 use crate::indices::Indices;
 use crate::r#type::IndexableNum;
@@ -95,6 +97,18 @@ pub trait RTreeIndex<N: IndexableNum>: Sized {
         }
 
         results
+    }
+
+    /// Search an RTree given the provided bounding box.
+    ///
+    /// Results are the indexes of the inserted objects in insertion order.
+    fn search_rect(&self, rect: &impl RectTrait<T = N>) -> Vec<usize> {
+        self.search(
+            rect.min().x(),
+            rect.min().y(),
+            rect.max().x(),
+            rect.max().y(),
+        )
     }
 
     // #[allow(unused_mut, unused_labels, unused_variables)]
