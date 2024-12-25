@@ -7,6 +7,7 @@ use crate::rtree::index::{OwnedRTree, RTreeRef};
 use crate::rtree::traversal::{IntersectionIterator, Node};
 use crate::GeoIndexError;
 
+/// A trait for searching and accessing data out of an RTree.
 pub trait RTreeIndex<N: IndexableNum>: Sized {
     /// A slice representing all the bounding boxes of all elements contained within this tree,
     /// including the bounding boxes of each internal node.

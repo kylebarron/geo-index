@@ -306,6 +306,7 @@ impl RTree {
         }
         Ok(())
     }
+
     pub unsafe fn __releasebuffer__(&self, _view: *mut ffi::Py_buffer) {
         // is there anything to do here?
     }

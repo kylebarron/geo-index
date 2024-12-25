@@ -70,6 +70,7 @@ impl IndexableNum for f64 {
 }
 
 /// An enum over the allowed coordinate types in the spatial index.
+#[allow(missing_docs)]
 pub enum CoordType {
     Int8,
     UInt8,
