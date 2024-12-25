@@ -131,11 +131,6 @@ pub struct OwnedRTree<N: IndexableNum> {
 }
 
 impl<N: IndexableNum> OwnedRTree<N> {
-    pub fn try_new(buffer: Vec<u8>) -> Result<Self> {
-        let metadata = RTreeMetadata::try_new_from_slice(&buffer)?;
-        Ok(Self { buffer, metadata })
-    }
-
     pub fn into_inner(self) -> Vec<u8> {
         self.buffer
     }
