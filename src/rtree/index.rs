@@ -7,7 +7,6 @@ use crate::error::{GeoIndexError, Result};
 use crate::indices::Indices;
 use crate::r#type::IndexableNum;
 use crate::rtree::constants::VERSION;
-use crate::rtree::r#trait::RTreeIndex;
 use crate::rtree::util::compute_num_nodes;
 
 /// Common metadata to describe an RTree
@@ -139,15 +138,6 @@ impl<N: IndexableNum> OwnedRTree<N> {
 
     pub fn into_inner(self) -> Vec<u8> {
         self.buffer
-    }
-
-    // TODO: remove
-    pub fn as_rtree_ref(&self) -> RTreeRef<N> {
-        RTreeRef {
-            boxes: self.boxes(),
-            indices: self.indices(),
-            metadata: Cow::Borrowed(&self.metadata),
-        }
     }
 }
 
