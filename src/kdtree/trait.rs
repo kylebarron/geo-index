@@ -2,14 +2,22 @@ use geo_traits::{CoordTrait, RectTrait};
 use tinyvec::TinyVec;
 
 use crate::indices::Indices;
-use crate::kdtree::KDTreeRef;
+use crate::kdtree::{KDTreeRef, OwnedKDTree};
 use crate::r#type::IndexableNum;
 
+/// A trait for searching and accessing data out of a KDTree.
 pub trait KDTreeIndex<N: IndexableNum> {
+    /// The number of items in this KDTree
     fn num_items(&self) -> usize;
+
+    /// The node size of this KDTree
     fn node_size(&self) -> usize;
+
+    /// The underlying raw coordinate buffer of this tree
     fn coords(&self) -> &[N];
-    fn ids(&self) -> Indices;
+
+    /// The underlying raw indices buffer of this tree
+    fn indices(&self) -> Indices;
 
     /// Search the index for items within a given bounding box.
     ///
@@ -20,14 +28,14 @@ pub trait KDTreeIndex<N: IndexableNum> {
     ///
     /// Returns indices of found items
     fn range(&self, min_x: N, min_y: N, max_x: N, max_y: N) -> Vec<usize> {
-        let ids = self.ids();
+        let indices = self.indices();
         let coords = self.coords();
         let node_size = self.node_size();
 
         // Use TinyVec to avoid heap allocations
         let mut stack: TinyVec<[usize; 33]> = TinyVec::new();
         stack.push(0);
-        stack.push(ids.len() - 1);
+        stack.push(indices.len() - 1);
         stack.push(0);
 
         let mut result = vec![];
@@ -44,7 +52,7 @@ pub trait KDTreeIndex<N: IndexableNum> {
                     let x = coords[2 * i];
                     let y = coords[2 * i + 1];
                     if x >= min_x && x <= max_x && y >= min_y && y <= max_y {
-                        result.push(ids.get(i));
+                        result.push(indices.get(i));
                     }
                 }
                 continue;
@@ -57,7 +65,7 @@ pub trait KDTreeIndex<N: IndexableNum> {
             let x = coords[2 * m];
             let y = coords[2 * m + 1];
             if x >= min_x && x <= max_x && y >= min_y && y <= max_y {
-                result.push(ids.get(m));
+                result.push(indices.get(m));
             }
 
             // queue search in halves that intersect the query
@@ -99,14 +107,14 @@ pub trait KDTreeIndex<N: IndexableNum> {
     ///
     /// Returns indices of found items
     fn within(&self, qx: N, qy: N, r: N) -> Vec<usize> {
-        let ids = self.ids();
+        let indices = self.indices();
         let coords = self.coords();
         let node_size = self.node_size();
 
         // Use TinyVec to avoid heap allocations
         let mut stack: TinyVec<[usize; 33]> = TinyVec::new();
         stack.push(0);
-        stack.push(ids.len() - 1);
+        stack.push(indices.len() - 1);
         stack.push(0);
 
         let mut result = vec![];
@@ -122,7 +130,7 @@ pub trait KDTreeIndex<N: IndexableNum> {
             if right - left <= node_size {
                 for i in left..right + 1 {
                     if sq_dist(coords[2 * i], coords[2 * i + 1], qx, qy) <= r2 {
-                        result.push(ids.get(i));
+                        result.push(indices.get(i));
                     }
                 }
                 continue;
@@ -135,7 +143,7 @@ pub trait KDTreeIndex<N: IndexableNum> {
             let x = coords[2 * m];
             let y = coords[2 * m + 1];
             if sq_dist(x, y, qx, qy) <= r2 {
-                result.push(ids.get(m));
+                result.push(indices.get(m));
             }
 
             // queue search in halves that intersect the query
@@ -167,21 +175,39 @@ pub trait KDTreeIndex<N: IndexableNum> {
     }
 }
 
-impl<N: IndexableNum> KDTreeIndex<N> for KDTreeRef<'_, N> {
+impl<N: IndexableNum> KDTreeIndex<N> for OwnedKDTree<N> {
     fn num_items(&self) -> usize {
-        self.num_items
+        self.metadata.num_items
     }
 
     fn node_size(&self) -> usize {
-        self.node_size
+        self.metadata.node_size
+    }
+
+    fn coords(&self) -> &[N] {
+        self.metadata.coords_slice(&self.buffer)
+    }
+
+    fn indices(&self) -> Indices {
+        self.metadata.indices_slice(&self.buffer)
+    }
+}
+
+impl<N: IndexableNum> KDTreeIndex<N> for KDTreeRef<'_, N> {
+    fn num_items(&self) -> usize {
+        self.metadata.num_items
+    }
+
+    fn node_size(&self) -> usize {
+        self.metadata.node_size
     }
 
     fn coords(&self) -> &[N] {
         self.coords
     }
 
-    fn ids(&self) -> Indices {
-        self.ids
+    fn indices(&self) -> Indices {
+        self.indices
     }
 }
 

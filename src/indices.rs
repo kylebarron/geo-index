@@ -10,7 +10,7 @@ pub enum MutableIndices<'a> {
 }
 
 impl<'a> MutableIndices<'a> {
-    pub fn new(slice: &'a mut [u8], num_nodes: usize) -> Self {
+    pub(crate) fn new(slice: &'a mut [u8], num_nodes: usize) -> Self {
         if num_nodes < 16384 {
             Self::U16(cast_slice_mut(slice))
         } else {
@@ -21,7 +21,8 @@ impl<'a> MutableIndices<'a> {
 
 impl MutableIndices<'_> {
     #[inline]
-    pub fn bytes_per_element(&self) -> usize {
+    #[allow(dead_code)]
+    pub(crate) fn bytes_per_element(&self) -> usize {
         match self {
             Self::U16(_) => 2,
             Self::U32(_) => 4,
@@ -29,7 +30,7 @@ impl MutableIndices<'_> {
     }
 
     #[inline]
-    pub fn swap(&mut self, a: usize, b: usize) {
+    pub(crate) fn swap(&mut self, a: usize, b: usize) {
         match self {
             Self::U16(arr) => arr.swap(a, b),
             Self::U32(arr) => arr.swap(a, b),
@@ -37,7 +38,8 @@ impl MutableIndices<'_> {
     }
 
     #[inline]
-    pub fn get(&self, index: usize) -> usize {
+    #[allow(dead_code)]
+    pub(crate) fn get(&self, index: usize) -> usize {
         match self {
             Self::U16(arr) => arr[index] as usize,
             Self::U32(arr) => arr[index] as usize,
@@ -45,14 +47,15 @@ impl MutableIndices<'_> {
     }
 
     #[inline]
-    pub fn set(&mut self, index: usize, value: usize) {
+    pub(crate) fn set(&mut self, index: usize, value: usize) {
         match self {
             Self::U16(arr) => arr[index] = value.try_into().unwrap(),
             Self::U32(arr) => arr[index] = value.try_into().unwrap(),
         }
     }
 
-    pub fn split_at_mut(&mut self, mid: usize) -> (MutableIndices, MutableIndices) {
+    #[allow(dead_code)]
+    pub(crate) fn split_at_mut(&mut self, mid: usize) -> (MutableIndices, MutableIndices) {
         match self {
             Self::U16(arr) => {
                 let (left, right) = arr.split_at_mut(mid);
@@ -65,7 +68,7 @@ impl MutableIndices<'_> {
         }
     }
 
-    pub fn chunks_mut(&mut self, chunk_size: usize) -> Vec<MutableIndices> {
+    pub(crate) fn chunks_mut(&mut self, chunk_size: usize) -> Vec<MutableIndices> {
         match self {
             Self::U16(arr) => arr
                 .chunks_mut(chunk_size)
@@ -87,7 +90,7 @@ pub enum Indices<'a> {
 }
 
 impl<'a> Indices<'a> {
-    pub fn new(slice: &'a [u8], num_nodes: usize) -> Self {
+    pub(crate) fn new(slice: &'a [u8], num_nodes: usize) -> Self {
         if num_nodes < 16384 {
             Self::U16(cast_slice(slice))
         } else {

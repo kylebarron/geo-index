@@ -1,5 +1,4 @@
 use std::cmp;
-use std::marker::PhantomData;
 
 use bytemuck::cast_slice_mut;
 use geo_traits::{CoordTrait, PointTrait};
@@ -7,6 +6,7 @@ use geo_traits::{CoordTrait, PointTrait};
 use crate::error::Result;
 use crate::indices::MutableIndices;
 use crate::kdtree::constants::{KDBUSH_HEADER_SIZE, KDBUSH_MAGIC, KDBUSH_VERSION};
+use crate::kdtree::index::KDTreeMetadata;
 use crate::kdtree::OwnedKDTree;
 use crate::r#type::IndexableNum;
 use crate::GeoIndexError;
@@ -14,20 +14,12 @@ use crate::GeoIndexError;
 const DEFAULT_NODE_SIZE: u16 = 64;
 
 /// A builder to create an [`OwnedKDTree`].
+#[derive(Debug)]
 pub struct KDTreeBuilder<N: IndexableNum> {
     /// data buffer
     data: Vec<u8>,
-
-    num_items: usize,
-    node_size: usize,
-
-    coords_byte_size: usize,
-    indices_byte_size: usize,
-    pad_coords_byte_size: usize,
-
+    metadata: KDTreeMetadata<N>,
     pos: usize,
-
-    phantom: PhantomData<N>,
 }
 
 impl<N: IndexableNum> KDTreeBuilder<N> {
@@ -38,36 +30,21 @@ impl<N: IndexableNum> KDTreeBuilder<N> {
 
     /// Create a new builder with the provided number of items and node size.
     pub fn new_with_node_size(num_items: u32, node_size: u16) -> Self {
-        assert!((2..=65535).contains(&node_size));
+        let metadata = KDTreeMetadata::new(num_items, node_size);
 
-        // The public API uses u32 and u16 types but internally we use usize
-        let num_items = num_items as usize;
-        let node_size = node_size as usize;
-
-        let coords_byte_size = num_items * 2 * N::BYTES_PER_ELEMENT;
-        let indices_bytes_per_element = if num_items < 65536 { 2 } else { 4 };
-        let indices_byte_size = num_items * indices_bytes_per_element;
-        let pad_coords_byte_size = (8 - (indices_byte_size % 8)) % 8;
-
-        let data_buffer_length =
-            KDBUSH_HEADER_SIZE + coords_byte_size + indices_byte_size + pad_coords_byte_size;
+        let data_buffer_length = metadata.data_buffer_length();
         let mut data = vec![0; data_buffer_length];
 
         // Set data header;
         data[0] = KDBUSH_MAGIC;
         data[1] = (KDBUSH_VERSION << 4) + N::TYPE_INDEX;
-        cast_slice_mut(&mut data[2..4])[0] = node_size as u16;
-        cast_slice_mut(&mut data[4..8])[0] = num_items as u32;
+        cast_slice_mut(&mut data[2..4])[0] = node_size;
+        cast_slice_mut(&mut data[4..8])[0] = num_items;
 
         Self {
             data,
-            num_items,
-            node_size,
-            coords_byte_size,
-            indices_byte_size,
-            pad_coords_byte_size,
             pos: 0,
-            phantom: PhantomData,
+            metadata,
         }
     }
 
@@ -77,13 +54,7 @@ impl<N: IndexableNum> KDTreeBuilder<N> {
     #[inline]
     pub fn add(&mut self, x: N, y: N) -> usize {
         let index = self.pos >> 1;
-        let (coords, mut ids) = split_data_borrow(
-            &mut self.data,
-            self.num_items,
-            self.indices_byte_size,
-            self.coords_byte_size,
-            self.pad_coords_byte_size,
-        );
+        let (coords, mut ids) = split_data_borrow(&mut self.data, self.metadata);
 
         ids.set(index, index);
         coords[self.pos] = x;
@@ -121,28 +92,27 @@ impl<N: IndexableNum> KDTreeBuilder<N> {
     pub fn finish(mut self) -> OwnedKDTree<N> {
         assert_eq!(
             self.pos >> 1,
-            self.num_items,
+            self.metadata.num_items,
             "Added {} items when expected {}.",
             self.pos >> 1,
-            self.num_items
+            self.metadata.num_items
         );
 
-        let (coords, mut ids) = split_data_borrow::<N>(
-            &mut self.data,
-            self.num_items,
-            self.indices_byte_size,
-            self.coords_byte_size,
-            self.pad_coords_byte_size,
-        );
+        let (coords, mut ids) = split_data_borrow::<N>(&mut self.data, self.metadata);
 
         // kd-sort both arrays for efficient search
-        sort(&mut ids, coords, self.node_size, 0, self.num_items - 1, 0);
+        sort(
+            &mut ids,
+            coords,
+            self.metadata.node_size,
+            0,
+            self.metadata.num_items - 1,
+            0,
+        );
 
         OwnedKDTree {
             buffer: self.data,
-            node_size: self.node_size,
-            num_items: self.num_items,
-            phantom: PhantomData,
+            metadata: self.metadata,
         }
     }
 }
@@ -150,16 +120,14 @@ impl<N: IndexableNum> KDTreeBuilder<N> {
 /// Mutable borrow of coords and ids
 fn split_data_borrow<N: IndexableNum>(
     data: &mut [u8],
-    num_items: usize,
-    indices_byte_size: usize,
-    coords_byte_size: usize,
-    pad_coords: usize,
+    metadata: KDTreeMetadata<N>,
 ) -> (&mut [N], MutableIndices) {
-    let (ids_buf, padded_coords_buf) = data[KDBUSH_HEADER_SIZE..].split_at_mut(indices_byte_size);
-    let coords_buf = &mut padded_coords_buf[pad_coords..];
-    debug_assert_eq!(coords_buf.len(), coords_byte_size);
+    let (ids_buf, padded_coords_buf) =
+        data[KDBUSH_HEADER_SIZE..].split_at_mut(metadata.indices_byte_size);
+    let coords_buf = &mut padded_coords_buf[metadata.pad_coords_byte_size..];
+    debug_assert_eq!(coords_buf.len(), metadata.coords_byte_size);
 
-    let ids = if num_items < 65536 {
+    let ids = if metadata.num_items < 65536 {
         MutableIndices::U16(cast_slice_mut(ids_buf))
     } else {
         MutableIndices::U32(cast_slice_mut(ids_buf))
