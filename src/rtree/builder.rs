@@ -1,4 +1,5 @@
 use bytemuck::cast_slice_mut;
+use geo_traits::{CoordTrait, RectTrait};
 
 use crate::indices::MutableIndices;
 use crate::r#type::IndexableNum;
@@ -73,7 +74,9 @@ impl<N: IndexableNum> RTreeBuilder<N> {
         }
     }
 
-    /// Add a given rectangle to the index.
+    /// Add a given rectangle to the RTree.
+    ///
+    /// This returns a positional index that provides a lookup back into the original data.
     #[inline]
     pub fn add(&mut self, min_x: N, min_y: N, max_x: N, max_y: N) -> usize {
         let index = self.pos >> 2;
@@ -108,6 +111,19 @@ impl<N: IndexableNum> RTreeBuilder<N> {
         };
 
         index
+    }
+
+    /// Add a given rectangle to the RTree.
+    ///
+    /// This returns a positional index that provides a lookup back into the original data.
+    #[inline]
+    pub fn add_rect(&mut self, rect: &impl RectTrait<T = N>) -> usize {
+        self.add(
+            rect.min().x(),
+            rect.min().y(),
+            rect.max().x(),
+            rect.max().y(),
+        )
     }
 
     /// Consume this builder, perfoming the sort and generating an RTree ready for queries.
