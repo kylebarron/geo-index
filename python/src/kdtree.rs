@@ -87,8 +87,7 @@ impl KDTree {
         max_x: f64,
         max_y: f64,
     ) -> Bound<'py, PyArray1<usize>> {
-        let result =
-            py.allow_threads(move || self.0.as_kdtree_ref().range(min_x, min_y, max_x, max_y));
+        let result = py.allow_threads(move || self.0.range(min_x, min_y, max_x, max_y));
         PyArray1::from_vec_bound(py, result)
     }
 
@@ -106,7 +105,7 @@ impl KDTree {
         qy: f64,
         r: f64,
     ) -> Bound<'py, PyArray1<usize>> {
-        let result = py.allow_threads(move || self.0.as_kdtree_ref().within(qx, qy, r));
+        let result = py.allow_threads(move || self.0.within(qx, qy, r));
         PyArray1::from_vec_bound(py, result)
     }
 }
