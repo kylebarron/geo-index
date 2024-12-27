@@ -1,7 +1,3 @@
-[workspace]
-members = [".", "integration-test"]
-
-
 [package]
 name = "geo-index"
 version = "0.1.1"

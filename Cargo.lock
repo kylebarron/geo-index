@@ -620,16 +620,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "integration-test"
-version = "0.1.0"
-dependencies = [
- "geo",
- "geo-index",
- "geozero",
- "rstar",
-]
-
-[[package]]
 name = "is-terminal"
 version = "0.4.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
