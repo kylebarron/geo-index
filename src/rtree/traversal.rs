@@ -6,10 +6,21 @@ use core::mem::take;
 use std::marker::PhantomData;
 
 /// An internal node in the RTree.
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct Node<'a, N: IndexableNum, T: RTreeIndex<N>> {
+    /// The tree that this node is a reference onto
     tree: &'a T,
+
+    /// This index points to the position in the full `boxes` slice of the **first** coordinate of
+    /// this node. So
+    /// ```
+    /// self.tree.boxes()[self.index]
+    /// ```
+    /// accesses the `min_x` coordinate of this node.
+    ///
+    /// This index also relates to the positional
     index: usize,
+
     phantom: PhantomData<N>,
 }
 
@@ -53,7 +64,7 @@ impl<'a, N: IndexableNum, T: RTreeIndex<N>> Node<'a, N, T> {
 
     /// Returns `true` if this is a leaf node without children.
     pub fn is_leaf(&self) -> bool {
-        self.index >= self.tree.num_items() * 4
+        self.index < self.tree.num_items() * 4
     }
 
     /// Returns `true` if this is an intermediate node with children.
@@ -85,14 +96,20 @@ impl<'a, N: IndexableNum, T: RTreeIndex<N>> Node<'a, N, T> {
     /// Returns an iterator over the child nodes of this node. This must only be called if
     /// `is_parent` is `true`.
     pub fn children(&self) -> impl Iterator<Item = Node<'_, N, T>> {
-        // find the end index of the node
-        let end = (self.index + self.tree.node_size() * 4)
-            .min(upper_bound(self.index, self.tree.level_bounds()));
+        debug_assert!(self.is_parent());
 
-        // yield child nodes
-        (self.index..end)
+        // find the start and end indexes of the children of this node
+        let start_child_index = self.tree.indices().get(self.index >> 2);
+        let end_children_index = (start_child_index + self.tree.node_size() * 4)
+            .min(upper_bound(start_child_index, self.tree.level_bounds()));
+
+        (start_child_index..end_children_index)
             .step_by(4)
             .map(|pos| Node::new(self.tree, pos))
+    }
+
+    pub fn index_lookup(&self) -> usize {
+        self.tree.indices().get(self.index >> 2)
     }
 }
 
@@ -187,7 +204,7 @@ where
             let left = Node::new(self.left, left_index);
             let right = Node::new(self.right, right_index);
             match (left.is_leaf(), right.is_leaf()) {
-                (true, true) => return Some((left.index, right.index)),
+                (true, true) => return Some((left.index_lookup(), right.index_lookup())),
                 (true, false) => right
                     .children()
                     .for_each(|c| self.push_if_intersecting(&left, &c)),
