@@ -10,6 +10,17 @@ use crate::rtree::sort::{Sort, SortParams};
 const DEFAULT_NODE_SIZE: u16 = 16;
 
 /// A builder to create an [`OwnedRTree`].
+///
+/// ```
+/// use geo_index::rtree::RTreeBuilder;
+/// use geo_index::rtree::sort::HilbertSort;
+///
+/// let mut builder = RTreeBuilder::<f64>::new(3);
+/// builder.add(0., 0., 2., 2.);
+/// builder.add(1., 1., 3., 3.);
+/// builder.add(2., 2., 4., 4.);
+/// let tree = builder.finish::<HilbertSort>();
+/// ```
 pub struct RTreeBuilder<N: IndexableNum> {
     /// data buffer
     data: Vec<u8>,
@@ -56,7 +67,10 @@ impl<N: IndexableNum> RTreeBuilder<N> {
 
     /// Add a given rectangle to the RTree.
     ///
-    /// This returns a positional index that provides a lookup back into the original data.
+    /// This returns the insertion index, which provides a lookup back into the original data.
+    ///
+    /// `RTreeIndex::search` will return this same insertion index, which allows you to reference
+    /// your original collection.
     #[inline]
     pub fn add(&mut self, min_x: N, min_y: N, max_x: N, max_y: N) -> usize {
         let index = self.pos >> 2;
@@ -90,7 +104,10 @@ impl<N: IndexableNum> RTreeBuilder<N> {
 
     /// Add a given rectangle to the RTree.
     ///
-    /// This returns a positional index that provides a lookup back into the original data.
+    /// This returns the insertion index, which provides a lookup back into the original data.
+    ///
+    /// `RTreeIndex::search` will return this same insertion index, which allows you to reference
+    /// your original collection.
     #[inline]
     pub fn add_rect(&mut self, rect: &impl RectTrait<T = N>) -> usize {
         self.add(
@@ -102,6 +119,12 @@ impl<N: IndexableNum> RTreeBuilder<N> {
     }
 
     /// Consume this builder, perfoming the sort and generating an RTree ready for queries.
+    ///
+    /// [`HilbertSort`] and [`STRSort`] both implement [`Sort`], allowing you to choose the method
+    /// used.
+    ///
+    /// [`HilbertSort`]: crate::rtree::sort::HilbertSort
+    /// [`STRSort`]: crate::rtree::sort::STRSort
     pub fn finish<S: Sort<N>>(mut self) -> OwnedRTree<N> {
         assert_eq!(
             self.pos >> 2,

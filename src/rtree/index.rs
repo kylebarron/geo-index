@@ -131,9 +131,10 @@ impl<N: IndexableNum> RTreeMetadata<N> {
         self.num_nodes
     }
 
-    /// The offsets into [RTreeIndex::boxes] where each level's boxes starts and ends. The tree is
-    /// laid out bottom-up, and there's an implicit initial 0. So the boxes of the lowest level of
-    /// the tree are located from `boxes[0..self.level_bounds()[0]]`.
+    /// The offsets into [`RTreeIndex::boxes`][crate::rtree::RTreeIndex::boxes] where each level's
+    /// boxes starts and ends. The tree is laid out bottom-up, and there's an implicit initial 0.
+    /// So the boxes of the lowest level of the tree are located from
+    /// `boxes[0..self.level_bounds()[0]]`.
     pub fn level_bounds(&self) -> &[usize] {
         &self.level_bounds
     }

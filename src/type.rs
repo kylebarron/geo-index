@@ -69,7 +69,12 @@ impl IndexableNum for f64 {
     const BYTES_PER_ELEMENT: usize = 8;
 }
 
+/// For compatibility with JS, which contains a Uint8ClampedArray
+const U8_CLAMPED_TYPE_INDEX: u8 = 2;
+
 /// An enum over the allowed coordinate types in the spatial index.
+///
+/// This can be used to infer the coordinate type from an existing buffer.
 #[allow(missing_docs)]
 pub enum CoordType {
     Int8,
@@ -85,8 +90,24 @@ pub enum CoordType {
 impl CoordType {
     /// Infer the CoordType from an existing buffer.
     ///
-    /// This can be used to discern the generic type to use when constructing an OwnedRTree or
-    /// OwnedKDTree.
+    /// This can be used to discern the generic type to use when constructing an `RTreeRef` or
+    /// `KDTreeRef`.
+    ///
+    /// ```
+    /// use geo_index::rtree::RTreeBuilder;
+    /// use geo_index::rtree::sort::HilbertSort;
+    /// use geo_index::CoordType;
+    ///
+    /// let mut builder = RTreeBuilder::<u32>::new(2);
+    /// builder.add(0, 0, 2, 2);
+    /// builder.add(1, 1, 3, 3);
+    /// let tree = builder.finish::<HilbertSort>();
+    ///
+    /// let coord_type = CoordType::from_buffer(&tree).unwrap();
+    /// assert!(matches!(coord_type, CoordType::UInt32));
+    /// ```
+    ///
+    /// This method works for both buffers representing RTree or KDTree trees.
     pub fn from_buffer<T: AsRef<[u8]>>(data: &T) -> Result<Self, GeoIndexError> {
         let data = data.as_ref();
         let magic = data[0];
@@ -101,6 +122,7 @@ impl CoordType {
         let result = match type_ {
             i8::TYPE_INDEX => CoordType::Int8,
             u8::TYPE_INDEX => CoordType::UInt8,
+            U8_CLAMPED_TYPE_INDEX => CoordType::UInt8,
             i16::TYPE_INDEX => CoordType::Int16,
             u16::TYPE_INDEX => CoordType::UInt16,
             i32::TYPE_INDEX => CoordType::Int32,
