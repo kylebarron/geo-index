@@ -11,24 +11,29 @@ pub struct Node<'a, N: IndexableNum, T: RTreeIndex<N>> {
     /// The tree that this node is a reference onto
     tree: &'a T,
 
-    /// This index points to the position in the full `boxes` slice of the **first** coordinate of
+    /// This points to the position in the full `boxes` slice of the **first** coordinate of
     /// this node. So
     /// ```
-    /// self.tree.boxes()[self.index]
+    /// self.tree.boxes()[self.pos]
     /// ```
     /// accesses the `min_x` coordinate of this node.
     ///
-    /// This index also relates to the positional
-    index: usize,
+    /// This also relates to the children and the insertion index. When this is `<
+    /// self.tree.num_items() * 4`, it means it's a leaf node at the bottom of the tree. In this
+    /// case, calling `>> 2` on this finds the original insertion index.
+    ///
+    /// When this is `>= self.tree.num_items() * 4`, it means it's _not_ a leaf node, and calling
+    /// `>> 2` retrieves the `pos` of the first of its children.
+    pos: usize,
 
     phantom: PhantomData<N>,
 }
 
 impl<'a, N: IndexableNum, T: RTreeIndex<N>> Node<'a, N, T> {
-    pub(crate) fn new(tree: &'a T, index: usize) -> Self {
+    fn new(tree: &'a T, pos: usize) -> Self {
         Self {
             tree,
-            index,
+            pos,
             phantom: PhantomData,
         }
     }
@@ -37,34 +42,34 @@ impl<'a, N: IndexableNum, T: RTreeIndex<N>> Node<'a, N, T> {
         let root_index = tree.boxes().len() - 4;
         Self {
             tree,
-            index: root_index,
+            pos: root_index,
             phantom: PhantomData,
         }
     }
 
     /// Get the minimum `x` value of this node.
     pub fn min_x(&self) -> N {
-        self.tree.boxes()[self.index]
+        self.tree.boxes()[self.pos]
     }
 
     /// Get the minimum `y` value of this node.
     pub fn min_y(&self) -> N {
-        self.tree.boxes()[self.index + 1]
+        self.tree.boxes()[self.pos + 1]
     }
 
     /// Get the maximum `x` value of this node.
     pub fn max_x(&self) -> N {
-        self.tree.boxes()[self.index + 2]
+        self.tree.boxes()[self.pos + 2]
     }
 
     /// Get the maximum `y` value of this node.
     pub fn max_y(&self) -> N {
-        self.tree.boxes()[self.index + 3]
+        self.tree.boxes()[self.pos + 3]
     }
 
     /// Returns `true` if this is a leaf node without children.
     pub fn is_leaf(&self) -> bool {
-        self.index < self.tree.num_items() * 4
+        self.pos < self.tree.num_items() * 4
     }
 
     /// Returns `true` if this is an intermediate node with children.
@@ -99,17 +104,20 @@ impl<'a, N: IndexableNum, T: RTreeIndex<N>> Node<'a, N, T> {
         debug_assert!(self.is_parent());
 
         // find the start and end indexes of the children of this node
-        let start_child_index = self.tree.indices().get(self.index >> 2);
-        let end_children_index = (start_child_index + self.tree.node_size() * 4)
-            .min(upper_bound(start_child_index, self.tree.level_bounds()));
+        let start_child_pos = self.tree.indices().get(self.pos >> 2);
+        let end_children_pos = (start_child_pos + self.tree.node_size() * 4)
+            .min(upper_bound(start_child_pos, self.tree.level_bounds()));
 
-        (start_child_index..end_children_index)
+        (start_child_pos..end_children_pos)
             .step_by(4)
             .map(|pos| Node::new(self.tree, pos))
     }
 
-    pub fn index_lookup(&self) -> usize {
-        self.tree.indices().get(self.index >> 2)
+    /// The original insertion index. This is only valid when this is a leaf node, which you can
+    /// check with `Self::is_leaf`.
+    pub fn index(&self) -> usize {
+        debug_assert!(self.is_leaf());
+        self.tree.indices().get(self.pos >> 2)
     }
 }
 
@@ -161,7 +169,7 @@ where
 
     fn push_if_intersecting(&mut self, node1: &'_ Node<N, T1>, node2: &'_ Node<N, T2>) {
         if node1.intersects(node2) {
-            self.todo_list.push((node1.index, node2.index));
+            self.todo_list.push((node1.pos, node2.pos));
         }
     }
 
@@ -177,7 +185,7 @@ where
             parent2
                 .children()
                 .filter(|c2| c2.intersects(parent1))
-                .map(|c| c.index),
+                .map(|c| c.pos),
         );
 
         for child1 in children1 {
@@ -204,7 +212,7 @@ where
             let left = Node::new(self.left, left_index);
             let right = Node::new(self.right, right_index);
             match (left.is_leaf(), right.is_leaf()) {
-                (true, true) => return Some((left.index_lookup(), right.index_lookup())),
+                (true, true) => return Some((left.index(), right.index())),
                 (true, false) => right
                     .children()
                     .for_each(|c| self.push_if_intersecting(&left, &c)),
