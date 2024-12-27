@@ -31,8 +31,8 @@ fn geo_contiguity(geom: &[Polygon]) {
 }
 
 // Find tree self-intersection canddiates using geo-index
-fn geo_index_contiguity(geoms: &Vec<Polygon>, node_size: usize) {
-    let mut tree_builder = RTreeBuilder::new_with_node_size(geoms.len(), node_size);
+fn geo_index_contiguity(geoms: &Vec<Polygon>, node_size: u16) {
+    let mut tree_builder = RTreeBuilder::new_with_node_size(geoms.len() as _, node_size);
     for geom in geoms {
         let rect = geom.bounding_rect().unwrap();
         tree_builder.add(rect.min().x, rect.min().y, rect.max().x, rect.max().y);
