@@ -4,7 +4,7 @@ use float_next_after::NextAfter;
 
 /// Calculate the total number of nodes in the R-tree to allocate space for
 /// and the index of each tree level (used in search later)
-pub fn compute_num_nodes(num_items: u32, node_size: u16) -> (usize, Vec<usize>) {
+pub(crate) fn compute_num_nodes(num_items: u32, node_size: u16) -> (usize, Vec<usize>) {
     // The public API uses u32 and u16 types but internally we use usize
     let num_items = num_items as usize;
     let node_size = node_size as usize;
@@ -24,10 +24,23 @@ pub fn compute_num_nodes(num_items: u32, node_size: u16) -> (usize, Vec<usize>) 
 /// ensure the resulting box is strictly larger than the `f64` box.
 #[inline]
 pub fn f64_box_to_f32(min_x: f64, min_y: f64, max_x: f64, max_y: f64) -> (f32, f32, f32, f32) {
-    let new_min_x = (min_x as f32).next_after(f32::NEG_INFINITY);
-    let new_min_y = (min_y as f32).next_after(f32::NEG_INFINITY);
-    let new_max_x = (max_x as f32).next_after(f32::INFINITY);
-    let new_max_y = (max_y as f32).next_after(f32::INFINITY);
+    let mut new_min_x = min_x as f32; //.next_after(f32::NEG_INFINITY);
+    let mut new_min_y = min_y as f32; //.next_after(f32::NEG_INFINITY);
+    let mut new_max_x = max_x as f32; //.next_after(f32::INFINITY);
+    let mut new_max_y = max_y as f32; //.next_after(f32::INFINITY);
+
+    if (new_min_x as f64) > min_x {
+        new_min_x = new_min_x.next_after(f32::NEG_INFINITY);
+    }
+    if (new_min_y as f64) > min_y {
+        new_min_y = new_min_y.next_after(f32::NEG_INFINITY);
+    }
+    if (new_max_x as f64) < max_x {
+        new_max_x = new_max_x.next_after(f32::INFINITY);
+    }
+    if (new_max_y as f64) < max_y {
+        new_max_y = new_max_y.next_after(f32::INFINITY);
+    }
 
     debug_assert!((new_min_x as f64) <= min_x);
     debug_assert!((new_min_y as f64) <= min_y);
@@ -48,5 +61,6 @@ mod test {
         let max_x = 2.4f64;
         let max_y = 2.5f64;
         let _new_box = f64_box_to_f32(min_x, min_y, max_x, max_y);
+        dbg!(_new_box);
     }
 }
