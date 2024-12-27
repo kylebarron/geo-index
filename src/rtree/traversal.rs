@@ -1,5 +1,7 @@
 //! Utilities to traverse the RTree structure.
 
+use geo_traits::{CoordTrait, RectTrait};
+
 use crate::r#type::IndexableNum;
 use crate::rtree::RTreeIndex;
 use core::mem::take;
@@ -118,6 +120,64 @@ impl<'a, N: IndexableNum, T: RTreeIndex<N>> Node<'a, N, T> {
     pub fn index(&self) -> usize {
         debug_assert!(self.is_leaf());
         self.tree.indices().get(self.pos >> 2)
+    }
+}
+
+/// A single coordinate.
+///
+/// Used in the implementation of RectTrait for Node.
+pub struct Coord<N: IndexableNum> {
+    x: N,
+    y: N,
+}
+
+impl<N: IndexableNum> CoordTrait for Coord<N> {
+    type T = N;
+
+    fn dim(&self) -> geo_traits::Dimensions {
+        geo_traits::Dimensions::Xy
+    }
+
+    fn x(&self) -> Self::T {
+        self.x
+    }
+
+    fn y(&self) -> Self::T {
+        self.y
+    }
+
+    fn nth_or_panic(&self, n: usize) -> Self::T {
+        match n {
+            0 => self.x,
+            1 => self.y,
+            _ => panic!("Invalid index of coord"),
+        }
+    }
+}
+
+impl<N: IndexableNum, T: RTreeIndex<N>> RectTrait for Node<'_, N, T> {
+    type T = N;
+    type CoordType<'a>
+        = Coord<N>
+    where
+        Self: 'a;
+
+    fn dim(&self) -> geo_traits::Dimensions {
+        geo_traits::Dimensions::Xy
+    }
+
+    fn min(&self) -> Self::CoordType<'_> {
+        Coord {
+            x: self.min_x(),
+            y: self.min_y(),
+        }
+    }
+
+    fn max(&self) -> Self::CoordType<'_> {
+        Coord {
+            x: self.max_x(),
+            y: self.max_y(),
+        }
     }
 }
 
