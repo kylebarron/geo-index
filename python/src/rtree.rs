@@ -3,11 +3,13 @@ use geo_index::rtree::util::f64_box_to_f32;
 use geo_index::rtree::{OwnedRTree, RTreeBuilder, RTreeIndex};
 use geo_index::IndexableNum;
 use numpy::ndarray::{ArrayView1, ArrayView2};
-use numpy::{PyArray1, PyReadonlyArray1, PyReadonlyArray2, PyUntypedArray};
+use numpy::{PyArray1, PyArrayMethods, PyReadonlyArray1, PyReadonlyArray2};
 use pyo3::exceptions::{PyIndexError, PyTypeError, PyValueError};
+use pyo3::ffi;
 use pyo3::intern;
 use pyo3::prelude::*;
 use pyo3::types::PyType;
+use std::os::raw::c_int;
 
 pub enum RTreeMethod {
     Hilbert,
@@ -36,7 +38,7 @@ enum RTreeInner {
 fn new_interleaved<N: IndexableNum + numpy::Element>(
     boxes: &ArrayView2<N>,
     method: RTreeMethod,
-    node_size: Option<usize>,
+    node_size: Option<u16>,
 ) -> OwnedRTree<N> {
     let shape = boxes.shape();
     assert_eq!(shape.len(), 2);
@@ -45,9 +47,9 @@ fn new_interleaved<N: IndexableNum + numpy::Element>(
     let num_items = shape[0];
 
     let mut builder = if let Some(node_size) = node_size {
-        RTreeBuilder::new_with_node_size(num_items, node_size)
+        RTreeBuilder::new_with_node_size(num_items.try_into().unwrap(), node_size)
     } else {
-        RTreeBuilder::new(num_items)
+        RTreeBuilder::new(num_items.try_into().unwrap())
     };
 
     for i in 0..num_items {
@@ -71,7 +73,7 @@ fn new_separated<N: IndexableNum + numpy::Element>(
     max_x: ArrayView1<N>,
     max_y: ArrayView1<N>,
     method: RTreeMethod,
-    node_size: Option<usize>,
+    node_size: Option<u16>,
 ) -> OwnedRTree<N> {
     assert_eq!(min_x.len(), min_y.len());
     assert_eq!(min_x.len(), max_x.len());
@@ -80,9 +82,9 @@ fn new_separated<N: IndexableNum + numpy::Element>(
     let num_items = min_x.len();
 
     let mut builder = if let Some(node_size) = node_size {
-        RTreeBuilder::new_with_node_size(num_items, node_size)
+        RTreeBuilder::new_with_node_size(num_items.try_into().unwrap(), node_size)
     } else {
-        RTreeBuilder::new(num_items)
+        RTreeBuilder::new(num_items.try_into().unwrap())
     };
 
     for i in 0..num_items {
@@ -131,30 +133,33 @@ impl RTreeInner {
 
     fn num_bytes(&self) -> usize {
         match self {
-            Self::Float32(index) => AsRef::as_ref(index).len(),
-            Self::Float64(index) => AsRef::as_ref(index).len(),
+            Self::Float32(index) => index.as_ref().len(),
+            Self::Float64(index) => index.as_ref().len(),
         }
     }
 
-    fn boxes_at_level<'py>(
-        &'py self,
-        py: Python<'py>,
-        level: usize,
-    ) -> PyResult<&'py PyUntypedArray> {
+    fn buffer(&self) -> &[u8] {
+        match self {
+            Self::Float32(index) => index.as_ref(),
+            Self::Float64(index) => index.as_ref(),
+        }
+    }
+
+    fn boxes_at_level<'py>(&'py self, py: Python<'py>, level: usize) -> PyResult<PyObject> {
         match self {
             Self::Float32(index) => {
                 let boxes = index
                     .boxes_at_level(level)
                     .map_err(|err| PyIndexError::new_err(err.to_string()))?;
-                let array = PyArray1::from_slice(py, boxes);
-                Ok(array.reshape([boxes.len() / 4, 4])?.as_untyped())
+                let array = PyArray1::from_slice_bound(py, boxes);
+                Ok(array.reshape([boxes.len() / 4, 4])?.into_py(py))
             }
             Self::Float64(index) => {
                 let boxes = index
                     .boxes_at_level(level)
                     .map_err(|err| PyIndexError::new_err(err.to_string()))?;
-                let array = PyArray1::from_slice(py, boxes);
-                Ok(array.reshape([boxes.len() / 4, 4])?.as_untyped())
+                let array = PyArray1::from_slice_bound(py, boxes);
+                Ok(array.reshape([boxes.len() / 4, 4])?.into_py(py))
             }
         }
     }
@@ -180,11 +185,11 @@ impl RTree {
         text_signature = "(boxes, *, method = 'hilbert', node_size = None)")
     ]
     pub fn from_interleaved(
-        _cls: &PyType,
+        _cls: &Bound<PyType>,
         py: Python,
         boxes: PyObject,
         method: RTreeMethod,
-        node_size: Option<usize>,
+        node_size: Option<u16>,
     ) -> PyResult<Self> {
         // Convert to numpy array (of the same dtype)
         let boxes = boxes.call_method0(py, intern!(py, "__array__"))?;
@@ -214,14 +219,14 @@ impl RTree {
     ]
     #[allow(clippy::too_many_arguments)]
     pub fn from_separated(
-        _cls: &PyType,
+        _cls: &Bound<PyType>,
         py: Python,
         min_x: PyObject,
         min_y: PyObject,
         max_x: PyObject,
         max_y: PyObject,
         method: RTreeMethod,
-        node_size: Option<usize>,
+        node_size: Option<u16>,
     ) -> PyResult<Self> {
         // Convert to numpy array (of the same dtype)
         let min_x = min_x.call_method0(py, intern!(py, "__array__"))?;
@@ -281,6 +286,31 @@ impl RTree {
         result
     }
 
+    // pre PEP 688 buffer protocol
+    pub unsafe fn __getbuffer__(
+        slf: PyRef<'_, Self>,
+        view: *mut ffi::Py_buffer,
+        flags: c_int,
+    ) -> PyResult<()> {
+        let bytes = slf.0.buffer();
+        let ret = ffi::PyBuffer_FillInfo(
+            view,
+            slf.as_ptr() as *mut _,
+            bytes.as_ptr() as *mut _,
+            bytes.len().try_into().unwrap(),
+            1, // read only
+            flags,
+        );
+        if ret == -1 {
+            return Err(PyErr::fetch(slf.py()));
+        }
+        Ok(())
+    }
+
+    pub unsafe fn __releasebuffer__(&self, _view: *mut ffi::Py_buffer) {
+        // is there anything to do here?
+    }
+
     /// The total number of items contained in this RTree.
     #[getter]
     pub fn num_items(&self) -> usize {
@@ -315,11 +345,7 @@ impl RTree {
     ///
     /// The tree is laid out from bottom to top. Level 0 is the _base_ of the tree. Each integer
     /// higher is one level higher of the tree.
-    fn boxes_at_level<'py>(
-        &'py self,
-        py: Python<'py>,
-        level: usize,
-    ) -> PyResult<&'py PyUntypedArray> {
+    fn boxes_at_level<'py>(&'py self, py: Python<'py>, level: usize) -> PyResult<PyObject> {
         self.0.boxes_at_level(py, level)
     }
 
@@ -339,7 +365,7 @@ impl RTree {
         min_y: f64,
         max_x: f64,
         max_y: f64,
-    ) -> &'py PyArray1<usize> {
+    ) -> Bound<'py, PyArray1<usize>> {
         let result = py.allow_threads(|| match &self.0 {
             RTreeInner::Float32(tree) => {
                 let (min_x, min_y, max_x, max_y) = f64_box_to_f32(min_x, min_y, max_x, max_y);
@@ -348,6 +374,6 @@ impl RTree {
             RTreeInner::Float64(tree) => tree.search(min_x, min_y, max_x, max_y),
         });
 
-        PyArray1::from_vec(py, result)
+        PyArray1::from_vec_bound(py, result)
     }
 }

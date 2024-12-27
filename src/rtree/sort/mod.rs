@@ -1,4 +1,4 @@
-//! Sorting implementations for static RTrees.
+//! Sorting implementations for immutable RTrees.
 
 mod hilbert;
 mod str;

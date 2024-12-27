@@ -140,7 +140,7 @@ fn coords() -> Vec<f64> {
 fn make_index() -> OwnedKDTree<f64> {
     let points = points();
 
-    let mut builder = KDTreeBuilder::new_with_node_size(points.len(), 10);
+    let mut builder = KDTreeBuilder::new_with_node_size(points.len() as _, 10);
     for (x, y) in points {
         builder.add(x, y);
     }
@@ -149,9 +149,8 @@ fn make_index() -> OwnedKDTree<f64> {
 
 #[test]
 fn creates_an_index() {
-    let owned_index = make_index();
-    let kdbush = owned_index.as_ref();
-    let tree_ids = kdbush.ids().into_owned();
+    let kdbush = make_index();
+    let tree_ids = kdbush.indices();
     let tree_ids = match tree_ids {
         Indices::U16(arr) => arr,
         _ => unimplemented!(),
@@ -167,8 +166,7 @@ fn creates_an_index() {
 
 #[test]
 fn range_search() {
-    let owned_index = make_index();
-    let kdbush = owned_index.as_ref();
+    let kdbush = make_index();
 
     let min_x = 20.;
     let min_y = 30.;
@@ -204,8 +202,7 @@ fn range_search() {
 
 #[test]
 fn radius_search() {
-    let owned_index = make_index();
-    let kdbush = owned_index.as_ref();
+    let kdbush = make_index();
 
     let [qx, qy] = [50., 50.];
     let r = 20.;

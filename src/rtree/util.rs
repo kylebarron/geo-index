@@ -4,7 +4,11 @@ use float_next_after::NextAfter;
 
 /// Calculate the total number of nodes in the R-tree to allocate space for
 /// and the index of each tree level (used in search later)
-pub fn compute_num_nodes(num_items: usize, node_size: usize) -> (usize, Vec<usize>) {
+pub fn compute_num_nodes(num_items: u32, node_size: u16) -> (usize, Vec<usize>) {
+    // The public API uses u32 and u16 types but internally we use usize
+    let num_items = num_items as usize;
+    let node_size = node_size as usize;
+
     let mut n = num_items;
     let mut num_nodes = n;
     let mut level_bounds = vec![n * 4];

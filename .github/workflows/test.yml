@@ -33,3 +33,34 @@ jobs:
         run: |
           cargo test --all
           cargo test --all --all-features
+  pytest:
+    name: Pytest
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.9", "3.10", "3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+
+      - uses: Swatinem/rust-cache@v2
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install a specific version of uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+          version: "0.4.x"
+
+      - name: maturin venv Build
+        working-directory: python
+        run: uv run maturin develop
+
+      - name: Run pytest
+        working-directory: python
+        run: uv run pytest

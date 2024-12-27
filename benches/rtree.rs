@@ -14,7 +14,7 @@ fn load_data() -> Vec<f64> {
 }
 
 fn construct_rtree<N: IndexableNum>(boxes_buf: &[N]) -> OwnedRTree<N> {
-    let mut builder = RTreeBuilder::new(boxes_buf.len() / 4);
+    let mut builder = RTreeBuilder::new((boxes_buf.len() / 4) as _);
     for box_ in boxes_buf.chunks(4) {
         let min_x = box_[0];
         let min_y = box_[1];
@@ -26,7 +26,7 @@ fn construct_rtree<N: IndexableNum>(boxes_buf: &[N]) -> OwnedRTree<N> {
 }
 
 fn construct_rtree_str<N: IndexableNum>(boxes_buf: &[N]) -> OwnedRTree<N> {
-    let mut builder = RTreeBuilder::new(boxes_buf.len() / 4);
+    let mut builder = RTreeBuilder::new((boxes_buf.len() / 4) as _);
     for box_ in boxes_buf.chunks(4) {
         let min_x = box_[0];
         let min_y = box_[1];
@@ -38,7 +38,7 @@ fn construct_rtree_str<N: IndexableNum>(boxes_buf: &[N]) -> OwnedRTree<N> {
 }
 
 fn construct_rtree_f32_with_cast(boxes_buf: &[f64]) -> OwnedRTree<f32> {
-    let mut builder = RTreeBuilder::new(boxes_buf.len() / 4);
+    let mut builder = RTreeBuilder::new((boxes_buf.len() / 4) as _);
     for box_ in boxes_buf.chunks(4) {
         let min_x = box_[0];
         let min_y = box_[1];

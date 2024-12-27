@@ -11,22 +11,22 @@
 [pypi_badge]: https://badge.fury.io/py/geoindex-rs.svg
 [pypi_link]: https://pypi.org/project/geoindex-rs/
 
-A Rust crate for packed, static, zero-copy spatial indexes.
+A Rust crate for packed, immutable, zero-copy spatial indexes.
 
 ## Features
 
 - **An R-tree and k-d tree written in safe rust.**
-- **Fast.** Because of optimizations available by using static indexes, tends to be faster than dynamic implementations like [`rstar`](https://github.com/georust/rstar).
+- **Fast.** Because of optimizations available by using immutable indexes, tends to be faster than dynamic implementations like [`rstar`](https://github.com/georust/rstar).
 - **Memory-efficient.** The index is fully _packed_, meaning that all nodes are at full capacity (except for the last node at each tree level). This means the RTree and k-d tree use less memory. And because the index is backed by a single buffer, it exhibits excellent memory locality. For any number of input geometries, the peak memory required both to build the index and to store the index can be pre-computed.
 - **Multiple R-tree sorting methods.** Currently, [hilbert](https://en.wikipedia.org/wiki/Hilbert_R-tree) and [sort-tile-recursive (STR)](https://ia600900.us.archive.org/27/items/nasa_techdoc_19970016975/19970016975.pdf) sorting methods are implemented, but it's extensible to other spatial sorting algorithms, like [overlap-minimizing top-down (OMT)](https://ceur-ws.org/Vol-74/files/FORUM_18.pdf).
 - **ABI-stable:** the index is contained in a single `Vec<u8>`, compatible with the [`flatbush`](https://github.com/mourner/flatbush) and [`kdbush`](https://github.com/mourner/kdbush) JavaScript libraries. Being ABI-stable means that the spatial index can be shared zero-copy between Rust and another program like Python.
 - **Generic over a set of coordinate types:** `i8`, `u8`, `i16`, `u16`, `i32`, `u32`, `f32`, `f64`.
-- **Efficient bulk loading.** As a static index, _only_ bulk loading is supported.
+- **Efficient bulk loading.** As an immutable index, _only_ bulk loading is supported.
 - Optional `rayon` feature for parallelizing part of the sort in the sort-tile-recursive (`STRSort`) method.
 
 ## Drawbacks
 
-- Trees are _static_. After creating the index, items can no longer be added or removed.
+- Trees are _immutable_. After creating the index, items can no longer be added or removed.
 - Only two-dimensional data is supported. Can still be used with higher-dimensional input if you're ok with only indexing two of the dimensions.
 - Only the set of coordinate types that exist in JavaScript are allowed, to maintain FFI compatibility with the reference JavaScript implementations. This does not and probably will not support other types like `u64`.
 - Queries return positional indexes into the input set, so you must manage your own collections.
@@ -41,7 +41,7 @@ A Rust crate for packed, static, zero-copy spatial indexes.
 
 ## Inspiration
 
-[@mourner](https://github.com/mourner)'s amazing [`flatbush`](https://github.com/mourner/flatbush) and [`kdbush`](https://github.com/mourner/kdbush) libraries are the fastest JavaScript libraries for static R-trees and k-d trees. Part of their appeal in the browser is that they're backed by a single, contiguous buffer, and thus can be moved from the main thread to another thread (a [web worker](https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API)) [without any copies](https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API/Transferable_objects).
+[@mourner](https://github.com/mourner)'s amazing [`flatbush`](https://github.com/mourner/flatbush) and [`kdbush`](https://github.com/mourner/kdbush) libraries are the fastest JavaScript libraries for immutable R-trees and k-d trees. Part of their appeal in the browser is that they're backed by a single, contiguous buffer, and thus can be moved from the main thread to another thread (a [web worker](https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API)) [without any copies](https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API/Transferable_objects).
 
 By porting and expanding on those JavaScript libraries and ensuring that the internal memory layout is _exactly_ maintained, we can bootstrap zero-copy use cases both inside and outside the browser. In-browser use cases can interop between a rust-based WebAssembly module and the upstream JS libraries _without copies_. Outside-browser use cases can interop between multiple Rust libraries or between Rust and Python without copies.
 

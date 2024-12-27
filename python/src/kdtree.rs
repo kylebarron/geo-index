@@ -1,5 +1,5 @@
 use geo_index::kdtree::{KDTreeBuilder, KDTreeIndex, OwnedKDTree};
-use numpy::{PyArray1, PyReadonlyArray1, PyReadonlyArray2};
+use numpy::{PyArray1, PyReadonlyArray1, PyReadonlyArray2, PyUntypedArrayMethods};
 use pyo3::prelude::*;
 use pyo3::types::PyType;
 
@@ -14,9 +14,9 @@ impl KDTree {
         text_signature = "(coords, *, node_size = None)")
     ]
     pub fn from_interleaved(
-        _cls: &PyType,
+        _cls: &Bound<PyType>,
         coords: PyReadonlyArray2<f64>,
-        node_size: Option<usize>,
+        node_size: Option<u16>,
     ) -> Self {
         let shape = coords.shape();
         assert_eq!(shape.len(), 2);
@@ -27,9 +27,9 @@ impl KDTree {
         let coords = coords.as_array();
 
         let mut builder = if let Some(node_size) = node_size {
-            KDTreeBuilder::new_with_node_size(num_items, node_size)
+            KDTreeBuilder::new_with_node_size(num_items.try_into().unwrap(), node_size)
         } else {
-            KDTreeBuilder::new(num_items)
+            KDTreeBuilder::new(num_items.try_into().unwrap())
         };
 
         for i in 0..num_items {
@@ -45,10 +45,10 @@ impl KDTree {
         text_signature = "(x, y, *, node_size = None)")
     ]
     pub fn from_separated(
-        _cls: &PyType,
+        _cls: &Bound<PyType>,
         x: PyReadonlyArray1<f64>,
         y: PyReadonlyArray1<f64>,
-        node_size: Option<usize>,
+        node_size: Option<u16>,
     ) -> Self {
         assert_eq!(x.len(), y.len());
 
@@ -58,9 +58,9 @@ impl KDTree {
         let y = y.as_array();
 
         let mut builder = if let Some(node_size) = node_size {
-            KDTreeBuilder::new_with_node_size(num_items, node_size)
+            KDTreeBuilder::new_with_node_size(num_items.try_into().unwrap(), node_size)
         } else {
-            KDTreeBuilder::new(num_items)
+            KDTreeBuilder::new(num_items.try_into().unwrap())
         };
 
         for i in 0..num_items {
@@ -86,9 +86,9 @@ impl KDTree {
         min_y: f64,
         max_x: f64,
         max_y: f64,
-    ) -> &'py PyArray1<usize> {
-        let result = py.allow_threads(move || self.0.as_ref().range(min_x, min_y, max_x, max_y));
-        PyArray1::from_vec(py, result)
+    ) -> Bound<'py, PyArray1<usize>> {
+        let result = py.allow_threads(move || self.0.range(min_x, min_y, max_x, max_y));
+        PyArray1::from_vec_bound(py, result)
     }
 
     /// Search the index for items within a given radius.
@@ -104,8 +104,8 @@ impl KDTree {
         qx: f64,
         qy: f64,
         r: f64,
-    ) -> &'py PyArray1<usize> {
-        let result = py.allow_threads(move || self.0.as_ref().within(qx, qy, r));
-        PyArray1::from_vec(py, result)
+    ) -> Bound<'py, PyArray1<usize>> {
+        let result = py.allow_threads(move || self.0.within(qx, qy, r));
+        PyArray1::from_vec_bound(py, result)
     }
 }
