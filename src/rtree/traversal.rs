@@ -13,7 +13,7 @@ pub struct Node<'a, N: IndexableNum, T: RTreeIndex<N>> {
 
     /// This points to the position in the full `boxes` slice of the **first** coordinate of
     /// this node. So
-    /// ```
+    /// ```notest
     /// self.tree.boxes()[self.pos]
     /// ```
     /// accesses the `min_x` coordinate of this node.
@@ -246,4 +246,116 @@ fn upper_bound(value: usize, arr: &[usize]) -> usize {
     }
 
     arr[i]
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use crate::test::flatbush_js_test_index;
+
+    #[test]
+    fn test_node() {
+        let tree = flatbush_js_test_index();
+
+        let top_box = tree.boxes_at_level(2).unwrap();
+
+        // Should only be one box
+        assert_eq!(top_box.len(), 4);
+
+        // Root node should match that one box in the top level
+        let root_node = tree.root();
+        assert_eq!(root_node.min_x(), top_box[0]);
+        assert_eq!(root_node.min_y(), top_box[1]);
+        assert_eq!(root_node.max_x(), top_box[2]);
+        assert_eq!(root_node.max_y(), top_box[3]);
+
+        assert!(root_node.is_parent());
+
+        let level_1_boxes = tree.boxes_at_level(1).unwrap();
+        let level_1 = root_node.children().collect::<Vec<_>>();
+        assert_eq!(level_1.len(), level_1_boxes.len() / 4);
+    }
+}
+
+#[cfg(test)]
+mod test_issue_42 {
+    use std::collections::HashSet;
+
+    use crate::rtree::sort::HilbertSort;
+    use crate::rtree::{RTreeBuilder, RTreeIndex};
+    use geo::Polygon;
+    use geo::{BoundingRect, Geometry};
+    use geozero::geo_types::GeoWriter;
+    use geozero::geojson::read_geojson_fc;
+    use rstar::primitives::GeomWithData;
+    use rstar::{primitives::Rectangle, AABB};
+    use zip::ZipArchive;
+
+    // Find tree self-intersection canddiates using rstar
+    fn geo_contiguity(geom: &[Polygon]) -> HashSet<(usize, usize)> {
+        let to_insert = geom
+            .iter()
+            .enumerate()
+            .map(|(i, gi)| {
+                let rect = gi.bounding_rect().unwrap();
+                let aabb =
+                    AABB::from_corners([rect.min().x, rect.min().y], [rect.max().x, rect.max().y]);
+
+                GeomWithData::new(Rectangle::from_aabb(aabb), i)
+            })
+            .collect::<Vec<_>>();
+
+        let tree = rstar::RTree::bulk_load(to_insert);
+        let candidates = tree
+            .intersection_candidates_with_other_tree(&tree)
+            .map(|(left_candidate, right_candidate)| (left_candidate.data, right_candidate.data));
+
+        HashSet::from_iter(candidates)
+    }
+
+    // Find tree self-intersection canddiates using geo-index
+    fn geo_index_contiguity(geoms: &Vec<Polygon>, node_size: u16) -> HashSet<(usize, usize)> {
+        let mut tree_builder = RTreeBuilder::new_with_node_size(geoms.len() as _, node_size);
+        for geom in geoms {
+            tree_builder.add_rect(&geom.bounding_rect().unwrap());
+        }
+        let tree = tree_builder.finish::<HilbertSort>();
+
+        let candidates = tree.intersection_candidates_with_other_tree(&tree);
+
+        HashSet::from_iter(candidates)
+    }
+
+    #[test]
+    fn test_repro_issue_42() {
+        let file = std::fs::File::open("fixtures/issue_42.geojson.zip").unwrap();
+        let mut zip_archive = ZipArchive::new(file).unwrap();
+        let zipped_file = zip_archive.by_name("guerry.geojson").unwrap();
+        let reader = std::io::BufReader::new(zipped_file);
+
+        let mut geo_writer = GeoWriter::new();
+        read_geojson_fc(reader, &mut geo_writer).unwrap();
+
+        let geoms = match geo_writer.take_geometry().unwrap() {
+            Geometry::GeometryCollection(gc) => gc.0,
+            _ => panic!(),
+        };
+
+        let mut polys = vec![];
+        for geom in geoms {
+            let poly = match geom {
+                Geometry::Polygon(poly) => poly,
+                _ => panic!(),
+            };
+            polys.push(poly);
+        }
+
+        let geo_index_self_intersection = geo_index_contiguity(&polys, 10);
+        let geo_self_intersection = geo_contiguity(&polys);
+
+        assert_eq!(
+            geo_index_self_intersection, geo_self_intersection,
+            "The two intersections should match!"
+        );
+    }
 }
