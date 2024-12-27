@@ -9,19 +9,30 @@ use crate::rtree::constants::VERSION;
 use crate::rtree::util::compute_num_nodes;
 
 /// Common metadata to describe an RTree
+///
+/// You can use the metadata to infer the total byte size of a tree given the provided criteria.
+///
+/// ```
+/// use geo_index::rtree::RTreeMetadata;
+///
+/// let metadata = RTreeMetadata::<f64>::new(25000, 16);
+/// assert_eq!(metadata.data_buffer_length(), 960_092);
+/// ```
+///
 #[derive(Debug, Clone, PartialEq)]
-pub(crate) struct RTreeMetadata<N: IndexableNum> {
-    pub(crate) node_size: usize,
-    pub(crate) num_items: usize,
-    pub(crate) num_nodes: usize,
-    pub(crate) level_bounds: Vec<usize>,
+pub struct RTreeMetadata<N: IndexableNum> {
+    node_size: usize,
+    num_items: usize,
+    num_nodes: usize,
+    level_bounds: Vec<usize>,
     pub(crate) nodes_byte_length: usize,
     pub(crate) indices_byte_length: usize,
     phantom: PhantomData<N>,
 }
 
 impl<N: IndexableNum> RTreeMetadata<N> {
-    pub(crate) fn new(num_items: u32, node_size: u16) -> Self {
+    /// Construct a new [`RTreeMetadata`] from a number of items and node size.
+    pub fn new(num_items: u32, node_size: u16) -> Self {
         assert!((2..=65535).contains(&node_size));
 
         let (num_nodes, level_bounds) = compute_num_nodes(num_items, node_size);
@@ -43,10 +54,6 @@ impl<N: IndexableNum> RTreeMetadata<N> {
             indices_byte_length,
             phantom: PhantomData,
         }
-    }
-
-    pub(crate) fn data_buffer_length(&self) -> usize {
-        8 + self.nodes_byte_length + self.indices_byte_length
     }
 
     fn try_new_from_slice(data: &[u8]) -> Result<Self> {
@@ -107,6 +114,41 @@ impl<N: IndexableNum> RTreeMetadata<N> {
             indices_byte_length,
             phantom: PhantomData,
         })
+    }
+
+    /// The maximum number of items per node.
+    pub fn node_size(&self) -> usize {
+        self.node_size
+    }
+
+    /// The number of items indexed in the tree.
+    pub fn num_items(&self) -> usize {
+        self.num_items
+    }
+
+    /// The total number of nodes at all levels in the tree.
+    pub fn num_nodes(&self) -> usize {
+        self.num_nodes
+    }
+
+    /// The offsets into [RTreeIndex::boxes] where each level's boxes starts and ends. The tree is
+    /// laid out bottom-up, and there's an implicit initial 0. So the boxes of the lowest level of
+    /// the tree are located from `boxes[0..self.level_bounds()[0]]`.
+    pub fn level_bounds(&self) -> &[usize] {
+        &self.level_bounds
+    }
+
+    /// The number of bytes that an RTree with this metadata would have.
+    ///
+    /// ```
+    /// use geo_index::rtree::RTreeMetadata;
+    ///
+    /// let metadata = RTreeMetadata::<f64>::new(25000, 16);
+    /// assert_eq!(metadata.data_buffer_length(), 960_092);
+    /// ```
+    ///
+    pub fn data_buffer_length(&self) -> usize {
+        8 + self.nodes_byte_length + self.indices_byte_length
     }
 
     pub(crate) fn boxes_slice<'a>(&self, data: &'a [u8]) -> &'a [N] {

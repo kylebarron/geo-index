@@ -5,6 +5,7 @@ use crate::indices::Indices;
 use crate::r#type::IndexableNum;
 use crate::rtree::index::{OwnedRTree, RTreeRef};
 use crate::rtree::traversal::{IntersectionIterator, Node};
+use crate::rtree::RTreeMetadata;
 use crate::GeoIndexError;
 
 /// A trait for searching and accessing data out of an RTree.
@@ -16,19 +17,30 @@ pub trait RTreeIndex<N: IndexableNum>: Sized {
     /// A slice representing the indices within the `boxes` slice, including internal nodes.
     fn indices(&self) -> Indices;
 
+    /// Access the metadata describing this RTree
+    fn metadata(&self) -> &RTreeMetadata<N>;
+
     /// The total number of items contained in this RTree.
-    fn num_items(&self) -> usize;
+    fn num_items(&self) -> usize {
+        self.metadata().num_items()
+    }
 
     /// The total number of nodes in this RTree, including both leaf and intermediate nodes.
-    fn num_nodes(&self) -> usize;
+    fn num_nodes(&self) -> usize {
+        self.metadata().num_nodes()
+    }
 
     /// The maximum number of elements in each node.
-    fn node_size(&self) -> usize;
+    fn node_size(&self) -> usize {
+        self.metadata().node_size()
+    }
 
     /// The offsets into [RTreeIndex::boxes] where each level's boxes starts and ends. The tree is
     /// laid out bottom-up, and there's an implicit initial 0. So the boxes of the lowest level of
     /// the tree are located from `boxes[0..self.level_bounds()[0]]`.
-    fn level_bounds(&self) -> &[usize];
+    fn level_bounds(&self) -> &[usize] {
+        self.metadata().level_bounds()
+    }
 
     /// The number of levels (height) of the tree.
     fn num_levels(&self) -> usize {
@@ -172,20 +184,8 @@ impl<N: IndexableNum> RTreeIndex<N> for OwnedRTree<N> {
         self.metadata.indices_slice(&self.buffer)
     }
 
-    fn num_nodes(&self) -> usize {
-        self.metadata.num_nodes
-    }
-
-    fn level_bounds(&self) -> &[usize] {
-        &self.metadata.level_bounds
-    }
-
-    fn node_size(&self) -> usize {
-        self.metadata.node_size
-    }
-
-    fn num_items(&self) -> usize {
-        self.metadata.num_items
+    fn metadata(&self) -> &RTreeMetadata<N> {
+        &self.metadata
     }
 }
 
@@ -198,20 +198,8 @@ impl<N: IndexableNum> RTreeIndex<N> for RTreeRef<'_, N> {
         self.indices
     }
 
-    fn level_bounds(&self) -> &[usize] {
-        &self.metadata.level_bounds
-    }
-
-    fn node_size(&self) -> usize {
-        self.metadata.node_size
-    }
-
-    fn num_items(&self) -> usize {
-        self.metadata.num_items
-    }
-
-    fn num_nodes(&self) -> usize {
-        self.metadata.num_nodes
+    fn metadata(&self) -> &RTreeMetadata<N> {
+        &self.metadata
     }
 }
 
