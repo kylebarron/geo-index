@@ -1,6 +1,6 @@
 import numpy as np
 
-from .. import RTree
+# from .. import RTree
 
 
 def generate_random_boxes():
