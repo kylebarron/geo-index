@@ -1,4 +1,4 @@
-//! An implementation of an immutable, ABI-stable RTree.
+//! An immutable, ABI-stable RTree.
 //!
 //! ## Creation
 //!

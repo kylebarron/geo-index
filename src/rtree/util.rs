@@ -20,8 +20,8 @@ pub(crate) fn compute_num_nodes(num_items: u32, node_size: u16) -> (usize, Vec<u
     (num_nodes, level_bounds)
 }
 
-/// Cast a bounding box with `f64` precision to `f32` precision. This uses [float_next_after] to
-/// ensure the resulting box is strictly larger than the `f64` box.
+/// Cast a bounding box with `f64` precision to `f32` precision. This uses the [`float_next_after`]
+/// crate to ensure the resulting box is no smaller than the `f64` box.
 #[inline]
 pub fn f64_box_to_f32(min_x: f64, min_y: f64, max_x: f64, max_y: f64) -> (f32, f32, f32, f32) {
     let mut new_min_x = min_x as f32; //.next_after(f32::NEG_INFINITY);
