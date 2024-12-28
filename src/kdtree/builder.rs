@@ -31,15 +31,19 @@ impl<N: IndexableNum> KDTreeBuilder<N> {
     /// Create a new builder with the provided number of items and node size.
     pub fn new_with_node_size(num_items: u32, node_size: u16) -> Self {
         let metadata = KDTreeMetadata::new(num_items, node_size);
+        Self::from_metadata(metadata)
+    }
 
+    /// Create a new builder with the provided metadata
+    pub fn from_metadata(metadata: KDTreeMetadata<N>) -> Self {
         let data_buffer_length = metadata.data_buffer_length();
         let mut data = vec![0; data_buffer_length];
 
         // Set data header;
         data[0] = KDBUSH_MAGIC;
         data[1] = (KDBUSH_VERSION << 4) + N::TYPE_INDEX;
-        cast_slice_mut(&mut data[2..4])[0] = node_size;
-        cast_slice_mut(&mut data[4..8])[0] = num_items;
+        cast_slice_mut(&mut data[2..4])[0] = metadata.node_size();
+        cast_slice_mut(&mut data[4..8])[0] = metadata.num_items();
 
         Self {
             data,
@@ -92,10 +96,10 @@ impl<N: IndexableNum> KDTreeBuilder<N> {
     pub fn finish(mut self) -> OwnedKDTree<N> {
         assert_eq!(
             self.pos >> 1,
-            self.metadata.num_items,
+            self.metadata.num_items() as usize,
             "Added {} items when expected {}.",
             self.pos >> 1,
-            self.metadata.num_items
+            self.metadata.num_items()
         );
 
         let (coords, mut ids) = split_data_borrow::<N>(&mut self.data, self.metadata);
@@ -104,9 +108,9 @@ impl<N: IndexableNum> KDTreeBuilder<N> {
         sort(
             &mut ids,
             coords,
-            self.metadata.node_size,
+            self.metadata.node_size() as usize,
             0,
-            self.metadata.num_items - 1,
+            self.metadata.num_items() as usize - 1,
             0,
         );
 
@@ -127,7 +131,7 @@ fn split_data_borrow<N: IndexableNum>(
     let coords_buf = &mut padded_coords_buf[metadata.pad_coords_byte_size..];
     debug_assert_eq!(coords_buf.len(), metadata.coords_byte_size);
 
-    let ids = if metadata.num_items < 65536 {
+    let ids = if metadata.num_items() < 65536 {
         MutableIndices::U16(cast_slice_mut(ids_buf))
     } else {
         MutableIndices::U32(cast_slice_mut(ids_buf))

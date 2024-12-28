@@ -1,4 +1,52 @@
-//! An implementation of an immutable, ABI-stable RTree.
+//! An immutable, ABI-stable RTree.
+//!
+//! ## Creation
+//!
+//! Use [`RTreeBuilder`] to construct an [`OwnedRTree`], which allows you to make queries.
+//!
+//! ## Search
+//!
+//! Use [`RTreeIndex::search`] to search an RTree given a bounding box query.
+//!
+//! ## Persisting
+//!
+//! You can use [`OwnedRTree::into_inner`] to access the underlying `Vec<u8>` it contains.
+//!
+//! ## Recovering the index
+//!
+//! You can use [`RTreeRef::try_new`] to construct an RTree as a reference on an external byte
+//! slice. If you don't know the coordinate type used in the index, you can use
+//! [`CoordType::from_buffer`][crate::CoordType::from_buffer] to infer the coordinate type.
+//!
+//! ## Example
+//!
+//! ```
+//! use geo_index::rtree::{RTreeBuilder, RTreeIndex, RTreeRef};
+//! use geo_index::rtree::sort::HilbertSort;
+//!
+//! // Create an RTree
+//! let mut builder = RTreeBuilder::<f64>::new(3);
+//! builder.add(0., 0., 2., 2.);
+//! builder.add(1., 1., 3., 3.);
+//! builder.add(2., 2., 4., 4.);
+//! let tree = builder.finish::<HilbertSort>();
+//!
+//! // Perform a search
+//! assert_eq!(tree.search(0.5, 0.5, 1.5, 1.5), vec![0, 1]);
+//!
+//! // Convert to underlying buffer
+//! let buffer = tree.into_inner();
+//!
+//! // Create tree as a reference onto this buffer
+//! let tree_ref = RTreeRef::<f64>::try_new(&buffer).unwrap();
+//!
+//! // Perform search again
+//! assert_eq!(tree_ref.search(0.5, 0.5, 1.5, 1.5), vec![0, 1]);
+//! ```
+//!
+//! ## Alternate sorting methods
+//!
+//! This crate allows for multiple sorting methods, implemented in [`sort`].
 
 mod builder;
 mod constants;
@@ -9,5 +57,5 @@ pub mod traversal;
 pub mod util;
 
 pub use builder::RTreeBuilder;
-pub use index::{OwnedRTree, RTreeRef};
+pub use index::{OwnedRTree, RTreeMetadata, RTreeRef};
 pub use r#trait::RTreeIndex;

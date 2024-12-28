@@ -10,6 +10,17 @@ use crate::rtree::sort::{Sort, SortParams};
 const DEFAULT_NODE_SIZE: u16 = 16;
 
 /// A builder to create an [`OwnedRTree`].
+///
+/// ```
+/// use geo_index::rtree::RTreeBuilder;
+/// use geo_index::rtree::sort::HilbertSort;
+///
+/// let mut builder = RTreeBuilder::<f64>::new(3);
+/// builder.add(0., 0., 2., 2.);
+/// builder.add(1., 1., 3., 3.);
+/// builder.add(2., 2., 4., 4.);
+/// let tree = builder.finish::<HilbertSort>();
+/// ```
 pub struct RTreeBuilder<N: IndexableNum> {
     /// data buffer
     data: Vec<u8>,
@@ -30,13 +41,18 @@ impl<N: IndexableNum> RTreeBuilder<N> {
     /// Create a new builder with the provided number of items and node size.
     pub fn new_with_node_size(num_items: u32, node_size: u16) -> Self {
         let metadata = RTreeMetadata::new(num_items, node_size);
+        Self::from_metadata(metadata)
+    }
+
+    /// Create a new builder with the provided metadata
+    pub fn from_metadata(metadata: RTreeMetadata<N>) -> Self {
         let mut data = vec![0; metadata.data_buffer_length()];
 
         // Set data header
         data[0] = 0xfb;
         data[1] = (VERSION << 4) + N::TYPE_INDEX;
-        cast_slice_mut(&mut data[2..4])[0] = node_size;
-        cast_slice_mut(&mut data[4..8])[0] = num_items;
+        cast_slice_mut(&mut data[2..4])[0] = metadata.node_size();
+        cast_slice_mut(&mut data[4..8])[0] = metadata.num_items();
 
         Self {
             data,
@@ -51,7 +67,10 @@ impl<N: IndexableNum> RTreeBuilder<N> {
 
     /// Add a given rectangle to the RTree.
     ///
-    /// This returns a positional index that provides a lookup back into the original data.
+    /// This returns the insertion index, which provides a lookup back into the original data.
+    ///
+    /// `RTreeIndex::search` will return this same insertion index, which allows you to reference
+    /// your original collection.
     #[inline]
     pub fn add(&mut self, min_x: N, min_y: N, max_x: N, max_y: N) -> usize {
         let index = self.pos >> 2;
@@ -85,7 +104,10 @@ impl<N: IndexableNum> RTreeBuilder<N> {
 
     /// Add a given rectangle to the RTree.
     ///
-    /// This returns a positional index that provides a lookup back into the original data.
+    /// This returns the insertion index, which provides a lookup back into the original data.
+    ///
+    /// `RTreeIndex::search` will return this same insertion index, which allows you to reference
+    /// your original collection.
     #[inline]
     pub fn add_rect(&mut self, rect: &impl RectTrait<T = N>) -> usize {
         self.add(
@@ -97,18 +119,24 @@ impl<N: IndexableNum> RTreeBuilder<N> {
     }
 
     /// Consume this builder, perfoming the sort and generating an RTree ready for queries.
+    ///
+    /// [`HilbertSort`] and [`STRSort`] both implement [`Sort`], allowing you to choose the method
+    /// used.
+    ///
+    /// [`HilbertSort`]: crate::rtree::sort::HilbertSort
+    /// [`STRSort`]: crate::rtree::sort::STRSort
     pub fn finish<S: Sort<N>>(mut self) -> OwnedRTree<N> {
         assert_eq!(
             self.pos >> 2,
-            self.metadata.num_items,
+            self.metadata.num_items() as usize,
             "Added {} items when expected {}.",
             self.pos >> 2,
-            self.metadata.num_items
+            self.metadata.num_items()
         );
 
         let (boxes, mut indices) = split_data_borrow(&mut self.data, &self.metadata);
 
-        if self.metadata.num_items <= self.metadata.node_size {
+        if self.metadata.num_items() as usize <= self.metadata.node_size() as usize {
             // only one node, skip sorting and just fill the root box
             boxes[self.pos] = self.min_x;
             self.pos += 1;
@@ -126,8 +154,8 @@ impl<N: IndexableNum> RTreeBuilder<N> {
         }
 
         let mut sort_params = SortParams {
-            num_items: self.metadata.num_items,
-            node_size: self.metadata.node_size,
+            num_items: self.metadata.num_items() as usize,
+            node_size: self.metadata.node_size() as usize,
             min_x: self.min_x,
             min_y: self.min_y,
             max_x: self.max_x,
@@ -138,7 +166,8 @@ impl<N: IndexableNum> RTreeBuilder<N> {
         {
             // generate nodes at each tree level, bottom-up
             let mut pos = 0;
-            for end in self.metadata.level_bounds[..self.metadata.level_bounds.len() - 1].iter() {
+            for end in self.metadata.level_bounds()[..self.metadata.level_bounds().len() - 1].iter()
+            {
                 while pos < *end {
                     let node_index = pos;
 
@@ -151,7 +180,7 @@ impl<N: IndexableNum> RTreeBuilder<N> {
                     pos += 1;
                     let mut node_max_y = boxes[pos];
                     pos += 1;
-                    for _ in 1..self.metadata.node_size {
+                    for _ in 1..self.metadata.node_size() {
                         if pos >= *end {
                             break;
                         }
@@ -204,6 +233,6 @@ fn split_data_borrow<'a, N: IndexableNum>(
     debug_assert_eq!(indices_buf.len(), metadata.indices_byte_length);
 
     let boxes = cast_slice_mut(boxes_buf);
-    let indices = MutableIndices::new(indices_buf, metadata.num_nodes);
+    let indices = MutableIndices::new(indices_buf, metadata.num_nodes());
     (boxes, indices)
 }

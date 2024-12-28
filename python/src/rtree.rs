@@ -105,8 +105,8 @@ fn new_separated<N: IndexableNum + numpy::Element>(
 impl RTreeInner {
     fn num_items(&self) -> usize {
         match self {
-            Self::Float32(index) => index.num_items(),
-            Self::Float64(index) => index.num_items(),
+            Self::Float32(index) => index.num_items() as _,
+            Self::Float64(index) => index.num_items() as _,
         }
     }
 
@@ -119,8 +119,8 @@ impl RTreeInner {
 
     fn node_size(&self) -> usize {
         match self {
-            Self::Float32(index) => index.node_size(),
-            Self::Float64(index) => index.node_size(),
+            Self::Float32(index) => index.node_size() as _,
+            Self::Float64(index) => index.node_size() as _,
         }
     }
 

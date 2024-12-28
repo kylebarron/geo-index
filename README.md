@@ -17,19 +17,20 @@ A Rust crate for packed, immutable, zero-copy spatial indexes.
 
 - **An R-tree and k-d tree written in safe rust.**
 - **Fast.** Because of optimizations available by using immutable indexes, tends to be faster than dynamic implementations like [`rstar`](https://github.com/georust/rstar).
-- **Memory-efficient.** The index is fully _packed_, meaning that all nodes are at full capacity (except for the last node at each tree level). This means the RTree and k-d tree use less memory. And because the index is backed by a single buffer, it exhibits excellent memory locality. For any number of input geometries, the peak memory required both to build the index and to store the index can be pre-computed.
-- **Multiple R-tree sorting methods.** Currently, [hilbert](https://en.wikipedia.org/wiki/Hilbert_R-tree) and [sort-tile-recursive (STR)](https://ia600900.us.archive.org/27/items/nasa_techdoc_19970016975/19970016975.pdf) sorting methods are implemented, but it's extensible to other spatial sorting algorithms, like [overlap-minimizing top-down (OMT)](https://ceur-ws.org/Vol-74/files/FORUM_18.pdf).
-- **ABI-stable:** the index is contained in a single `Vec<u8>`, compatible with the [`flatbush`](https://github.com/mourner/flatbush) and [`kdbush`](https://github.com/mourner/kdbush) JavaScript libraries. Being ABI-stable means that the spatial index can be shared zero-copy between Rust and another program like Python.
-- **Generic over a set of coordinate types:** `i8`, `u8`, `i16`, `u16`, `i32`, `u32`, `f32`, `f64`.
+- **Memory efficient.** The index is fully _packed_, meaning that all nodes are at full capacity (except for the last node at each tree level). This means the RTree and k-d tree use less memory. And because the index is backed by a single buffer, it exhibits excellent memory locality. For any number of input geometries, the peak memory required both to build the index and to store the index can be pre-computed.
+- **Bounded memory**. For any given number of items and node size, you can infer the total memory used by the RTree or KDTree.
+- **Multiple R-tree sorting methods.** Currently, [hilbert](https://en.wikipedia.org/wiki/Hilbert_R-tree) and [sort-tile-recursive (STR)](https://ia600900.us.archive.org/27/items/nasa_techdoc_19970016975/19970016975.pdf) sorting methods are implemented, but it's extensible to other spatial sorting algorithms in the future, like [overlap-minimizing top-down (OMT)](https://ceur-ws.org/Vol-74/files/FORUM_18.pdf).
+- **ABI-stable:** the index is contained in a single `Vec<u8>`, compatible with the [`flatbush`](https://github.com/mourner/flatbush) and [`kdbush`](https://github.com/mourner/kdbush) JavaScript libraries. Being ABI-stable means that the spatial index can be persisted for later use or shared zero-copy between Rust and another program like Python.
+- **Generic over a set of coordinate types:** `i8`, `u8`, `i16`, `u16`, `i32`, `u32`, `f32`, `f64`. These are the only coordinate types currently supported to maintain binary compatibility with the upstream JS libraries.
 - **Efficient bulk loading.** As an immutable index, _only_ bulk loading is supported.
 - Optional `rayon` feature for parallelizing part of the sort in the sort-tile-recursive (`STRSort`) method.
 
 ## Drawbacks
 
 - Trees are _immutable_. After creating the index, items can no longer be added or removed.
-- Only two-dimensional data is supported. Can still be used with higher-dimensional input if you're ok with only indexing two of the dimensions.
-- Only the set of coordinate types that exist in JavaScript are allowed, to maintain FFI compatibility with the reference JavaScript implementations. This does not and probably will not support other types like `u64`.
+- Only two-dimensional data is supported. This can still be used with higher-dimensional input as long as it's fine to only index two of the dimensions.
 - Queries return positional indexes into the input set, so you must manage your own collections.
+- Only the set of coordinate types that exist in JavaScript are allowed, to maintain FFI compatibility with the reference JavaScript implementations. This does not and probably will not support other types like `u64`.
 
 ## Alternatives
 
