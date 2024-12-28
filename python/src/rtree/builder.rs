@@ -276,7 +276,9 @@ impl RTreeBuilder {
         PyArray::from_array_ref(Arc::new(out_array.finish())).to_arro3(py)
     }
 
-    fn finish(&mut self, method: RTreeMethod) -> PyResult<RTree> {
+    #[pyo3(signature = (method = None))]
+    fn finish(&mut self, method: Option<RTreeMethod>) -> PyResult<RTree> {
+        let method = method.unwrap_or(RTreeMethod::Hilbert);
         let inner = self
             .0
             .take()
