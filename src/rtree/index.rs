@@ -21,8 +21,8 @@ use crate::rtree::util::compute_num_nodes;
 ///
 #[derive(Debug, Clone, PartialEq)]
 pub struct RTreeMetadata<N: IndexableNum> {
-    node_size: usize,
-    num_items: usize,
+    node_size: u16,
+    num_items: u32,
     num_nodes: usize,
     level_bounds: Vec<usize>,
     pub(crate) nodes_byte_length: usize,
@@ -36,10 +36,6 @@ impl<N: IndexableNum> RTreeMetadata<N> {
         assert!((2..=65535).contains(&node_size));
 
         let (num_nodes, level_bounds) = compute_num_nodes(num_items, node_size);
-
-        // The public API uses u32 and u16 types but internally we use usize
-        let num_items = num_items as usize;
-        let node_size = node_size as usize;
 
         let indices_bytes_per_element = if num_nodes < 16384 { 2 } else { 4 };
         let nodes_byte_length = num_nodes * 4 * N::BYTES_PER_ELEMENT;
@@ -87,42 +83,25 @@ impl<N: IndexableNum> RTreeMetadata<N> {
         let node_size: u16 = cast_slice(&data[2..4])[0];
         let num_items: u32 = cast_slice(&data[4..8])[0];
 
-        let (num_nodes, level_bounds) = compute_num_nodes(num_items, node_size);
-
-        let node_size = node_size as usize;
-        let num_items = num_items as usize;
-
-        let indices_bytes_per_element = if num_nodes < 16384 { 2 } else { 4 };
-        let nodes_byte_length = num_nodes * 4 * N::BYTES_PER_ELEMENT;
-        let indices_byte_length = num_nodes * indices_bytes_per_element;
-
-        let total_byte_length = 8 + nodes_byte_length + indices_byte_length;
-        if data.len() != total_byte_length {
+        let slf = Self::new(num_items, node_size);
+        if slf.data_buffer_length() != data.len() {
             return Err(GeoIndexError::General(format!(
-                "Incorrect buffer length. Expected {} got {}.",
-                total_byte_length,
+                "Expected {} bytes but received byte slice with {} bytes",
+                slf.data_buffer_length(),
                 data.len()
             )));
         }
 
-        Ok(Self {
-            node_size,
-            num_items,
-            num_nodes,
-            level_bounds,
-            nodes_byte_length,
-            indices_byte_length,
-            phantom: PhantomData,
-        })
+        Ok(slf)
     }
 
     /// The maximum number of items per node.
-    pub fn node_size(&self) -> usize {
+    pub fn node_size(&self) -> u16 {
         self.node_size
     }
 
     /// The number of items indexed in the tree.
-    pub fn num_items(&self) -> usize {
+    pub fn num_items(&self) -> u32 {
         self.num_items
     }
 
@@ -147,7 +126,6 @@ impl<N: IndexableNum> RTreeMetadata<N> {
     /// let metadata = RTreeMetadata::<f64>::new(25000, 16);
     /// assert_eq!(metadata.data_buffer_length(), 960_092);
     /// ```
-    ///
     pub fn data_buffer_length(&self) -> usize {
         8 + self.nodes_byte_length + self.indices_byte_length
     }

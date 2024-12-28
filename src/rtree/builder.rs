@@ -51,8 +51,8 @@ impl<N: IndexableNum> RTreeBuilder<N> {
         // Set data header
         data[0] = 0xfb;
         data[1] = (VERSION << 4) + N::TYPE_INDEX;
-        cast_slice_mut(&mut data[2..4])[0] = metadata.node_size() as u16;
-        cast_slice_mut(&mut data[4..8])[0] = metadata.num_items() as u32;
+        cast_slice_mut(&mut data[2..4])[0] = metadata.node_size();
+        cast_slice_mut(&mut data[4..8])[0] = metadata.num_items();
 
         Self {
             data,
@@ -128,7 +128,7 @@ impl<N: IndexableNum> RTreeBuilder<N> {
     pub fn finish<S: Sort<N>>(mut self) -> OwnedRTree<N> {
         assert_eq!(
             self.pos >> 2,
-            self.metadata.num_items(),
+            self.metadata.num_items() as usize,
             "Added {} items when expected {}.",
             self.pos >> 2,
             self.metadata.num_items()
@@ -136,7 +136,7 @@ impl<N: IndexableNum> RTreeBuilder<N> {
 
         let (boxes, mut indices) = split_data_borrow(&mut self.data, &self.metadata);
 
-        if self.metadata.num_items() <= self.metadata.node_size() {
+        if self.metadata.num_items() as usize <= self.metadata.node_size() as usize {
             // only one node, skip sorting and just fill the root box
             boxes[self.pos] = self.min_x;
             self.pos += 1;
@@ -154,8 +154,8 @@ impl<N: IndexableNum> RTreeBuilder<N> {
         }
 
         let mut sort_params = SortParams {
-            num_items: self.metadata.num_items(),
-            node_size: self.metadata.node_size(),
+            num_items: self.metadata.num_items() as usize,
+            node_size: self.metadata.node_size() as usize,
             min_x: self.min_x,
             min_y: self.min_y,
             max_x: self.max_x,

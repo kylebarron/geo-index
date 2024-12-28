@@ -21,7 +21,7 @@ pub trait RTreeIndex<N: IndexableNum>: Sized {
     fn metadata(&self) -> &RTreeMetadata<N>;
 
     /// The total number of items contained in this RTree.
-    fn num_items(&self) -> usize {
+    fn num_items(&self) -> u32 {
         self.metadata().num_items()
     }
 
@@ -31,7 +31,7 @@ pub trait RTreeIndex<N: IndexableNum>: Sized {
     }
 
     /// The maximum number of elements in each node.
-    fn node_size(&self) -> usize {
+    fn node_size(&self) -> u16 {
         self.metadata().node_size()
     }
 
@@ -78,7 +78,7 @@ pub trait RTreeIndex<N: IndexableNum>: Sized {
 
         while let Some(node_index) = outer_node_index {
             // find the end index of the node
-            let end = (node_index + self.node_size() * 4)
+            let end = (node_index + self.node_size() as usize * 4)
                 .min(upper_bound(node_index, self.level_bounds()));
 
             // search through child nodes
@@ -99,7 +99,7 @@ pub trait RTreeIndex<N: IndexableNum>: Sized {
 
                 let index = indices.get(pos >> 2);
 
-                if node_index >= self.num_items() * 4 {
+                if node_index >= self.num_items() as usize * 4 {
                     queue.push(index); // node; add it to the search queue
                 } else {
                     results.push(index); // leaf item

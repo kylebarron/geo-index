@@ -71,7 +71,7 @@ impl<'a, N: IndexableNum, T: RTreeIndex<N>> Node<'a, N, T> {
 
     /// Returns `true` if this is a leaf node without children.
     pub fn is_leaf(&self) -> bool {
-        self.pos < self.tree.num_items() * 4
+        self.pos < self.tree.num_items() as usize * 4
     }
 
     /// Returns `true` if this is an intermediate node with children.
@@ -107,7 +107,7 @@ impl<'a, N: IndexableNum, T: RTreeIndex<N>> Node<'a, N, T> {
 
         // find the start and end indexes of the children of this node
         let start_child_pos = self.tree.indices().get(self.pos >> 2);
-        let end_children_pos = (start_child_pos + self.tree.node_size() * 4)
+        let end_children_pos = (start_child_pos + self.tree.node_size() as usize * 4)
             .min(upper_bound(start_child_pos, self.tree.level_bounds()));
 
         (start_child_pos..end_children_pos)

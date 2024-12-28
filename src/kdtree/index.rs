@@ -9,9 +9,9 @@ use crate::r#type::IndexableNum;
 
 /// Common metadata to describe a KDTree
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub(crate) struct KDTreeMetadata<N: IndexableNum> {
-    pub(crate) node_size: usize,
-    pub(crate) num_items: usize,
+pub struct KDTreeMetadata<N: IndexableNum> {
+    node_size: u16,
+    num_items: u32,
     phantom: PhantomData<N>,
     pub(crate) indices_byte_size: usize,
     pub(crate) pad_coords_byte_size: usize,
@@ -19,16 +19,13 @@ pub(crate) struct KDTreeMetadata<N: IndexableNum> {
 }
 
 impl<N: IndexableNum> KDTreeMetadata<N> {
-    pub(crate) fn new(num_items: u32, node_size: u16) -> Self {
+    /// Construct a new [`KDTreeMetadata`] from a number of items and node size.
+    pub fn new(num_items: u32, node_size: u16) -> Self {
         assert!((2..=65535).contains(&node_size));
 
-        // The public API uses u32 and u16 types but internally we use usize
-        let num_items = num_items as usize;
-        let node_size = node_size as usize;
-
-        let coords_byte_size = num_items * 2 * N::BYTES_PER_ELEMENT;
+        let coords_byte_size = (num_items as usize) * 2 * N::BYTES_PER_ELEMENT;
         let indices_bytes_per_element = if num_items < 65536 { 2 } else { 4 };
-        let indices_byte_size = num_items * indices_bytes_per_element;
+        let indices_byte_size = (num_items as usize) * indices_bytes_per_element;
         let pad_coords_byte_size = (8 - (indices_byte_size % 8)) % 8;
 
         Self {
@@ -71,29 +68,37 @@ impl<N: IndexableNum> KDTreeMetadata<N> {
         let node_size: u16 = cast_slice(&data[2..4])[0];
         let num_items: u32 = cast_slice(&data[4..8])[0];
 
-        let node_size = node_size as usize;
-        let num_items = num_items as usize;
+        let slf = Self::new(num_items, node_size);
+        if slf.data_buffer_length() != data.len() {
+            return Err(GeoIndexError::General(format!(
+                "Expected {} bytes but received byte slice with {} bytes",
+                slf.data_buffer_length(),
+                data.len()
+            )));
+        }
 
-        let coords_byte_size = num_items * 2 * N::BYTES_PER_ELEMENT;
-        let indices_bytes_per_element = if num_items < 65536 { 2 } else { 4 };
-        let indices_byte_size = num_items * indices_bytes_per_element;
-        let pad_coords_byte_size = (8 - (indices_byte_size % 8)) % 8;
-
-        let data_buffer_length =
-            KDBUSH_HEADER_SIZE + coords_byte_size + indices_byte_size + pad_coords_byte_size;
-        assert_eq!(data.len(), data_buffer_length);
-
-        Ok(Self {
-            node_size,
-            num_items,
-            phantom: PhantomData,
-            indices_byte_size,
-            pad_coords_byte_size,
-            coords_byte_size,
-        })
+        Ok(slf)
     }
 
-    pub(crate) fn data_buffer_length(&self) -> usize {
+    /// The maximum number of items per node.
+    pub fn node_size(&self) -> u16 {
+        self.node_size
+    }
+
+    /// The number of items indexed in the tree.
+    pub fn num_items(&self) -> u32 {
+        self.num_items
+    }
+
+    /// The number of bytes that a KDTree with this metadata would have.
+    ///
+    /// ```
+    /// use geo_index::kdtree::KDTreeMetadata;
+    ///
+    /// let metadata = KDTreeMetadata::<f64>::new(25000, 16);
+    /// assert_eq!(metadata.data_buffer_length(), 450_008);
+    /// ```
+    pub fn data_buffer_length(&self) -> usize {
         KDBUSH_HEADER_SIZE
             + self.coords_byte_size
             + self.indices_byte_size
@@ -144,10 +149,6 @@ impl<N: IndexableNum> AsRef<[u8]> for OwnedKDTree<N> {
 }
 
 /// A reference on an external KDTree buffer.
-///
-/// This will often be created from an [`OwnedKDTree`] via its
-/// [`as_kdtree_ref`][OwnedKDTree::as_kdtree_ref] method, but it can also be created from any
-/// existing data buffer.
 #[derive(Debug, Clone, PartialEq)]
 pub struct KDTreeRef<'a, N: IndexableNum> {
     pub(crate) coords: &'a [N],
