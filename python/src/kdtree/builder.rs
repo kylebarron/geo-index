@@ -39,7 +39,7 @@ impl KDTreeBuilder {
     }
 
     #[pyo3(signature = (x, y = None))]
-    pub fn add(&mut self, py: Python, x: PyArray, y: Option<PyArray>) -> PyResult<PyObject> {
+    fn add(&mut self, py: Python, x: PyArray, y: Option<PyArray>) -> PyResult<PyObject> {
         let (x_array, x_field) = x.into_inner();
         if x_array.null_count() > 0 {
             return Err(PyValueError::new_err("Cannot pass array with null values"));
@@ -82,7 +82,7 @@ impl KDTreeBuilder {
                 assert!(y.is_none(), "Cannot pass y when x is a Struct type");
                 let struct_arr = x_array.as_struct();
                 let child_x = struct_arr.column(0);
-                let child_y = struct_arr.column(0);
+                let child_y = struct_arr.column(1);
 
                 match inner {
                     KDTreeBuilderInner::Float32(tree) => {
