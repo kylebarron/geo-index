@@ -1,6 +1,6 @@
 use crate::indices::Indices;
 use crate::kdtree::r#trait::sq_dist;
-use crate::kdtree::{KDTreeBuilder, KDTreeIndex, OwnedKDTree};
+use crate::kdtree::{KDTree, KDTreeBuilder, KDTreeIndex};
 
 fn points() -> Vec<(f64, f64)> {
     let coords: Vec<[i32; 2]> = vec![
@@ -137,7 +137,7 @@ fn coords() -> Vec<f64> {
     coords.into_iter().map(|c| c.into()).collect()
 }
 
-fn make_index() -> OwnedKDTree<f64> {
+fn make_index() -> KDTree<f64> {
     let points = points();
 
     let mut builder = KDTreeBuilder::new_with_node_size(points.len() as _, 10);
@@ -182,7 +182,7 @@ fn range_search() {
 
     let points = points();
     for id in result.iter() {
-        let (x, y) = points[*id];
+        let (x, y) = points[*id as usize];
         if x < min_x || x > max_x || y < min_y || y > max_y {
             panic!("result point in range");
         }
@@ -193,7 +193,7 @@ fn range_search() {
     for id in ids {
         let id = id as usize;
         let (x, y) = points[id];
-        if !result.contains(&id) && x >= min_x && x <= max_x && y >= min_y && y <= max_y {
+        if !result.contains(&(id as u32)) && x >= min_x && x <= max_x && y >= min_y && y <= max_y {
             panic!("outside point not in range");
         }
     }
@@ -215,7 +215,7 @@ fn radius_search() {
 
     let points = points();
     for id in result.iter() {
-        let (x, y) = points[*id];
+        let (x, y) = points[*id as usize];
         if sq_dist(x, y, qx, qy) > r2 {
             panic!("result point in range");
         }
@@ -226,7 +226,7 @@ fn radius_search() {
     for id in ids {
         let id = id as usize;
         let (x, y) = points[id];
-        if !result.contains(&id) && sq_dist(x, y, qx, qy) <= r2 {
+        if !result.contains(&(id as u32)) && sq_dist(x, y, qx, qy) <= r2 {
             panic!("outside point not in range");
         }
     }

@@ -138,12 +138,12 @@ impl<N: IndexableNum> RTreeMetadata<N> {
 ///
 /// Usually this will be created from scratch via [`RTreeBuilder`][crate::rtree::RTreeBuilder].
 #[derive(Debug, Clone, PartialEq)]
-pub struct OwnedRTree<N: IndexableNum> {
+pub struct RTree<N: IndexableNum> {
     pub(crate) buffer: Vec<u8>,
     pub(crate) metadata: RTreeMetadata<N>,
 }
 
-impl<N: IndexableNum> OwnedRTree<N> {
+impl<N: IndexableNum> RTree<N> {
     /// Access the underlying buffer of this RTree.
     ///
     /// This buffer can then be persisted and passed to `RTreeRef::try_new`.
@@ -152,7 +152,7 @@ impl<N: IndexableNum> OwnedRTree<N> {
     }
 }
 
-impl<N: IndexableNum> AsRef<[u8]> for OwnedRTree<N> {
+impl<N: IndexableNum> AsRef<[u8]> for RTree<N> {
     fn as_ref(&self) -> &[u8] {
         &self.buffer
     }
@@ -160,7 +160,7 @@ impl<N: IndexableNum> AsRef<[u8]> for OwnedRTree<N> {
 
 /// A reference on an external RTree buffer.
 ///
-/// Usually this will be created from an [`OwnedRTree`] via its [`as_ref`][OwnedRTree::as_ref]
+/// Usually this will be created from an [`RTree`] via its [`as_ref`][RTree::as_ref]
 /// method, but it can also be created from any existing data buffer.
 #[derive(Debug, Clone, PartialEq)]
 pub struct RTreeRef<'a, N: IndexableNum> {
@@ -174,7 +174,7 @@ impl<'a, N: IndexableNum> RTreeRef<'a, N> {
     ///
     /// This byte slice must conform to the "flatbush ABI", that is, the ABI originally implemented
     /// by the JavaScript [`flatbush` library](https://github.com/mourner/flatbush). You can
-    /// extract such a buffer either via [`OwnedRTree::into_inner`] or from the `.data` attribute
+    /// extract such a buffer either via [`RTree::into_inner`] or from the `.data` attribute
     /// of the JavaScript `Flatbush` object.
     pub fn try_new<T: AsRef<[u8]>>(data: &'a T) -> Result<Self> {
         let data = data.as_ref();

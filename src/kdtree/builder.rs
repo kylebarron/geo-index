@@ -7,13 +7,14 @@ use crate::error::Result;
 use crate::indices::MutableIndices;
 use crate::kdtree::constants::{KDBUSH_HEADER_SIZE, KDBUSH_MAGIC, KDBUSH_VERSION};
 use crate::kdtree::index::KDTreeMetadata;
-use crate::kdtree::OwnedKDTree;
+use crate::kdtree::KDTree;
 use crate::r#type::IndexableNum;
 use crate::GeoIndexError;
 
-const DEFAULT_NODE_SIZE: u16 = 64;
+/// Default node size in [`KDTreeBuilder::new`].
+pub const DEFAULT_KDTREE_NODE_SIZE: u16 = 64;
 
-/// A builder to create an [`OwnedKDTree`].
+/// A builder to create an [`KDTree`].
 #[derive(Debug)]
 pub struct KDTreeBuilder<N: IndexableNum> {
     /// data buffer
@@ -25,7 +26,7 @@ pub struct KDTreeBuilder<N: IndexableNum> {
 impl<N: IndexableNum> KDTreeBuilder<N> {
     /// Create a new builder with the provided number of items and the default node size.
     pub fn new(num_items: u32) -> Self {
-        Self::new_with_node_size(num_items, DEFAULT_NODE_SIZE)
+        Self::new_with_node_size(num_items, DEFAULT_KDTREE_NODE_SIZE)
     }
 
     /// Create a new builder with the provided number of items and node size.
@@ -56,7 +57,7 @@ impl<N: IndexableNum> KDTreeBuilder<N> {
     ///
     /// This returns a positional index that provides a lookup back into the original data.
     #[inline]
-    pub fn add(&mut self, x: N, y: N) -> usize {
+    pub fn add(&mut self, x: N, y: N) -> u32 {
         let index = self.pos >> 1;
         let (coords, mut ids) = split_data_borrow(&mut self.data, self.metadata);
 
@@ -66,14 +67,14 @@ impl<N: IndexableNum> KDTreeBuilder<N> {
         coords[self.pos] = y;
         self.pos += 1;
 
-        index
+        index.try_into().unwrap()
     }
 
     /// Add a coord to the KDTree.
     ///
     /// This returns a positional index that provides a lookup back into the original data.
     #[inline]
-    pub fn add_coord(&mut self, coord: &impl CoordTrait<T = N>) -> usize {
+    pub fn add_coord(&mut self, coord: &impl CoordTrait<T = N>) -> u32 {
         self.add(coord.x(), coord.y())
     }
 
@@ -85,7 +86,7 @@ impl<N: IndexableNum> KDTreeBuilder<N> {
     ///
     /// - If the point is empty.
     #[inline]
-    pub fn add_point(&mut self, point: &impl PointTrait<T = N>) -> Result<usize> {
+    pub fn add_point(&mut self, point: &impl PointTrait<T = N>) -> Result<u32> {
         let coord = point.coord().ok_or(GeoIndexError::General(
             "Unable to add empty point to KDTree".to_string(),
         ))?;
@@ -93,7 +94,7 @@ impl<N: IndexableNum> KDTreeBuilder<N> {
     }
 
     /// Consume this builder, perfoming the k-d sort and generating a KDTree ready for queries.
-    pub fn finish(mut self) -> OwnedKDTree<N> {
+    pub fn finish(mut self) -> KDTree<N> {
         assert_eq!(
             self.pos >> 1,
             self.metadata.num_items() as usize,
@@ -114,7 +115,7 @@ impl<N: IndexableNum> KDTreeBuilder<N> {
             0,
         );
 
-        OwnedKDTree {
+        KDTree {
             buffer: self.data,
             metadata: self.metadata,
         }

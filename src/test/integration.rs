@@ -3,9 +3,9 @@ use std::fs::read;
 use bytemuck::cast_slice;
 
 use crate::rtree::sort::HilbertSort;
-use crate::rtree::{OwnedRTree, RTreeBuilder, RTreeRef};
+use crate::rtree::{RTree, RTreeBuilder, RTreeRef};
 
-fn create_flatbush_from_data_path(data_path: &str) -> OwnedRTree<f64> {
+fn create_flatbush_from_data_path(data_path: &str) -> RTree<f64> {
     let buffer = read(data_path).unwrap();
     let boxes_buf: &[f64] = cast_slice(&buffer);
 
@@ -46,7 +46,7 @@ pub(crate) fn flatbush_js_test_data() -> Vec<f64> {
     boxes_buf.to_vec()
 }
 
-pub(crate) fn flatbush_js_test_index() -> OwnedRTree<f64> {
+pub(crate) fn flatbush_js_test_index() -> RTree<f64> {
     create_flatbush_from_data_path("fixtures/data1_input.raw")
 }
 

@@ -2,7 +2,7 @@ use bytemuck::cast_slice;
 use criterion::{criterion_group, criterion_main, Criterion};
 use geo_index::rtree::sort::{HilbertSort, STRSort};
 use geo_index::rtree::util::f64_box_to_f32;
-use geo_index::rtree::{OwnedRTree, RTreeBuilder, RTreeIndex};
+use geo_index::rtree::{RTree, RTreeBuilder, RTreeIndex};
 use geo_index::IndexableNum;
 use rstar::primitives::{GeomWithData, Rectangle};
 use rstar::{RTree, AABB};
@@ -13,7 +13,7 @@ fn load_data() -> Vec<f64> {
     cast_slice(&buf).to_vec()
 }
 
-fn construct_rtree<N: IndexableNum>(boxes_buf: &[N]) -> OwnedRTree<N> {
+fn construct_rtree<N: IndexableNum>(boxes_buf: &[N]) -> RTree<N> {
     let mut builder = RTreeBuilder::new((boxes_buf.len() / 4) as _);
     for box_ in boxes_buf.chunks(4) {
         let min_x = box_[0];
@@ -25,7 +25,7 @@ fn construct_rtree<N: IndexableNum>(boxes_buf: &[N]) -> OwnedRTree<N> {
     builder.finish::<HilbertSort>()
 }
 
-fn construct_rtree_str<N: IndexableNum>(boxes_buf: &[N]) -> OwnedRTree<N> {
+fn construct_rtree_str<N: IndexableNum>(boxes_buf: &[N]) -> RTree<N> {
     let mut builder = RTreeBuilder::new((boxes_buf.len() / 4) as _);
     for box_ in boxes_buf.chunks(4) {
         let min_x = box_[0];
@@ -37,7 +37,7 @@ fn construct_rtree_str<N: IndexableNum>(boxes_buf: &[N]) -> OwnedRTree<N> {
     builder.finish::<STRSort>()
 }
 
-fn construct_rtree_f32_with_cast(boxes_buf: &[f64]) -> OwnedRTree<f32> {
+fn construct_rtree_f32_with_cast(boxes_buf: &[f64]) -> RTree<f32> {
     let mut builder = RTreeBuilder::new((boxes_buf.len() / 4) as _);
     for box_ in boxes_buf.chunks(4) {
         let min_x = box_[0];

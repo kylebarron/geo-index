@@ -2,7 +2,7 @@
 //!
 //! ## Creation
 //!
-//! Use [`KDTreeBuilder`] to construct an [`OwnedKDTree`], which allows you to make queries.
+//! Use [`KDTreeBuilder`] to construct an [`KDTree`], which allows you to make queries.
 //!
 //! ## Search
 //!
@@ -11,7 +11,7 @@
 //!
 //! ## Persisting
 //!
-//! You can use [`OwnedKDTree::into_inner`] to access the underlying `Vec<u8>` it contains.
+//! You can use [`KDTree::into_inner`] to access the underlying `Vec<u8>` it contains.
 //!
 //! ## Recovering the index
 //!
@@ -49,8 +49,8 @@ pub(crate) mod constants;
 mod index;
 mod r#trait;
 
-pub use builder::KDTreeBuilder;
-pub use index::{KDTreeMetadata, KDTreeRef, OwnedKDTree};
+pub use builder::{KDTreeBuilder, DEFAULT_KDTREE_NODE_SIZE};
+pub use index::{KDTreeMetadata, KDTreeRef, KDTree};
 pub use r#trait::KDTreeIndex;
 
 #[cfg(test)]
