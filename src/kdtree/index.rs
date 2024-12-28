@@ -8,6 +8,9 @@ use crate::kdtree::constants::{KDBUSH_HEADER_SIZE, KDBUSH_MAGIC, KDBUSH_VERSION}
 use crate::r#type::IndexableNum;
 
 /// Common metadata to describe a KDTree
+///
+/// You can use the metadata to infer the total byte size of a tree given the provided criteria.
+/// See [`data_buffer_length`][Self::data_buffer_length].
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct KDTreeMetadata<N: IndexableNum> {
     node_size: u16,

@@ -11,14 +11,7 @@ use crate::rtree::util::compute_num_nodes;
 /// Common metadata to describe an RTree
 ///
 /// You can use the metadata to infer the total byte size of a tree given the provided criteria.
-///
-/// ```
-/// use geo_index::rtree::RTreeMetadata;
-///
-/// let metadata = RTreeMetadata::<f64>::new(25000, 16);
-/// assert_eq!(metadata.data_buffer_length(), 960_092);
-/// ```
-///
+/// See [`data_buffer_length`][Self::data_buffer_length].
 #[derive(Debug, Clone, PartialEq)]
 pub struct RTreeMetadata<N: IndexableNum> {
     node_size: u16,
