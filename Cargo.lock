@@ -470,6 +470,7 @@ dependencies = [
  "geo-traits",
  "geozero",
  "num-traits",
+ "ordered-float",
  "rayon",
  "rstar",
  "thiserror 1.0.49",
@@ -763,6 +764,16 @@ name = "oorandom"
 version = "11.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0ab1bc2a289d34bd04a330323ac98a1b4bc82c9d9fcb1e66b63caa84da26b575"
+
+[[package]]
+name = "ordered-float"
+version = "4.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7bb71e1b3fa6ca1c61f383464aaf2bb0e2f8e772a1f01d486832464de363b951"
+dependencies = [
+ "bytemuck",
+ "num-traits",
+]
 
 [[package]]
 name = "pbkdf2"

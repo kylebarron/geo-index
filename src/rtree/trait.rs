@@ -1,3 +1,6 @@
+use std::cmp::Reverse;
+use std::collections::BinaryHeap;
+
 use geo_traits::{CoordTrait, RectTrait};
 
 use crate::error::Result;
@@ -124,40 +127,6 @@ pub trait RTreeIndex<N: IndexableNum>: Sized {
         )
     }
 
-    // #[allow(unused_mut, unused_labels, unused_variables)]
-    // fn neighbors(&self, x: N, y: N, max_distance: Option<N>) -> Vec<usize> {
-    //     let boxes = self.boxes();
-    //     let indices = self.indices();
-    //     let max_distance = max_distance.unwrap_or(N::max_value());
-
-    //     let mut outer_node_index = Some(boxes.len() - 4);
-
-    //     let mut results = vec![];
-    //     let max_dist_squared = max_distance * max_distance;
-
-    //     'outer: while let Some(node_index) = outer_node_index {
-    //         // find the end index of the node
-    //         let end = (node_index + self.node_size() * 4)
-    //             .min(upper_bound(node_index, self.level_bounds()));
-
-    //         // add child nodes to the queue
-    //         for pos in (node_index..end).step_by(4) {
-    //             let index = indices.get(pos >> 2);
-
-    //             let dx = axis_dist(x, boxes[pos], boxes[pos + 2]);
-    //             let dy = axis_dist(y, boxes[pos + 1], boxes[pos + 3]);
-    //             let dist = dx * dx + dy * dy;
-    //             if dist > max_dist_squared {
-    //                 continue;
-    //             }
-    //         }
-
-    //         // break 'outer;
-    //     }
-
-    //     results
-    // }
-
     /// Returns an iterator over the indexes of objects in this and another tree that intersect.
     ///
     /// Each returned object is of the form `(usize, usize)`, where the first is the positional
@@ -172,6 +141,103 @@ pub trait RTreeIndex<N: IndexableNum>: Sized {
     /// Access the root node of the RTree for manual traversal.
     fn root(&self) -> Node<'_, N, Self> {
         Node::from_root(self)
+    }
+}
+
+/// A trait for finding the nearest neighbors from an RTree.
+///
+/// This is a separate trait because the [`BinaryHeap`] priority queue requires elements to be
+/// `Ord`, and `N: IndexableNum` is not `Ord` by default because `f32` and `f64` are not `Ord`.
+/// Instead, wrap your coordinates with `OrderedFloat` from the `ordered-float` crate if you wish
+/// to support nearest neighbor searching with `f32` and `f64` data.
+pub trait RTreeNeighbors<N: IndexableNum + Ord>: RTreeIndex<N> {
+    /// Search items in order of distance from the given point.
+    fn neighbors(
+        &self,
+        x: N,
+        y: N,
+        max_results: Option<usize>,
+        max_distance: Option<N>,
+    ) -> Vec<usize> {
+        let boxes = self.boxes();
+        let indices = self.indices();
+        let max_distance = max_distance.unwrap_or(N::max_value());
+
+        let mut outer_node_index = Some(boxes.len() - 4);
+        let mut queue = BinaryHeap::new();
+        let mut results = vec![];
+        let max_dist_squared = max_distance * max_distance;
+
+        'outer: while let Some(node_index) = outer_node_index {
+            // find the end index of the node
+            let end = (node_index + self.node_size() as usize * 4)
+                .min(upper_bound(node_index, self.level_bounds()));
+
+            // add child nodes to the queue
+            for pos in (node_index..end).step_by(4) {
+                let index = indices.get(pos >> 2);
+
+                let dx = axis_dist(x, boxes[pos], boxes[pos + 2]);
+                let dy = axis_dist(y, boxes[pos + 1], boxes[pos + 3]);
+                let dist = dx * dx + dy * dy;
+                if dist > max_dist_squared {
+                    continue;
+                }
+
+                if node_index >= self.num_items() as usize * 4 {
+                    // node (use even id)
+                    queue.push(Reverse(NeighborNode {
+                        id: index << 1,
+                        dist,
+                    }));
+                } else {
+                    // leaf item (use odd id)
+                    queue.push(Reverse(NeighborNode {
+                        id: (index << 1) + 1,
+                        dist,
+                    }));
+                }
+            }
+
+            // pop items from the queue
+            while !queue.is_empty() && queue.peek().is_some_and(|val| (val.0.id & 1) != 0) {
+                let dist = queue.peek().unwrap().0.dist;
+                if dist > max_dist_squared {
+                    break 'outer;
+                }
+                let item = queue.pop().unwrap();
+                results.push(item.0.id >> 1);
+                if max_results.is_some_and(|max_results| results.len() == max_results) {
+                    break 'outer;
+                }
+            }
+
+            if let Some(item) = queue.pop() {
+                outer_node_index = Some(item.0.id >> 1);
+            } else {
+                outer_node_index = None;
+            }
+        }
+
+        results
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct NeighborNode<N: IndexableNum + Eq> {
+    id: usize,
+    dist: N,
+}
+
+impl<N: IndexableNum + Ord> Ord for NeighborNode<N> {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.dist.cmp(&other.dist)
+    }
+}
+
+impl<N: IndexableNum + PartialOrd + Eq> PartialOrd for NeighborNode<N> {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        self.dist.partial_cmp(&other.dist)
     }
 }
 

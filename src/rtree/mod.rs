@@ -58,4 +58,4 @@ pub mod util;
 
 pub use builder::RTreeBuilder;
 pub use index::{OwnedRTree, RTreeMetadata, RTreeRef};
-pub use r#trait::RTreeIndex;
+pub use r#trait::{RTreeIndex, RTreeNeighbors};
