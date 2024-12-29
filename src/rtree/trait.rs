@@ -150,15 +150,35 @@ pub trait RTreeIndex<N: IndexableNum>: Sized {
 /// `Ord`, and `N: IndexableNum` is not `Ord` by default because `f32` and `f64` are not `Ord`.
 /// Instead, wrap your coordinates with `OrderedFloat` from the `ordered-float` crate if you wish
 /// to support nearest neighbor searching with `f32` and `f64` data.
+///
+/// ```
+/// use geo_index::rtree::{RTreeBuilder, RTreeIndex, RTreeNeighbors, RTreeRef};
+/// use geo_index::rtree::sort::HilbertSort;
+/// use ordered_float::OrderedFloat;
+///
+/// // Create an RTree
+/// let mut builder = RTreeBuilder::<OrderedFloat<f64>>::new(3);
+/// builder.add(0., 0., 2., 2.);
+/// builder.add(1., 1., 3., 3.);
+/// builder.add(2., 2., 4., 4.);
+/// let tree = builder.finish::<HilbertSort>();
+///
+/// let results = tree.neighbors(5., 5., None, None);
+/// assert_eq!(results, vec![2, 1, 0]);
+/// ```
 pub trait RTreeNeighbors<N: IndexableNum + Ord>: RTreeIndex<N> {
     /// Search items in order of distance from the given point.
-    fn neighbors(
+    fn neighbors<M: Into<N>>(
         &self,
-        x: N,
-        y: N,
+        x: M,
+        y: M,
         max_results: Option<usize>,
-        max_distance: Option<N>,
+        max_distance: Option<M>,
     ) -> Vec<usize> {
+        let x = x.into();
+        let y = y.into();
+        let max_distance = max_distance.map(|a| a.into());
+
         let boxes = self.boxes();
         let indices = self.indices();
         let max_distance = max_distance.unwrap_or(N::max_value());
@@ -268,6 +288,9 @@ impl<N: IndexableNum> RTreeIndex<N> for RTreeRef<'_, N> {
         &self.metadata
     }
 }
+
+impl<N: IndexableNum + Ord> RTreeNeighbors<N> for OwnedRTree<N> {}
+impl<N: IndexableNum + Ord> RTreeNeighbors<N> for RTreeRef<'_, N> {}
 
 /// Binary search for the first value in the array bigger than the given.
 #[inline]

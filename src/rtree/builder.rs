@@ -72,7 +72,12 @@ impl<N: IndexableNum> RTreeBuilder<N> {
     /// `RTreeIndex::search` will return this same insertion index, which allows you to reference
     /// your original collection.
     #[inline]
-    pub fn add(&mut self, min_x: N, min_y: N, max_x: N, max_y: N) -> usize {
+    pub fn add<M: Into<N>>(&mut self, min_x: M, min_y: M, max_x: M, max_y: M) -> usize {
+        let min_x = min_x.into();
+        let min_y = min_y.into();
+        let max_x = max_x.into();
+        let max_y = max_y.into();
+
         let index = self.pos >> 2;
         let (boxes, mut indices) = split_data_borrow(&mut self.data, &self.metadata);
 
@@ -109,7 +114,7 @@ impl<N: IndexableNum> RTreeBuilder<N> {
     /// `RTreeIndex::search` will return this same insertion index, which allows you to reference
     /// your original collection.
     #[inline]
-    pub fn add_rect(&mut self, rect: &impl RectTrait<T = N>) -> usize {
+    pub fn add_rect<M: Into<N>>(&mut self, rect: &impl RectTrait<T = M>) -> usize {
         self.add(
             rect.min().x(),
             rect.min().y(),
