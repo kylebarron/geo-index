@@ -18,6 +18,11 @@
 //! slice. If you don't know the coordinate type used in the index, you can use
 //! [`CoordType::from_buffer`][crate::CoordType::from_buffer] to infer the coordinate type.
 //!
+//! ## Coordinate types
+//!
+//! Supported coordinate types implement [`IndexableNum`][crate::IndexableNum]. Note that float
+//! `NaN` is not supported and may panic.
+//!
 //! ## Example
 //!
 //! ```
