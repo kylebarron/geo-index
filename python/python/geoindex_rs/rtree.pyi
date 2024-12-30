@@ -1,9 +1,16 @@
 from __future__ import annotations
+
+import sys
 from typing import Literal, Union
 
 import numpy as np
-from arro3.core.types import ArrowArrayExportable
 from arro3.core import Array
+from arro3.core.types import ArrowArrayExportable
+
+if sys.version_info > (3, 12):
+    from collections.abc import Buffer
+else:
+    from typing_extensions import Buffer
 
 ArrayLike = Union[np.ndarray, ArrowArrayExportable, memoryview, bytes]
 IndexLike = Union[np.ndarray, ArrowArrayExportable, memoryview, bytes, RTree]
@@ -36,7 +43,7 @@ class RTreeBuilder:
     ) -> Array: ...
     def finish(self, method: Literal["hilbert", "str", None] = None) -> RTree: ...
 
-class RTree:
+class RTree(Buffer):
     @property
     def num_items(self) -> int: ...
     @property

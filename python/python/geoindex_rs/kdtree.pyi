@@ -1,9 +1,16 @@
 from __future__ import annotations
+
+import sys
 from typing import Literal, Union
 
 import numpy as np
-from arro3.core.types import ArrowArrayExportable
 from arro3.core import Array
+from arro3.core.types import ArrowArrayExportable
+
+if sys.version_info > (3, 12):
+    from collections.abc import Buffer
+else:
+    from typing_extensions import Buffer
 
 ArrayLike = Union[np.ndarray, ArrowArrayExportable, memoryview, bytes]
 IndexLike = Union[np.ndarray, ArrowArrayExportable, memoryview, bytes, KDTree]
@@ -32,4 +39,4 @@ class KDTreeBuilder:
     def add(self, x: ArrayLike, y: ArrayLike | None = None) -> Array: ...
     def finish(self) -> KDTree: ...
 
-class KDTree: ...
+class KDTree(Buffer): ...
