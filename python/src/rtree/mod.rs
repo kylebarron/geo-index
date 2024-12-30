@@ -1,6 +1,7 @@
 mod builder;
 pub(crate) mod intersection;
 mod metadata;
+mod partitions;
 pub(crate) mod search;
 
 use pyo3::intern;
@@ -22,6 +23,7 @@ pub fn register_rtree_module(
     child_module.add_class::<metadata::PyRTreeMetadata>()?;
     child_module.add_wrapped(wrap_pyfunction!(search::search))?;
     child_module.add_wrapped(wrap_pyfunction!(intersection::intersection_candidates))?;
+    child_module.add_wrapped(wrap_pyfunction!(partitions::partitions))?;
 
     parent_module.add_submodule(&child_module)?;
 
