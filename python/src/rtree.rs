@@ -1,6 +1,6 @@
 use geo_index::rtree::sort::{HilbertSort, STRSort};
 use geo_index::rtree::util::f64_box_to_f32;
-use geo_index::rtree::{OwnedRTree, RTreeBuilder, RTreeIndex};
+use geo_index::rtree::{RTree, RTreeBuilder, RTreeIndex};
 use geo_index::IndexableNum;
 use numpy::ndarray::{ArrayView1, ArrayView2};
 use numpy::{PyArray1, PyArrayMethods, PyReadonlyArray1, PyReadonlyArray2};
@@ -30,8 +30,8 @@ impl<'a> FromPyObject<'a> for RTreeMethod {
 }
 
 enum RTreeInner {
-    Float32(OwnedRTree<f32>),
-    Float64(OwnedRTree<f64>),
+    Float32(RTree<f32>),
+    Float64(RTree<f64>),
 }
 
 /// These constructors are separated out so they can be generic
@@ -39,7 +39,7 @@ fn new_interleaved<N: IndexableNum + numpy::Element>(
     boxes: &ArrayView2<N>,
     method: RTreeMethod,
     node_size: Option<u16>,
-) -> OwnedRTree<N> {
+) -> RTree<N> {
     let shape = boxes.shape();
     assert_eq!(shape.len(), 2);
     assert_eq!(shape[1], 4);
@@ -74,7 +74,7 @@ fn new_separated<N: IndexableNum + numpy::Element>(
     max_y: ArrayView1<N>,
     method: RTreeMethod,
     node_size: Option<u16>,
-) -> OwnedRTree<N> {
+) -> RTree<N> {
     assert_eq!(min_x.len(), min_y.len());
     assert_eq!(min_x.len(), max_x.len());
     assert_eq!(min_x.len(), max_y.len());
@@ -165,20 +165,20 @@ impl RTreeInner {
     }
 }
 
-#[pyclass]
-pub struct RTree(RTreeInner);
+#[pyclass(name = "RTree")]
+pub struct PyRTree(RTreeInner);
 
 // TODO: add support for constructing from a buffer. Need to be able to construct (and validate) an
-// OwnedRTree
+// RTree
 // impl<'a> FromPyObject<'a> for RTree {
 //     fn extract(ob: &'a PyAny) -> PyResult<Self> {
 //         let s: Vec<u8> = ob.extract()?;
-//         OwnedRTree::from(value)
+//         RTree::from(value)
 //     }
 // }
 
 #[pymethods]
-impl RTree {
+impl PyRTree {
     #[classmethod]
     #[pyo3(
         signature = (boxes, *, method = RTreeMethod::Hilbert, node_size = None),

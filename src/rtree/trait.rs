@@ -6,7 +6,7 @@ use geo_traits::{CoordTrait, RectTrait};
 use crate::error::Result;
 use crate::indices::Indices;
 use crate::r#type::IndexableNum;
-use crate::rtree::index::{OwnedRTree, RTreeRef};
+use crate::rtree::index::{RTree, RTreeRef};
 use crate::rtree::traversal::{IntersectionIterator, Node};
 use crate::rtree::util::upper_bound;
 use crate::rtree::RTreeMetadata;
@@ -263,7 +263,7 @@ impl<N: IndexableNum> PartialOrd for NeighborNode<N> {
     }
 }
 
-impl<N: IndexableNum> RTreeIndex<N> for OwnedRTree<N> {
+impl<N: IndexableNum> RTreeIndex<N> for RTree<N> {
     fn boxes(&self) -> &[N] {
         self.metadata.boxes_slice(&self.buffer)
     }

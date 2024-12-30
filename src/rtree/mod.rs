@@ -2,7 +2,7 @@
 //!
 //! ## Creation
 //!
-//! Use [`RTreeBuilder`] to construct an [`OwnedRTree`], which allows you to make queries.
+//! Use [`RTreeBuilder`] to construct an [`RTree`], which allows you to make queries.
 //!
 //! ## Search
 //!
@@ -10,7 +10,7 @@
 //!
 //! ## Persisting
 //!
-//! You can use [`OwnedRTree::into_inner`] to access the underlying `Vec<u8>` it contains.
+//! You can use [`RTree::into_inner`] to access the underlying `Vec<u8>` it contains.
 //!
 //! ## Recovering the index
 //!
@@ -62,5 +62,5 @@ pub mod traversal;
 pub mod util;
 
 pub use builder::RTreeBuilder;
-pub use index::{OwnedRTree, RTreeMetadata, RTreeRef};
+pub use index::{RTree, RTreeMetadata, RTreeRef};
 pub use r#trait::RTreeIndex;

@@ -4,12 +4,12 @@ use geo_traits::{CoordTrait, RectTrait};
 use crate::indices::MutableIndices;
 use crate::r#type::IndexableNum;
 use crate::rtree::constants::VERSION;
-use crate::rtree::index::{OwnedRTree, RTreeMetadata};
+use crate::rtree::index::{RTree, RTreeMetadata};
 use crate::rtree::sort::{Sort, SortParams};
 
 const DEFAULT_NODE_SIZE: u16 = 16;
 
-/// A builder to create an [`OwnedRTree`].
+/// A builder to create an [`RTree`].
 ///
 /// ```
 /// use geo_index::rtree::RTreeBuilder;
@@ -125,7 +125,7 @@ impl<N: IndexableNum> RTreeBuilder<N> {
     ///
     /// [`HilbertSort`]: crate::rtree::sort::HilbertSort
     /// [`STRSort`]: crate::rtree::sort::STRSort
-    pub fn finish<S: Sort<N>>(mut self) -> OwnedRTree<N> {
+    pub fn finish<S: Sort<N>>(mut self) -> RTree<N> {
         assert_eq!(
             self.pos >> 2,
             self.metadata.num_items() as usize,
@@ -147,7 +147,7 @@ impl<N: IndexableNum> RTreeBuilder<N> {
             boxes[self.pos] = self.max_y;
             self.pos += 1;
 
-            return OwnedRTree {
+            return RTree {
                 buffer: self.data,
                 metadata: self.metadata,
             };
@@ -217,7 +217,7 @@ impl<N: IndexableNum> RTreeBuilder<N> {
             }
         }
 
-        OwnedRTree {
+        RTree {
             buffer: self.data,
             metadata: self.metadata,
         }
