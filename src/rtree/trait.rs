@@ -277,6 +277,7 @@ impl<N: IndexableNum> RTreeIndex<N> for RTree<N> {
         &self.metadata
     }
 }
+
 impl<N: IndexableNum> RTreeIndex<N> for RTreeRef<'_, N> {
     fn boxes(&self) -> &[N] {
         self.boxes
