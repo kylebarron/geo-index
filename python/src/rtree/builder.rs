@@ -41,6 +41,22 @@ enum PyRTreeBuilderInner {
     Float64(RTreeBuilder<f64>),
 }
 
+impl PyRTreeBuilderInner {
+    fn node_size(&self) -> u16 {
+        match self {
+            Self::Float32(builder) => builder.metadata().node_size(),
+            Self::Float64(builder) => builder.metadata().node_size(),
+        }
+    }
+
+    fn num_items(&self) -> u32 {
+        match self {
+            Self::Float32(builder) => builder.metadata().num_items(),
+            Self::Float64(builder) => builder.metadata().num_items(),
+        }
+    }
+}
+
 #[pyclass(name = "RTreeBuilder")]
 pub struct PyRTreeBuilder(Option<PyRTreeBuilderInner>);
 
@@ -153,6 +169,18 @@ impl PyRTreeBuilder {
             CoordType::Float64 => Self(Some(PyRTreeBuilderInner::Float64(
                 RTreeBuilder::<f64>::new_with_node_size(num_items, node_size),
             ))),
+        }
+    }
+
+    fn __repr__(&self) -> String {
+        if let Some(inner) = self.0.as_ref() {
+            format!(
+                "RTreeBuilder(num_items={}, node_size={})",
+                inner.num_items(),
+                inner.node_size()
+            )
+        } else {
+            "RTreeBuilder(finished)".to_string()
         }
     }
 
@@ -405,6 +433,14 @@ impl PyRTree {
 
     pub unsafe fn __releasebuffer__(&self, _view: *mut ffi::Py_buffer) {
         // is there anything to do here?
+    }
+
+    fn __repr__(&self) -> String {
+        format!(
+            "RTree(num_items={}, node_size={})",
+            self.0.num_items(),
+            self.0.node_size()
+        )
     }
 
     /// The total number of items contained in this RTree.

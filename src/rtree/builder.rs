@@ -66,6 +66,11 @@ impl<N: IndexableNum> RTreeBuilder<N> {
         }
     }
 
+    /// Access the underlying [RTreeMetadata] of this instance.
+    pub fn metadata(&self) -> &RTreeMetadata<N> {
+        &self.metadata
+    }
+
     /// Add a given rectangle to the RTree.
     ///
     /// This returns the insertion index, which provides a lookup back into the original data.
