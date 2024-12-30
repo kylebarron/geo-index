@@ -35,8 +35,8 @@ fn _rust(py: Python, m: &Bound<PyModule>) -> PyResult<()> {
 
     m.add_wrapped(wrap_pyfunction!(___version))?;
 
-    m.add_class::<rtree::RTree>()?;
-    m.add_class::<kdtree::KDTree>()?;
+    m.add_class::<rtree::PyRTree>()?;
+    m.add_class::<kdtree::PyKDTree>()?;
 
     Ok(())
 }

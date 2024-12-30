@@ -1,13 +1,13 @@
-use geo_index::kdtree::{KDTreeBuilder, KDTreeIndex, OwnedKDTree};
+use geo_index::kdtree::{KDTree, KDTreeBuilder, KDTreeIndex};
 use numpy::{PyArray1, PyReadonlyArray1, PyReadonlyArray2, PyUntypedArrayMethods};
 use pyo3::prelude::*;
 use pyo3::types::PyType;
 
-#[pyclass]
-pub struct KDTree(OwnedKDTree<f64>);
+#[pyclass(name = "KDTree")]
+pub struct PyKDTree(KDTree<f64>);
 
 #[pymethods]
-impl KDTree {
+impl PyKDTree {
     #[classmethod]
     #[pyo3(
         signature = (coords, *, node_size = None),

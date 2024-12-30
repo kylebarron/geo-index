@@ -7,13 +7,13 @@ use crate::error::Result;
 use crate::indices::MutableIndices;
 use crate::kdtree::constants::{KDBUSH_HEADER_SIZE, KDBUSH_MAGIC, KDBUSH_VERSION};
 use crate::kdtree::index::KDTreeMetadata;
-use crate::kdtree::OwnedKDTree;
+use crate::kdtree::KDTree;
 use crate::r#type::IndexableNum;
 use crate::GeoIndexError;
 
 const DEFAULT_NODE_SIZE: u16 = 64;
 
-/// A builder to create an [`OwnedKDTree`].
+/// A builder to create an [`KDTree`].
 #[derive(Debug)]
 pub struct KDTreeBuilder<N: IndexableNum> {
     /// data buffer
@@ -93,7 +93,7 @@ impl<N: IndexableNum> KDTreeBuilder<N> {
     }
 
     /// Consume this builder, perfoming the k-d sort and generating a KDTree ready for queries.
-    pub fn finish(mut self) -> OwnedKDTree<N> {
+    pub fn finish(mut self) -> KDTree<N> {
         assert_eq!(
             self.pos >> 1,
             self.metadata.num_items() as usize,
@@ -114,7 +114,7 @@ impl<N: IndexableNum> KDTreeBuilder<N> {
             0,
         );
 
-        OwnedKDTree {
+        KDTree {
             buffer: self.data,
             metadata: self.metadata,
         }

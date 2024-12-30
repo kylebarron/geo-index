@@ -133,19 +133,19 @@ impl<N: IndexableNum> KDTreeMetadata<N> {
 ///
 /// Usually this will be created from scratch via [`KDTreeBuilder`][crate::kdtree::KDTreeBuilder].
 #[derive(Debug, Clone, PartialEq)]
-pub struct OwnedKDTree<N: IndexableNum> {
+pub struct KDTree<N: IndexableNum> {
     pub(crate) buffer: Vec<u8>,
     pub(crate) metadata: KDTreeMetadata<N>,
 }
 
-impl<N: IndexableNum> OwnedKDTree<N> {
+impl<N: IndexableNum> KDTree<N> {
     /// Consume this KDTree, returning the underlying buffer.
     pub fn into_inner(self) -> Vec<u8> {
         self.buffer
     }
 }
 
-impl<N: IndexableNum> AsRef<[u8]> for OwnedKDTree<N> {
+impl<N: IndexableNum> AsRef<[u8]> for KDTree<N> {
     fn as_ref(&self) -> &[u8] {
         &self.buffer
     }
@@ -164,7 +164,7 @@ impl<'a, N: IndexableNum> KDTreeRef<'a, N> {
     ///
     /// This byte slice must conform to the "kdbush ABI", that is, the ABI originally implemented
     /// by the JavaScript [`kdbush` library](https://github.com/mourner/kdbush). You can extract
-    /// such a buffer either via [`OwnedKDTree::into_inner`] or from the `.data` attribute of the
+    /// such a buffer either via [`KDTree::into_inner`] or from the `.data` attribute of the
     /// JavaScript `KDBush` object.
     pub fn try_new<T: AsRef<[u8]>>(data: &'a T) -> Result<Self> {
         let data = data.as_ref();
