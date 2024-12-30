@@ -50,6 +50,24 @@ pub fn f64_box_to_f32(min_x: f64, min_y: f64, max_x: f64, max_y: f64) -> (f32, f
     (new_min_x, new_min_y, new_max_x, new_max_y)
 }
 
+/// Binary search for the first value in the array bigger than the given.
+#[inline]
+pub(super) fn upper_bound(value: usize, arr: &[usize]) -> usize {
+    let mut i = 0;
+    let mut j = arr.len() - 1;
+
+    while i < j {
+        let m = (i + j) >> 1;
+        if arr[m] > value {
+            j = m;
+        } else {
+            i = m + 1;
+        }
+    }
+
+    arr[i]
+}
+
 #[cfg(test)]
 mod test {
     use crate::rtree::util::f64_box_to_f32;
