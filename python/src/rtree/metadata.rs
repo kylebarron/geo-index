@@ -1,5 +1,7 @@
-use geo_index::rtree::{RTreeMetadata, DEFAULT_RTREE_NODE_SIZE};
+use geo_index::rtree::{RTreeIndex, RTreeMetadata, RTreeRef, DEFAULT_RTREE_NODE_SIZE};
 use pyo3::prelude::*;
+use pyo3::types::PyType;
+use pyo3_arrow::buffer::PyArrowBuffer;
 
 use crate::coord_type::CoordType;
 
@@ -24,6 +26,24 @@ impl PyRTreeMetadata {
             CoordType::Float64 => Self(PyRTreeMetadataInner::Float64(
                 geo_index::rtree::RTreeMetadata::<f64>::new(num_items, node_size),
             )),
+        }
+    }
+
+    #[classmethod]
+    fn from_index(_cls: &Bound<PyType>, index: PyArrowBuffer) -> PyResult<Self> {
+        let buffer = index.into_inner();
+        let slice = buffer.as_slice();
+        let coord_type = geo_index::CoordType::from_buffer(&slice).unwrap();
+        match coord_type {
+            geo_index::CoordType::Float32 => {
+                let tree = RTreeRef::<f32>::try_new(&slice).unwrap();
+                Ok(Self(PyRTreeMetadataInner::Float32(tree.metadata().clone())))
+            }
+            geo_index::CoordType::Float64 => {
+                let tree = RTreeRef::<f64>::try_new(&slice).unwrap();
+                Ok(Self(PyRTreeMetadataInner::Float64(tree.metadata().clone())))
+            }
+            _ => todo!("Only f32 and f64 implemented so far"),
         }
     }
 
