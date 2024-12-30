@@ -8,6 +8,7 @@ use crate::indices::Indices;
 use crate::r#type::IndexableNum;
 use crate::rtree::index::{OwnedRTree, RTreeRef};
 use crate::rtree::traversal::{IntersectionIterator, Node};
+use crate::rtree::util::upper_bound;
 use crate::rtree::RTreeMetadata;
 use crate::GeoIndexError;
 
@@ -288,24 +289,6 @@ impl<N: IndexableNum> RTreeIndex<N> for RTreeRef<'_, N> {
     fn metadata(&self) -> &RTreeMetadata<N> {
         &self.metadata
     }
-}
-
-/// Binary search for the first value in the array bigger than the given.
-#[inline]
-fn upper_bound(value: usize, arr: &[usize]) -> usize {
-    let mut i = 0;
-    let mut j = arr.len() - 1;
-
-    while i < j {
-        let m = (i + j) >> 1;
-        if arr[m] > value {
-            j = m;
-        } else {
-            i = m + 1;
-        }
-    }
-
-    arr[i]
 }
 
 /// 1D distance from a value to a range.
