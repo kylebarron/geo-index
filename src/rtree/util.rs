@@ -24,10 +24,10 @@ pub(crate) fn compute_num_nodes(num_items: u32, node_size: u16) -> (usize, Vec<u
 /// crate to ensure the resulting box is no smaller than the `f64` box.
 #[inline]
 pub fn f64_box_to_f32(min_x: f64, min_y: f64, max_x: f64, max_y: f64) -> (f32, f32, f32, f32) {
-    let mut new_min_x = min_x as f32; //.next_after(f32::NEG_INFINITY);
-    let mut new_min_y = min_y as f32; //.next_after(f32::NEG_INFINITY);
-    let mut new_max_x = max_x as f32; //.next_after(f32::INFINITY);
-    let mut new_max_y = max_y as f32; //.next_after(f32::INFINITY);
+    let mut new_min_x = min_x as f32;
+    let mut new_min_y = min_y as f32;
+    let mut new_max_x = max_x as f32;
+    let mut new_max_y = max_y as f32;
 
     if (new_min_x as f64) > min_x {
         new_min_x = new_min_x.next_after(f32::NEG_INFINITY);
