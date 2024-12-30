@@ -61,6 +61,6 @@ mod r#trait;
 pub mod traversal;
 pub mod util;
 
-pub use builder::RTreeBuilder;
+pub use builder::{RTreeBuilder, DEFAULT_RTREE_NODE_SIZE};
 pub use index::{RTree, RTreeMetadata, RTreeRef};
 pub use r#trait::RTreeIndex;

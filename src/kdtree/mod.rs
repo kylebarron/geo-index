@@ -54,7 +54,7 @@ pub(crate) mod constants;
 mod index;
 mod r#trait;
 
-pub use builder::KDTreeBuilder;
+pub use builder::{KDTreeBuilder, DEFAULT_KDTREE_NODE_SIZE};
 pub use index::{KDTree, KDTreeMetadata, KDTreeRef};
 pub use r#trait::KDTreeIndex;
 

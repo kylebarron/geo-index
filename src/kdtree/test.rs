@@ -182,7 +182,7 @@ fn range_search() {
 
     let points = points();
     for id in result.iter() {
-        let (x, y) = points[*id];
+        let (x, y) = points[*id as usize];
         if x < min_x || x > max_x || y < min_y || y > max_y {
             panic!("result point in range");
         }
@@ -193,7 +193,7 @@ fn range_search() {
     for id in ids {
         let id = id as usize;
         let (x, y) = points[id];
-        if !result.contains(&id) && x >= min_x && x <= max_x && y >= min_y && y <= max_y {
+        if !result.contains(&(id as u32)) && x >= min_x && x <= max_x && y >= min_y && y <= max_y {
             panic!("outside point not in range");
         }
     }
@@ -215,7 +215,7 @@ fn radius_search() {
 
     let points = points();
     for id in result.iter() {
-        let (x, y) = points[*id];
+        let (x, y) = points[*id as usize];
         if sq_dist(x, y, qx, qy) > r2 {
             panic!("result point in range");
         }
@@ -226,7 +226,7 @@ fn radius_search() {
     for id in ids {
         let id = id as usize;
         let (x, y) = points[id];
-        if !result.contains(&id) && sq_dist(x, y, qx, qy) <= r2 {
+        if !result.contains(&(id as u32)) && sq_dist(x, y, qx, qy) <= r2 {
             panic!("outside point not in range");
         }
     }

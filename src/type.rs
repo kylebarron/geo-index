@@ -67,6 +67,7 @@ const U8_CLAMPED_TYPE_INDEX: u8 = 2;
 ///
 /// This can be used to infer the coordinate type from an existing buffer.
 #[allow(missing_docs)]
+#[derive(Debug, Clone, Copy, PartialEq, Hash)]
 pub enum CoordType {
     Int8,
     UInt8,

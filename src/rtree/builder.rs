@@ -7,7 +7,8 @@ use crate::rtree::constants::VERSION;
 use crate::rtree::index::{RTree, RTreeMetadata};
 use crate::rtree::sort::{Sort, SortParams};
 
-const DEFAULT_NODE_SIZE: u16 = 16;
+/// The default node size used by [`RTreeBuilder::new`]
+pub const DEFAULT_RTREE_NODE_SIZE: u16 = 16;
 
 /// A builder to create an [`RTree`].
 ///
@@ -35,7 +36,7 @@ pub struct RTreeBuilder<N: IndexableNum> {
 impl<N: IndexableNum> RTreeBuilder<N> {
     /// Create a new builder with the provided number of items and the default node size.
     pub fn new(num_items: u32) -> Self {
-        Self::new_with_node_size(num_items, DEFAULT_NODE_SIZE)
+        Self::new_with_node_size(num_items, DEFAULT_RTREE_NODE_SIZE)
     }
 
     /// Create a new builder with the provided number of items and node size.
@@ -72,7 +73,7 @@ impl<N: IndexableNum> RTreeBuilder<N> {
     /// `RTreeIndex::search` will return this same insertion index, which allows you to reference
     /// your original collection.
     #[inline]
-    pub fn add(&mut self, min_x: N, min_y: N, max_x: N, max_y: N) -> usize {
+    pub fn add(&mut self, min_x: N, min_y: N, max_x: N, max_y: N) -> u32 {
         let index = self.pos >> 2;
         let (boxes, mut indices) = split_data_borrow(&mut self.data, &self.metadata);
 
@@ -99,7 +100,7 @@ impl<N: IndexableNum> RTreeBuilder<N> {
             self.max_y = max_y
         };
 
-        index
+        index.try_into().unwrap()
     }
 
     /// Add a given rectangle to the RTree.
@@ -109,7 +110,7 @@ impl<N: IndexableNum> RTreeBuilder<N> {
     /// `RTreeIndex::search` will return this same insertion index, which allows you to reference
     /// your original collection.
     #[inline]
-    pub fn add_rect(&mut self, rect: &impl RectTrait<T = N>) -> usize {
+    pub fn add_rect(&mut self, rect: &impl RectTrait<T = N>) -> u32 {
         self.add(
             rect.min().x(),
             rect.min().y(),

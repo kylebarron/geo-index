@@ -266,14 +266,19 @@ where
     T1: RTreeIndex<N>,
     T2: RTreeIndex<N>,
 {
-    type Item = (usize, usize);
+    type Item = (u32, u32);
 
     fn next(&mut self) -> Option<Self::Item> {
         while let Some((left_index, right_index)) = self.todo_list.pop() {
             let left = Node::new(self.left, left_index);
             let right = Node::new(self.right, right_index);
             match (left.is_leaf(), right.is_leaf()) {
-                (true, true) => return Some((left.index(), right.index())),
+                (true, true) => {
+                    return Some((
+                        left.index().try_into().unwrap(),
+                        right.index().try_into().unwrap(),
+                    ))
+                }
                 (true, false) => right
                     .children()
                     .for_each(|c| self.push_if_intersecting(&left, &c)),
@@ -360,7 +365,9 @@ mod test_issue_42 {
         }
         let tree = tree_builder.finish::<HilbertSort>();
 
-        let candidates = tree.intersection_candidates_with_other_tree(&tree);
+        let candidates = tree
+            .intersection_candidates_with_other_tree(&tree)
+            .map(|(l, r)| (l as usize, r as usize));
 
         HashSet::from_iter(candidates)
     }

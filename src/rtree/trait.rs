@@ -71,7 +71,7 @@ pub trait RTreeIndex<N: IndexableNum>: Sized {
     /// Search an RTree given the provided bounding box.
     ///
     /// Results are the indexes of the inserted objects in insertion order.
-    fn search(&self, min_x: N, min_y: N, max_x: N, max_y: N) -> Vec<usize> {
+    fn search(&self, min_x: N, min_y: N, max_x: N, max_y: N) -> Vec<u32> {
         let boxes = self.boxes();
         let indices = self.indices();
 
@@ -106,7 +106,8 @@ pub trait RTreeIndex<N: IndexableNum>: Sized {
                 if node_index >= self.num_items() as usize * 4 {
                     queue.push(index); // node; add it to the search queue
                 } else {
-                    results.push(index); // leaf item
+                    // Since the max items of the index is u32, we can coerce to u32
+                    results.push(index.try_into().unwrap()); // leaf item
                 }
             }
 
@@ -119,7 +120,7 @@ pub trait RTreeIndex<N: IndexableNum>: Sized {
     /// Search an RTree given the provided bounding box.
     ///
     /// Results are the indexes of the inserted objects in insertion order.
-    fn search_rect(&self, rect: &impl RectTrait<T = N>) -> Vec<usize> {
+    fn search_rect(&self, rect: &impl RectTrait<T = N>) -> Vec<u32> {
         self.search(
             rect.min().x(),
             rect.min().y(),
@@ -226,12 +227,12 @@ pub trait RTreeIndex<N: IndexableNum>: Sized {
 
     /// Returns an iterator over the indexes of objects in this and another tree that intersect.
     ///
-    /// Each returned object is of the form `(usize, usize)`, where the first is the positional
+    /// Each returned object is of the form `(u32, u32)`, where the first is the positional
     /// index of the "left" tree and the second is the index of the "right" tree.
     fn intersection_candidates_with_other_tree<'a>(
         &'a self,
         other: &'a impl RTreeIndex<N>,
-    ) -> impl Iterator<Item = (usize, usize)> + 'a {
+    ) -> impl Iterator<Item = (u32, u32)> + 'a {
         IntersectionIterator::from_trees(self, other)
     }
 
@@ -319,10 +320,10 @@ mod test {
 
             let mut results: Vec<usize> = vec![];
             for id in ids {
-                results.push(data[4 * id] as usize);
-                results.push(data[4 * id + 1] as usize);
-                results.push(data[4 * id + 2] as usize);
-                results.push(data[4 * id + 3] as usize);
+                results.push(data[4 * id as usize] as usize);
+                results.push(data[4 * id as usize + 1] as usize);
+                results.push(data[4 * id as usize + 2] as usize);
+                results.push(data[4 * id as usize + 3] as usize);
             }
 
             results.sort();
