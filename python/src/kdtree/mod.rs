@@ -16,8 +16,8 @@ pub fn register_kdtree_module(
 
     let child_module = PyModule::new(parent_module.py(), "kdtree")?;
 
-    child_module.add_class::<builder::KDTree>()?;
-    child_module.add_class::<builder::KDTreeBuilder>()?;
+    child_module.add_class::<builder::PyKDTree>()?;
+    child_module.add_class::<builder::PyKDTreeBuilder>()?;
     child_module.add_wrapped(wrap_pyfunction!(range::range))?;
     child_module.add_wrapped(wrap_pyfunction!(within::within))?;
 

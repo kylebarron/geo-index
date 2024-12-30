@@ -17,9 +17,9 @@ pub fn register_rtree_module(
 
     let child_module = PyModule::new(parent_module.py(), "rtree")?;
 
-    child_module.add_class::<builder::RTree>()?;
-    child_module.add_class::<builder::RTreeBuilder>()?;
-    child_module.add_class::<metadata::RTreeMetadata>()?;
+    child_module.add_class::<builder::PyRTree>()?;
+    child_module.add_class::<builder::PyRTreeBuilder>()?;
+    child_module.add_class::<metadata::PyRTreeMetadata>()?;
     child_module.add_wrapped(wrap_pyfunction!(search::search))?;
     child_module.add_wrapped(wrap_pyfunction!(intersection::intersection_candidates))?;
 

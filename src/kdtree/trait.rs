@@ -2,7 +2,7 @@ use geo_traits::{CoordTrait, RectTrait};
 use tinyvec::TinyVec;
 
 use crate::indices::Indices;
-use crate::kdtree::{KDTreeMetadata, KDTreeRef, KDTree};
+use crate::kdtree::{KDTree, KDTreeMetadata, KDTreeRef};
 use crate::r#type::IndexableNum;
 
 /// A trait for searching and accessing data out of a KDTree.

@@ -5,7 +5,7 @@ use arrow_cast::cast;
 use arrow_schema::DataType;
 use geo_index::rtree::sort::{HilbertSort, STRSort};
 use geo_index::rtree::util::f64_box_to_f32;
-use geo_index::rtree::{RTreeIndex, DEFAULT_RTREE_NODE_SIZE};
+use geo_index::rtree::{RTree, RTreeBuilder, RTreeIndex, DEFAULT_RTREE_NODE_SIZE};
 use numpy::{PyArray1, PyArrayMethods};
 use pyo3::exceptions::{PyIndexError, PyValueError};
 use pyo3::ffi;
@@ -36,18 +36,18 @@ impl<'a> FromPyObject<'a> for RTreeMethod {
     }
 }
 
-enum RTreeBuilderInner {
-    Float32(geo_index::rtree::RTreeBuilder<f32>),
-    Float64(geo_index::rtree::RTreeBuilder<f64>),
+enum PyRTreeBuilderInner {
+    Float32(RTreeBuilder<f32>),
+    Float64(RTreeBuilder<f64>),
 }
 
-#[pyclass]
-pub struct RTreeBuilder(Option<RTreeBuilderInner>);
+#[pyclass(name = "RTreeBuilder")]
+pub struct PyRTreeBuilder(Option<PyRTreeBuilderInner>);
 
-impl RTreeBuilder {
+impl PyRTreeBuilder {
     fn add_separated(
         py: Python<'_>,
-        inner: &mut RTreeBuilderInner,
+        inner: &mut PyRTreeBuilderInner,
         mut out_array: UInt32Builder,
         min_x: &dyn arrow_array::Array,
         min_y: &dyn arrow_array::Array,
@@ -59,7 +59,7 @@ impl RTreeBuilder {
         assert_eq!(min_x.data_type(), max_y.data_type());
 
         match inner {
-            RTreeBuilderInner::Float32(tree) => match min_x.data_type() {
+            PyRTreeBuilderInner::Float32(tree) => match min_x.data_type() {
                 // When Float64 data is passed but the tree is Float32, we special case converting
                 // the f64 box to f32
                 DataType::Float64 => {
@@ -110,7 +110,7 @@ impl RTreeBuilder {
                     }
                 }
             },
-            RTreeBuilderInner::Float64(tree) => {
+            PyRTreeBuilderInner::Float64(tree) => {
                 let values_min_x = cast(min_x, &DataType::Float64).unwrap();
                 let values_min_y = cast(min_y, &DataType::Float64).unwrap();
                 let values_max_x = cast(max_x, &DataType::Float64).unwrap();
@@ -141,17 +141,17 @@ impl RTreeBuilder {
 }
 
 #[pymethods]
-impl RTreeBuilder {
+impl PyRTreeBuilder {
     #[new]
     #[pyo3(signature = (num_items, node_size = DEFAULT_RTREE_NODE_SIZE, coord_type = None))]
     fn new(num_items: u32, node_size: u16, coord_type: Option<CoordType>) -> Self {
         let coord_type = coord_type.unwrap_or(CoordType::Float64);
         match coord_type {
-            CoordType::Float32 => Self(Some(RTreeBuilderInner::Float32(
-                geo_index::rtree::RTreeBuilder::<f32>::new_with_node_size(num_items, node_size),
+            CoordType::Float32 => Self(Some(PyRTreeBuilderInner::Float32(
+                RTreeBuilder::<f32>::new_with_node_size(num_items, node_size),
             ))),
-            CoordType::Float64 => Self(Some(RTreeBuilderInner::Float64(
-                geo_index::rtree::RTreeBuilder::<f64>::new_with_node_size(num_items, node_size),
+            CoordType::Float64 => Self(Some(PyRTreeBuilderInner::Float64(
+                RTreeBuilder::<f64>::new_with_node_size(num_items, node_size),
             ))),
         }
     }
@@ -192,7 +192,7 @@ impl RTreeBuilder {
                 );
                 let values_arr = min_x.as_fixed_size_list().values();
                 match inner {
-                    RTreeBuilderInner::Float32(tree) => match inner_field.data_type() {
+                    PyRTreeBuilderInner::Float32(tree) => match inner_field.data_type() {
                         DataType::Float64 => {
                             let values = values_arr.as_primitive::<Float64Type>();
                             for i in (0..values.len()).step_by(4) {
@@ -220,7 +220,7 @@ impl RTreeBuilder {
                             }
                         }
                     },
-                    RTreeBuilderInner::Float64(tree) => {
+                    PyRTreeBuilderInner::Float64(tree) => {
                         let values = cast(&values_arr, &DataType::Float64).unwrap();
                         let values = values.as_primitive::<Float64Type>();
                         for i in (0..values.len()).step_by(4) {
@@ -249,7 +249,7 @@ impl RTreeBuilder {
                 let child_min_y = struct_arr.column(1);
                 let child_max_x = struct_arr.column(2);
                 let child_max_y = struct_arr.column(3);
-                return RTreeBuilder::add_separated(
+                return PyRTreeBuilder::add_separated(
                     py,
                     inner,
                     out_array,
@@ -260,7 +260,7 @@ impl RTreeBuilder {
                 );
             }
             (_, Some(min_y), Some(max_x), Some(max_y)) => {
-                return RTreeBuilder::add_separated(
+                return PyRTreeBuilder::add_separated(
                     py,
                     inner,
                     out_array,
@@ -277,39 +277,39 @@ impl RTreeBuilder {
     }
 
     #[pyo3(signature = (method = None))]
-    fn finish(&mut self, method: Option<RTreeMethod>) -> PyResult<RTree> {
+    fn finish(&mut self, method: Option<RTreeMethod>) -> PyResult<PyRTree> {
         let method = method.unwrap_or(RTreeMethod::Hilbert);
         let inner = self
             .0
             .take()
             .ok_or(PyValueError::new_err("Cannot call finish multiple times."))?;
         let out = match (inner, method) {
-            (RTreeBuilderInner::Float32(tree), RTreeMethod::Hilbert) => {
-                RTree(RTreeInner::Float32(tree.finish::<HilbertSort>()))
+            (PyRTreeBuilderInner::Float32(tree), RTreeMethod::Hilbert) => {
+                PyRTree(PyRTreeInner::Float32(tree.finish::<HilbertSort>()))
             }
-            (RTreeBuilderInner::Float32(tree), RTreeMethod::STR) => {
-                RTree(RTreeInner::Float32(tree.finish::<STRSort>()))
+            (PyRTreeBuilderInner::Float32(tree), RTreeMethod::STR) => {
+                PyRTree(PyRTreeInner::Float32(tree.finish::<STRSort>()))
             }
-            (RTreeBuilderInner::Float64(tree), RTreeMethod::Hilbert) => {
-                RTree(RTreeInner::Float64(tree.finish::<HilbertSort>()))
+            (PyRTreeBuilderInner::Float64(tree), RTreeMethod::Hilbert) => {
+                PyRTree(PyRTreeInner::Float64(tree.finish::<HilbertSort>()))
             }
-            (RTreeBuilderInner::Float64(tree), RTreeMethod::STR) => {
-                RTree(RTreeInner::Float64(tree.finish::<STRSort>()))
+            (PyRTreeBuilderInner::Float64(tree), RTreeMethod::STR) => {
+                PyRTree(PyRTreeInner::Float64(tree.finish::<STRSort>()))
             }
         };
         Ok(out)
     }
 }
 
-enum RTreeInner {
-    Float32(geo_index::rtree::RTree<f32>),
-    Float64(geo_index::rtree::RTree<f64>),
+enum PyRTreeInner {
+    Float32(RTree<f32>),
+    Float64(RTree<f64>),
 }
 
-#[pyclass]
-pub struct RTree(RTreeInner);
+#[pyclass(name = "RTree")]
+pub struct PyRTree(PyRTreeInner);
 
-impl RTreeInner {
+impl PyRTreeInner {
     fn num_items(&self) -> u32 {
         match self {
             Self::Float32(index) => index.num_items(),
@@ -381,7 +381,7 @@ impl RTreeInner {
 }
 
 #[pymethods]
-impl RTree {
+impl PyRTree {
     // pre PEP 688 buffer protocol
     pub unsafe fn __getbuffer__(
         slf: PyRef<'_, Self>,

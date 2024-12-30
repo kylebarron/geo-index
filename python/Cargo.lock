@@ -725,14 +725,16 @@ dependencies = [
 
 [[package]]
 name = "ndarray"
-version = "0.15.6"
+version = "0.16.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "adb12d4e967ec485a5f71c6311fe28158e9d6f4bc4a447b474184d0f91a8fa32"
+checksum = "882ed72dce9365842bf196bdeedf5055305f11fc8c03dee7bb0194a6cad34841"
 dependencies = [
  "matrixmultiply",
  "num-complex",
  "num-integer",
  "num-traits",
+ "portable-atomic",
+ "portable-atomic-util",
  "rawpointer",
 ]
 
@@ -884,6 +886,15 @@ name = "portable-atomic"
 version = "1.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "280dc24453071f1b63954171985a0b0d30058d287960968b9b2aca264c8d4ee6"
+
+[[package]]
+name = "portable-atomic-util"
+version = "0.2.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d8a2f0d8d040d7848a709caf78912debcc3f33ee4b3cac47d73d1e1069e83507"
+dependencies = [
+ "portable-atomic",
+]
 
 [[package]]
 name = "proc-macro2"
@@ -1134,9 +1145,9 @@ checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
 
 [[package]]
 name = "syn"
-version = "2.0.92"
+version = "2.0.93"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "70ae51629bf965c5c098cc9e87908a3df5301051a9e087d6f9bef5c9771ed126"
+checksum = "9c786062daee0d6db1132800e623df74274a0a87322d8e183338e01b3d98d058"
 dependencies = [
  "proc-macro2",
  "quote",
