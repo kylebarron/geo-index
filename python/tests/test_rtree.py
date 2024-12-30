@@ -35,3 +35,20 @@ def test_rtree():
     assert np.all(min_y == np_arr[:, 1])
     assert np.all(max_x == np_arr[:, 2])
     assert np.all(max_y == np_arr[:, 3])
+
+
+def test_partitions():
+    builder = rtree.RTreeBuilder(5, 2)
+    min_x = np.arange(5)
+    min_y = np.arange(5)
+    max_x = np.arange(5, 10)
+    max_y = np.arange(5, 10)
+    builder.add(min_x, min_y, max_x, max_y)
+    tree = builder.finish()
+
+    partitions = rtree.partitions(tree)
+    indices = partitions["indices"]
+    partition_id = partitions["partition_id"]
+
+    assert np.all(np.asarray(indices) == np.arange(5))
+    assert len(np.unique(np.asarray(partition_id))) == 3

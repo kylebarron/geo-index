@@ -1,9 +1,6 @@
 use arrow_array::builder::UInt32Builder;
 use arrow_array::cast::AsArray;
 use arrow_array::types::{Float32Type, Float64Type};
-use arrow_array::{ArrayRef, ArrowPrimitiveType, PrimitiveArray};
-use arrow_buffer::alloc::Allocation;
-use arrow_buffer::{ArrowNativeType, Buffer, ScalarBuffer};
 use arrow_cast::cast;
 use arrow_schema::DataType;
 use geo_index::rtree::sort::{HilbertSort, STRSort};
@@ -15,10 +12,10 @@ use pyo3::prelude::*;
 use pyo3::pybacked::PyBackedStr;
 use pyo3_arrow::PyArray;
 use std::os::raw::c_int;
-use std::ptr::NonNull;
 use std::sync::Arc;
 
 use crate::coord_type::CoordType;
+use crate::util::slice_to_arrow;
 
 #[allow(clippy::upper_case_acronyms)]
 pub enum RTreeMethod {
@@ -386,14 +383,14 @@ impl PyRTreeInner {
                 let boxes = index
                     .boxes_at_level(level)
                     .map_err(|err| PyIndexError::new_err(err.to_string()))?;
-                PyArray::from_array_ref(boxes_at_level::<Float32Type>(boxes, index.clone()))
+                PyArray::from_array_ref(slice_to_arrow::<Float32Type>(boxes, index.clone()))
                     .to_arro3(py)
             }
             Self::Float64(index) => {
                 let boxes = index
                     .boxes_at_level(level)
                     .map_err(|err| PyIndexError::new_err(err.to_string()))?;
-                PyArray::from_array_ref(boxes_at_level::<Float64Type>(boxes, index.clone()))
+                PyArray::from_array_ref(slice_to_arrow::<Float64Type>(boxes, index.clone()))
                     .to_arro3(py)
             }
         }
@@ -472,21 +469,4 @@ impl PyRTree {
     fn boxes_at_level<'py>(&'py self, py: Python<'py>, level: usize) -> PyResult<PyObject> {
         self.0.boxes_at_level(py, level)
     }
-}
-
-fn boxes_at_level<T: ArrowPrimitiveType>(
-    boxes: &[T::Native],
-    owner: Arc<dyn Allocation>,
-) -> ArrayRef {
-    let ptr = NonNull::new(boxes.as_ptr() as *mut _).unwrap();
-    let len = boxes.len();
-    let bytes_len = len * T::Native::get_byte_width();
-
-    // Safety:
-    // ptr is a non-null pointer owned by the RTree, which is passed in as the Allocation
-    let buffer = unsafe { Buffer::from_custom_allocation(ptr, bytes_len, owner) };
-    Arc::new(PrimitiveArray::<T>::new(
-        ScalarBuffer::new(buffer, 0, len),
-        None,
-    ))
 }

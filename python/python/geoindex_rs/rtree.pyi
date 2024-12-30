@@ -4,7 +4,7 @@ import sys
 from typing import Literal, Union
 
 import numpy as np
-from arro3.core import Array
+from arro3.core import Array, RecordBatch
 from arro3.core.types import ArrowArrayExportable
 
 if sys.version_info > (3, 12):
@@ -26,6 +26,7 @@ def intersection_candidates(
     left: IndexLike,
     right: IndexLike,
 ) -> Array: ...
+def partitions(index: IndexLike) -> RecordBatch: ...
 
 class RTreeMetadata:
     def __repr__(self) -> str: ...
