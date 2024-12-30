@@ -127,23 +127,8 @@ pub trait RTreeIndex<N: IndexableNum>: Sized {
         )
     }
 
-    /// Returns an iterator over the indexes of objects in this and another tree that intersect.
-    ///
-    /// Each returned object is of the form `(usize, usize)`, where the first is the positional
-    /// index of the "left" tree and the second is the index of the "right" tree.
-    fn intersection_candidates_with_other_tree<'a>(
-        &'a self,
-        other: &'a impl RTreeIndex<N>,
-    ) -> impl Iterator<Item = (usize, usize)> + 'a {
-        IntersectionIterator::from_trees(self, other)
-    }
-
-    /// Access the root node of the RTree for manual traversal.
-    fn root(&self) -> Node<'_, N, Self> {
-        Node::from_root(self)
-    }
-
     /// Search items in order of distance from the given point.
+    ///
     /// ```
     /// use geo_index::rtree::{RTreeBuilder, RTreeIndex, RTreeRef};
     /// use geo_index::rtree::sort::HilbertSort;
@@ -226,6 +211,32 @@ pub trait RTreeIndex<N: IndexableNum>: Sized {
         }
 
         results
+    }
+
+    /// Search items in order of distance from the given coordinate.
+    fn neighbors_coord(
+        &self,
+        coord: &impl CoordTrait<T = N>,
+        max_results: Option<usize>,
+        max_distance: Option<N>,
+    ) -> Vec<usize> {
+        self.neighbors(coord.x(), coord.y(), max_results, max_distance)
+    }
+
+    /// Returns an iterator over the indexes of objects in this and another tree that intersect.
+    ///
+    /// Each returned object is of the form `(usize, usize)`, where the first is the positional
+    /// index of the "left" tree and the second is the index of the "right" tree.
+    fn intersection_candidates_with_other_tree<'a>(
+        &'a self,
+        other: &'a impl RTreeIndex<N>,
+    ) -> impl Iterator<Item = (usize, usize)> + 'a {
+        IntersectionIterator::from_trees(self, other)
+    }
+
+    /// Access the root node of the RTree for manual traversal.
+    fn root(&self) -> Node<'_, N, Self> {
+        Node::from_root(self)
     }
 }
 
