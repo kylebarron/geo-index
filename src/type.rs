@@ -1,7 +1,6 @@
 use std::fmt::Debug;
 
-use num_traits::{Bounded, Num, NumCast, ToPrimitive};
-use ordered_float::OrderedFloat;
+use num_traits::{Bounded, Num, NumCast};
 
 use crate::kdtree::constants::KDBUSH_MAGIC;
 use crate::GeoIndexError;
@@ -13,16 +12,7 @@ use crate::GeoIndexError;
 /// JavaScript ([rtree](https://github.com/mourner/flatbush),
 /// [kdtree](https://github.com/mourner/kdbush))
 pub trait IndexableNum:
-    private::Sealed
-    + Num
-    + NumCast
-    + ToPrimitive
-    + PartialOrd
-    + Debug
-    + Send
-    + Sync
-    + bytemuck::Pod
-    + Bounded
+    private::Sealed + Num + NumCast + PartialOrd + Debug + Send + Sync + bytemuck::Pod + Bounded
 {
     /// The type index to match the array order of `ARRAY_TYPES` in flatbush JS
     const TYPE_INDEX: u8;
@@ -66,16 +56,6 @@ impl IndexableNum for f32 {
 }
 
 impl IndexableNum for f64 {
-    const TYPE_INDEX: u8 = 8;
-    const BYTES_PER_ELEMENT: usize = 8;
-}
-
-impl IndexableNum for OrderedFloat<f32> {
-    const TYPE_INDEX: u8 = 7;
-    const BYTES_PER_ELEMENT: usize = 4;
-}
-
-impl IndexableNum for OrderedFloat<f64> {
     const TYPE_INDEX: u8 = 8;
     const BYTES_PER_ELEMENT: usize = 8;
 }
@@ -148,8 +128,6 @@ impl CoordType {
 
 // https://rust-lang.github.io/api-guidelines/future-proofing.html#sealed-traits-protect-against-downstream-implementations-c-sealed
 mod private {
-    use ordered_float::OrderedFloat;
-
     pub trait Sealed {}
 
     impl Sealed for i8 {}
@@ -160,6 +138,4 @@ mod private {
     impl Sealed for u32 {}
     impl Sealed for f32 {}
     impl Sealed for f64 {}
-    impl Sealed for OrderedFloat<f32> {}
-    impl Sealed for OrderedFloat<f64> {}
 }
