@@ -5,7 +5,7 @@ use geo_index::rtree::util::f64_box_to_f32;
 use geo_index::rtree::{RTree, RTreeBuilder, RTreeIndex};
 use geo_index::IndexableNum;
 use rstar::primitives::{GeomWithData, Rectangle};
-use rstar::{RTree, AABB};
+use rstar::AABB;
 use std::fs::read;
 
 fn load_data() -> Vec<f64> {
@@ -52,8 +52,8 @@ fn construct_rtree_f32_with_cast(boxes_buf: &[f64]) -> RTree<f32> {
 
 fn construct_rstar(
     rect_vec: Vec<GeomWithData<Rectangle<(f64, f64)>, usize>>,
-) -> RTree<GeomWithData<Rectangle<(f64, f64)>, usize>> {
-    RTree::bulk_load(rect_vec)
+) -> rstar::RTree<GeomWithData<Rectangle<(f64, f64)>, usize>> {
+    rstar::RTree::bulk_load(rect_vec)
 }
 
 pub fn criterion_benchmark(c: &mut Criterion) {

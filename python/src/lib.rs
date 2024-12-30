@@ -1,3 +1,5 @@
+#![deny(clippy::undocumented_unsafe_blocks)]
+
 mod coord_type;
 mod kdtree;
 mod rtree;

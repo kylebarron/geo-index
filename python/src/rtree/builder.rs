@@ -1,18 +1,21 @@
 use arrow_array::builder::UInt32Builder;
 use arrow_array::cast::AsArray;
 use arrow_array::types::{Float32Type, Float64Type};
+use arrow_array::{ArrayRef, ArrowPrimitiveType, PrimitiveArray};
+use arrow_buffer::alloc::Allocation;
+use arrow_buffer::{ArrowNativeType, Buffer, ScalarBuffer};
 use arrow_cast::cast;
 use arrow_schema::DataType;
 use geo_index::rtree::sort::{HilbertSort, STRSort};
 use geo_index::rtree::util::f64_box_to_f32;
 use geo_index::rtree::{RTree, RTreeBuilder, RTreeIndex, DEFAULT_RTREE_NODE_SIZE};
-use numpy::{PyArray1, PyArrayMethods};
 use pyo3::exceptions::{PyIndexError, PyValueError};
 use pyo3::ffi;
 use pyo3::prelude::*;
 use pyo3::pybacked::PyBackedStr;
 use pyo3_arrow::PyArray;
 use std::os::raw::c_int;
+use std::ptr::NonNull;
 use std::sync::Arc;
 
 use crate::coord_type::CoordType;
@@ -312,17 +315,17 @@ impl PyRTreeBuilder {
             .take()
             .ok_or(PyValueError::new_err("Cannot call finish multiple times."))?;
         let out = match (inner, method) {
-            (PyRTreeBuilderInner::Float32(tree), RTreeMethod::Hilbert) => {
-                PyRTree(PyRTreeInner::Float32(tree.finish::<HilbertSort>()))
-            }
+            (PyRTreeBuilderInner::Float32(tree), RTreeMethod::Hilbert) => PyRTree(
+                PyRTreeInner::Float32(Arc::new(tree.finish::<HilbertSort>())),
+            ),
             (PyRTreeBuilderInner::Float32(tree), RTreeMethod::STR) => {
-                PyRTree(PyRTreeInner::Float32(tree.finish::<STRSort>()))
+                PyRTree(PyRTreeInner::Float32(Arc::new(tree.finish::<STRSort>())))
             }
-            (PyRTreeBuilderInner::Float64(tree), RTreeMethod::Hilbert) => {
-                PyRTree(PyRTreeInner::Float64(tree.finish::<HilbertSort>()))
-            }
+            (PyRTreeBuilderInner::Float64(tree), RTreeMethod::Hilbert) => PyRTree(
+                PyRTreeInner::Float64(Arc::new(tree.finish::<HilbertSort>())),
+            ),
             (PyRTreeBuilderInner::Float64(tree), RTreeMethod::STR) => {
-                PyRTree(PyRTreeInner::Float64(tree.finish::<STRSort>()))
+                PyRTree(PyRTreeInner::Float64(Arc::new(tree.finish::<STRSort>())))
             }
         };
         Ok(out)
@@ -330,8 +333,8 @@ impl PyRTreeBuilder {
 }
 
 enum PyRTreeInner {
-    Float32(RTree<f32>),
-    Float64(RTree<f64>),
+    Float32(Arc<RTree<f32>>),
+    Float64(Arc<RTree<f64>>),
 }
 
 #[pyclass(name = "RTree")]
@@ -367,16 +370,13 @@ impl PyRTreeInner {
     }
 
     fn num_bytes(&self) -> usize {
-        match self {
-            Self::Float32(index) => index.as_ref().len(),
-            Self::Float64(index) => index.as_ref().len(),
-        }
+        self.buffer().len()
     }
 
     fn buffer(&self) -> &[u8] {
         match self {
-            Self::Float32(index) => index.as_ref(),
-            Self::Float64(index) => index.as_ref(),
+            Self::Float32(index) => index.as_ref().as_ref(),
+            Self::Float64(index) => index.as_ref().as_ref(),
         }
     }
 
@@ -386,23 +386,15 @@ impl PyRTreeInner {
                 let boxes = index
                     .boxes_at_level(level)
                     .map_err(|err| PyIndexError::new_err(err.to_string()))?;
-                let array = PyArray1::from_slice(py, boxes);
-                Ok(array
-                    .reshape([boxes.len() / 4, 4])?
-                    .into_pyobject(py)?
-                    .into_any()
-                    .unbind())
+                PyArray::from_array_ref(boxes_at_level::<Float32Type>(boxes, index.clone()))
+                    .to_arro3(py)
             }
             Self::Float64(index) => {
                 let boxes = index
                     .boxes_at_level(level)
                     .map_err(|err| PyIndexError::new_err(err.to_string()))?;
-                let array = PyArray1::from_slice(py, boxes);
-                Ok(array
-                    .reshape([boxes.len() / 4, 4])?
-                    .into_pyobject(py)?
-                    .into_any()
-                    .unbind())
+                PyArray::from_array_ref(boxes_at_level::<Float64Type>(boxes, index.clone()))
+                    .to_arro3(py)
             }
         }
     }
@@ -480,4 +472,21 @@ impl PyRTree {
     fn boxes_at_level<'py>(&'py self, py: Python<'py>, level: usize) -> PyResult<PyObject> {
         self.0.boxes_at_level(py, level)
     }
+}
+
+fn boxes_at_level<T: ArrowPrimitiveType>(
+    boxes: &[T::Native],
+    owner: Arc<dyn Allocation>,
+) -> ArrayRef {
+    let ptr = NonNull::new(boxes.as_ptr() as *mut _).unwrap();
+    let len = boxes.len();
+    let bytes_len = len * T::Native::get_byte_width();
+
+    // Safety:
+    // ptr is a non-null pointer owned by the RTree, which is passed in as the Allocation
+    let buffer = unsafe { Buffer::from_custom_allocation(ptr, bytes_len, owner) };
+    Arc::new(PrimitiveArray::<T>::new(
+        ScalarBuffer::new(buffer, 0, len),
+        None,
+    ))
 }

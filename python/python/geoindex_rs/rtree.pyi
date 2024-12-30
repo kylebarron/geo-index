@@ -59,3 +59,9 @@ class RTree(Buffer):
     def num_levels(self) -> int: ...
     @property
     def num_bytes(self) -> int: ...
+    def boxes_at_level(self, level: int) -> Array:
+        """
+
+        This is shared zero-copy from Rust.
+
+        """
