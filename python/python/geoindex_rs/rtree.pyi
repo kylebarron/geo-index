@@ -27,6 +27,9 @@ def intersection_candidates(
     right: IndexLike,
 ) -> Array: ...
 
+class RTreeMetadata:
+    def __repr__(self) -> str: ...
+
 class RTreeBuilder:
     def __init__(
         self,
@@ -42,8 +45,10 @@ class RTreeBuilder:
         max_y: ArrayLike | None = None,
     ) -> Array: ...
     def finish(self, method: Literal["hilbert", "str", None] = None) -> RTree: ...
+    def __repr__(self) -> str: ...
 
 class RTree(Buffer):
+    def __repr__(self) -> str: ...
     @property
     def num_items(self) -> int: ...
     @property
@@ -54,3 +59,10 @@ class RTree(Buffer):
     def num_levels(self) -> int: ...
     @property
     def num_bytes(self) -> int: ...
+    def boxes_at_level(self, level: int) -> Array:
+        """
+
+        This is shared as a zero-copy view from Rust. Note that it will keep the entire
+        index memory alive until the returned array is garbage collected.
+
+        """

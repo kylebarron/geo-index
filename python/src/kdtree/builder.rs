@@ -5,7 +5,7 @@ use arrow_array::cast::AsArray;
 use arrow_array::types::{Float32Type, Float64Type};
 use arrow_cast::cast;
 use arrow_schema::DataType;
-use geo_index::kdtree::{KDTree, KDTreeBuilder, DEFAULT_KDTREE_NODE_SIZE};
+use geo_index::kdtree::{KDTree, KDTreeBuilder, KDTreeIndex, DEFAULT_KDTREE_NODE_SIZE};
 use pyo3::exceptions::PyValueError;
 use pyo3::ffi;
 use pyo3::prelude::*;
@@ -17,6 +17,22 @@ use crate::coord_type::CoordType;
 enum PyKDTreeBuilderInner {
     Float32(KDTreeBuilder<f32>),
     Float64(KDTreeBuilder<f64>),
+}
+
+impl PyKDTreeBuilderInner {
+    fn node_size(&self) -> u16 {
+        match self {
+            Self::Float32(builder) => builder.metadata().node_size(),
+            Self::Float64(builder) => builder.metadata().node_size(),
+        }
+    }
+
+    fn num_items(&self) -> u32 {
+        match self {
+            Self::Float32(builder) => builder.metadata().num_items(),
+            Self::Float64(builder) => builder.metadata().num_items(),
+        }
+    }
 }
 
 #[pyclass(name = "KDTreeBuilder")]
@@ -35,6 +51,18 @@ impl PyKDTreeBuilder {
             CoordType::Float64 => Self(Some(PyKDTreeBuilderInner::Float64(
                 KDTreeBuilder::<f64>::new_with_node_size(num_items, node_size),
             ))),
+        }
+    }
+
+    fn __repr__(&self) -> String {
+        if let Some(inner) = self.0.as_ref() {
+            format!(
+                "KDTreeBuilder(num_items={}, node_size={})",
+                inner.num_items(),
+                inner.node_size()
+            )
+        } else {
+            "KDTreeBuilder(finished)".to_string()
         }
     }
 
@@ -166,6 +194,20 @@ enum PyKDTreeInner {
 }
 
 impl PyKDTreeInner {
+    fn node_size(&self) -> u16 {
+        match self {
+            Self::Float32(index) => index.node_size(),
+            Self::Float64(index) => index.node_size(),
+        }
+    }
+
+    fn num_items(&self) -> u32 {
+        match self {
+            Self::Float32(index) => index.num_items(),
+            Self::Float64(index) => index.num_items(),
+        }
+    }
+
     fn buffer(&self) -> &[u8] {
         match self {
             Self::Float32(index) => index.as_ref(),
@@ -202,5 +244,13 @@ impl PyKDTree {
 
     pub unsafe fn __releasebuffer__(&self, _view: *mut ffi::Py_buffer) {
         // is there anything to do here?
+    }
+
+    fn __repr__(&self) -> String {
+        format!(
+            "KDTree(num_items={}, node_size={})",
+            self.0.num_items(),
+            self.0.node_size()
+        )
     }
 }

@@ -53,6 +53,11 @@ impl<N: IndexableNum> KDTreeBuilder<N> {
         }
     }
 
+    /// Access the underlying [KDTreeMetadata] of this instance.
+    pub fn metadata(&self) -> &KDTreeMetadata<N> {
+        &self.metadata
+    }
+
     /// Add a point to the KDTree.
     ///
     /// This returns a positional index that provides a lookup back into the original data.
