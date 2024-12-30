@@ -240,6 +240,7 @@ pub trait RTreeIndex<N: IndexableNum>: Sized {
     }
 }
 
+/// A wrapper around a node and its distance for use in the priority queue.
 #[derive(Debug, Clone, Copy, PartialEq)]
 struct NeighborNode<N: IndexableNum> {
     id: usize,
