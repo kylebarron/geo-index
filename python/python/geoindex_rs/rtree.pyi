@@ -62,6 +62,7 @@ class RTree(Buffer):
     def boxes_at_level(self, level: int) -> Array:
         """
 
-        This is shared zero-copy from Rust.
+        This is shared as a zero-copy view from Rust. Note that it will keep the entire
+        index memory alive until the returned array is garbage collected.
 
         """
