@@ -513,6 +513,7 @@ dependencies = [
  "arrow-buffer",
  "arrow-cast",
  "arrow-schema",
+ "bytemuck",
  "bytes",
  "geo-index",
  "numpy",
