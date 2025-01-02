@@ -20,38 +20,3 @@ or with Conda:
 ```
 conda install geoindex-rs
 ```
-
-## API
-
-### `KDTree`
-
-#### `KDTree.from_interleaved`
-
-Construct a KDTree from a 2D numpy array of `x` and `y`. This must have two dimensions, with the second dimension having length two.
-
-#### `KDTree.from_separated`
-
-Construct a KDTree from two separated 1D numpy arrays of `x` and `y`. Each array must have one dimension and both arrays must have the same length.
-
-#### `KDTree.range`
-
-Search the index for items within a given bounding box.
-
-Arguments:
-
-- `min_x`: float
-- `min_y`: float
-- `max_x`: float
-- `max_y`: float
-
-Returns indices of found items
-
-#### `KDTree.within`
-
-Search the index for items within a given radius.
-
-- `qx` (`float`): x value of query point
-- `qy` (`float`): y value of query point
-- `r` (`float`): radius
-
-Returns indices of found items
