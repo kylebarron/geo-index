@@ -151,14 +151,14 @@ pub trait RTreeIndex<N: IndexableNum>: Sized {
         y: N,
         max_results: Option<usize>,
         max_distance: Option<N>,
-    ) -> Vec<usize> {
+    ) -> Vec<u32> {
         let boxes = self.boxes();
         let indices = self.indices();
         let max_distance = max_distance.unwrap_or(N::max_value());
 
         let mut outer_node_index = Some(boxes.len() - 4);
         let mut queue = BinaryHeap::new();
-        let mut results = vec![];
+        let mut results: Vec<u32> = vec![];
         let max_dist_squared = max_distance * max_distance;
 
         'outer: while let Some(node_index) = outer_node_index {
@@ -199,7 +199,7 @@ pub trait RTreeIndex<N: IndexableNum>: Sized {
                     break 'outer;
                 }
                 let item = queue.pop().unwrap();
-                results.push(item.0.id >> 1);
+                results.push((item.0.id >> 1).try_into().unwrap());
                 if max_results.is_some_and(|max_results| results.len() == max_results) {
                     break 'outer;
                 }
@@ -221,7 +221,7 @@ pub trait RTreeIndex<N: IndexableNum>: Sized {
         coord: &impl CoordTrait<T = N>,
         max_results: Option<usize>,
         max_distance: Option<N>,
-    ) -> Vec<usize> {
+    ) -> Vec<u32> {
         self.neighbors(coord.x(), coord.y(), max_results, max_distance)
     }
 

@@ -41,7 +41,9 @@ impl<N: IndexableNum> KDTreeMetadata<N> {
         }
     }
 
-    fn try_new_from_slice(data: &[u8]) -> Result<Self> {
+    /// Construct a new [`KDTreeMetadata`] from an existing byte slice conforming to the "kdbush
+    /// ABI", such as what [`KDTreeBuilder`] generates.
+    pub fn from_slice(data: &[u8]) -> Result<Self> {
         if data[0] != KDBUSH_MAGIC {
             return Err(GeoIndexError::General(
                 "Data not in Kdbush format.".to_string(),
@@ -108,7 +110,8 @@ impl<N: IndexableNum> KDTreeMetadata<N> {
             + self.pad_coords_byte_size
     }
 
-    pub(crate) fn coords_slice<'a>(&self, data: &'a [u8]) -> &'a [N] {
+    /// Access the slice of coordinates from the data buffer this metadata represents.
+    pub fn coords_slice<'a>(&self, data: &'a [u8]) -> &'a [N] {
         let coords_byte_start =
             KDBUSH_HEADER_SIZE + self.indices_byte_size + self.pad_coords_byte_size;
         let coords_byte_end = KDBUSH_HEADER_SIZE
@@ -118,7 +121,8 @@ impl<N: IndexableNum> KDTreeMetadata<N> {
         cast_slice(&data[coords_byte_start..coords_byte_end])
     }
 
-    pub(crate) fn indices_slice<'a>(&self, data: &'a [u8]) -> Indices<'a> {
+    /// Access the slice of indices from the data buffer this metadata represents.
+    pub fn indices_slice<'a>(&self, data: &'a [u8]) -> Indices<'a> {
         let indices_buf = &data[KDBUSH_HEADER_SIZE..KDBUSH_HEADER_SIZE + self.indices_byte_size];
 
         if self.num_items < 65536 {
@@ -168,7 +172,27 @@ impl<'a, N: IndexableNum> KDTreeRef<'a, N> {
     /// JavaScript `KDBush` object.
     pub fn try_new<T: AsRef<[u8]>>(data: &'a T) -> Result<Self> {
         let data = data.as_ref();
-        let metadata = KDTreeMetadata::try_new_from_slice(data)?;
+        let metadata = KDTreeMetadata::from_slice(data)?;
+        let coords = metadata.coords_slice(data);
+        let indices = metadata.indices_slice(data);
+
+        Ok(Self {
+            coords,
+            indices,
+            metadata,
+        })
+    }
+
+    /// Construct a new KDTreeRef without doing any validation
+    ///
+    /// # Safety
+    ///
+    /// `metadata` must be valid for this data buffer.
+    pub unsafe fn new_unchecked<T: AsRef<[u8]>>(
+        data: &'a T,
+        metadata: KDTreeMetadata<N>,
+    ) -> Result<Self> {
+        let data = data.as_ref();
         let coords = metadata.coords_slice(data);
         let indices = metadata.indices_slice(data);
 

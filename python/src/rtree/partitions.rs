@@ -2,38 +2,31 @@ use std::sync::Arc;
 
 use arrow_array::builder::{UInt16Builder, UInt32Builder};
 use arrow_array::types::{UInt16Type, UInt32Type};
-use arrow_array::{ArrayRef, RecordBatch};
+use arrow_array::{ArrayRef, RecordBatch, UInt16Array, UInt32Array};
 use arrow_buffer::alloc::Allocation;
 use arrow_schema::{Field, Schema};
 use geo_index::indices::Indices;
-use geo_index::rtree::{RTreeIndex, RTreeRef};
-use geo_index::CoordType;
+use geo_index::rtree::RTreeIndex;
 use pyo3::prelude::*;
-use pyo3_arrow::buffer::PyArrowBuffer;
-use pyo3_arrow::PyRecordBatch;
+use pyo3_arrow::{PyArray, PyRecordBatch};
 
+use crate::rtree::boxes_at_level::boxes_at_level;
+use crate::rtree::input::PyRTreeRef;
 use crate::util::slice_to_arrow;
 
 #[pyfunction]
-pub fn partitions(py: Python, index: PyArrowBuffer) -> PyResult<PyObject> {
-    let buffer = index.into_inner();
-    let owner = Arc::new(buffer.clone());
-    let slice = buffer.as_slice();
-    let coord_type = CoordType::from_buffer(&slice).unwrap();
-    let (indices, partition_ids) = match coord_type {
-        CoordType::Float32 => {
-            let tree = RTreeRef::<f32>::try_new(&slice).unwrap();
-            let indices = indices_to_arrow(tree.indices(), tree.num_items(), owner);
+pub fn partitions(py: Python, index: PyRTreeRef) -> PyResult<PyObject> {
+    let (indices, partition_ids) = match index {
+        PyRTreeRef::Float32(tree) => {
+            let indices = indices_to_arrow(tree.indices(), tree.num_items(), tree.buffer().clone());
             let partition_ids = partition_id_array(tree.num_items(), tree.node_size());
             (indices, partition_ids)
         }
-        CoordType::Float64 => {
-            let tree = RTreeRef::<f64>::try_new(&slice).unwrap();
-            let indices = indices_to_arrow(tree.indices(), tree.num_items(), owner);
+        PyRTreeRef::Float64(tree) => {
+            let indices = indices_to_arrow(tree.indices(), tree.num_items(), tree.buffer().clone());
             let partition_ids = partition_id_array(tree.num_items(), tree.node_size());
             (indices, partition_ids)
         }
-        _ => todo!("Only f32 and f64 implemented so far"),
     };
 
     let fields = vec![
@@ -85,4 +78,26 @@ fn partition_id_array(num_items: u32, node_size: u16) -> ArrayRef {
 
         Arc::new(output_array.finish())
     }
+}
+
+// Since for now we assume that the partition level is the node level, we select the boxes at level
+// 1.
+#[pyfunction]
+pub fn partition_boxes(py: Python, index: PyRTreeRef) -> PyResult<PyObject> {
+    let array = boxes_at_level(py, index, 1)?.extract::<PyArray>(py)?;
+    let (array, _field) = array.into_inner();
+
+    let partition_ids: ArrayRef = if array.len() < u16::MAX as _ {
+        Arc::new(UInt16Array::from_iter_values(0..array.len() as _))
+    } else {
+        Arc::new(UInt32Array::from_iter_values(0..array.len() as _))
+    };
+
+    let fields = vec![
+        Field::new("boxes", array.data_type().clone(), false),
+        Field::new("partition_id", partition_ids.data_type().clone(), false),
+    ];
+    let schema = Schema::new(fields);
+    PyRecordBatch::new(RecordBatch::try_new(schema.into(), vec![array, partition_ids]).unwrap())
+        .to_arro3(py)
 }

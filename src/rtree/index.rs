@@ -45,7 +45,9 @@ impl<N: IndexableNum> RTreeMetadata<N> {
         }
     }
 
-    fn try_new_from_slice(data: &[u8]) -> Result<Self> {
+    /// Construct a new [`RTreeMetadata`] from an existing byte slice conforming to the "flatbush
+    /// ABI", such as what [`RTreeBuilder`] generates.
+    pub fn from_slice(data: &[u8]) -> Result<Self> {
         let magic = data[0];
         if magic != 0xfb {
             return Err(GeoIndexError::General(
@@ -123,11 +125,13 @@ impl<N: IndexableNum> RTreeMetadata<N> {
         8 + self.nodes_byte_length + self.indices_byte_length
     }
 
-    pub(crate) fn boxes_slice<'a>(&self, data: &'a [u8]) -> &'a [N] {
+    /// Access the slice of boxes from the data buffer this metadata represents.
+    pub fn boxes_slice<'a>(&self, data: &'a [u8]) -> &'a [N] {
         cast_slice(&data[8..8 + self.nodes_byte_length])
     }
 
-    pub(crate) fn indices_slice<'a>(&self, data: &'a [u8]) -> Indices<'a> {
+    /// Access the slice of indices from the data buffer this metadata represents.
+    pub fn indices_slice<'a>(&self, data: &'a [u8]) -> Indices<'a> {
         let indices_buf = &data
             [8 + self.nodes_byte_length..8 + self.nodes_byte_length + self.indices_byte_length];
         Indices::new(indices_buf, self.num_nodes)
@@ -178,7 +182,27 @@ impl<'a, N: IndexableNum> RTreeRef<'a, N> {
     /// of the JavaScript `Flatbush` object.
     pub fn try_new<T: AsRef<[u8]>>(data: &'a T) -> Result<Self> {
         let data = data.as_ref();
-        let metadata = RTreeMetadata::try_new_from_slice(data)?;
+        let metadata = RTreeMetadata::from_slice(data)?;
+        let boxes = metadata.boxes_slice(data);
+        let indices = metadata.indices_slice(data);
+
+        Ok(Self {
+            boxes,
+            indices,
+            metadata,
+        })
+    }
+
+    /// Construct a new RTreeRef without doing any validation
+    ///
+    /// # Safety
+    ///
+    /// `metadata` must be valid for this data buffer.
+    pub unsafe fn new_unchecked<T: AsRef<[u8]>>(
+        data: &'a T,
+        metadata: RTreeMetadata<N>,
+    ) -> Result<Self> {
+        let data = data.as_ref();
         let boxes = metadata.boxes_slice(data);
         let indices = metadata.indices_slice(data);
 

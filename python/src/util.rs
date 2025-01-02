@@ -1,10 +1,12 @@
 use std::ptr::NonNull;
 use std::sync::Arc;
 
-use arrow_array::{ArrayRef, ArrowPrimitiveType, PrimitiveArray};
+use arrow_array::{ArrayRef, ArrowPrimitiveType, FixedSizeListArray, PrimitiveArray};
 use arrow_buffer::alloc::Allocation;
 use arrow_buffer::{ArrowNativeType, Buffer, ScalarBuffer};
+use arrow_schema::Field;
 
+// TODO: in the future, refactor this to use `Bytes::from_owner` for improved safety.
 pub(crate) fn slice_to_arrow<T: ArrowPrimitiveType>(
     slice: &[T::Native],
     owner: Arc<dyn Allocation>,
@@ -18,6 +20,19 @@ pub(crate) fn slice_to_arrow<T: ArrowPrimitiveType>(
     let buffer = unsafe { Buffer::from_custom_allocation(ptr, bytes_len, owner) };
     Arc::new(PrimitiveArray::<T>::new(
         ScalarBuffer::new(buffer, 0, len),
+        None,
+    ))
+}
+
+pub(crate) fn boxes_to_arrow<T: ArrowPrimitiveType>(
+    slice: &[T::Native],
+    owner: Arc<dyn Allocation>,
+) -> ArrayRef {
+    let values_array = slice_to_arrow::<T>(slice, owner);
+    Arc::new(FixedSizeListArray::new(
+        Arc::new(Field::new("item", values_array.data_type().clone(), false)),
+        4,
+        values_array,
         None,
     ))
 }
