@@ -1,5 +1,5 @@
 import numpy as np
-from geoindex_rs import rtree
+from geoindex_rs import rtree as rt
 
 
 def generate_random_boxes():
@@ -10,9 +10,9 @@ def generate_random_boxes():
 
 def test_buffer_protocol():
     boxes = generate_random_boxes()
-    builder = rtree.RTreeBuilder(len(boxes))
+    builder = rt.RTreeBuilder(len(boxes))
     builder.add(boxes)
     initial = builder.finish()
     # construct a memoryview transparently
     view = memoryview(initial)
-    assert initial.num_bytes == view.nbytes
+    assert initial.metadata.num_bytes == view.nbytes

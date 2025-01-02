@@ -112,7 +112,7 @@ impl PyRTreeMetadata {
     }
 
     #[getter]
-    fn data_buffer_length(&self) -> usize {
+    fn num_bytes(&self) -> usize {
         self.0.data_buffer_length()
     }
 }
