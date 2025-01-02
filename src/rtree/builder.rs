@@ -142,6 +142,14 @@ impl<N: IndexableNum> RTreeBuilder<N> {
 
         let (boxes, mut indices) = split_data_borrow(&mut self.data, &self.metadata);
 
+        if self.metadata.num_items() == 1 {
+            // Only one item, we don't even have a root node to fill
+            return RTree {
+                buffer: self.data,
+                metadata: self.metadata,
+            };
+        }
+
         if self.metadata.num_items() as usize <= self.metadata.node_size() as usize {
             // only one node, skip sorting and just fill the root box
             boxes[self.pos] = self.min_x;
@@ -241,4 +249,21 @@ fn split_data_borrow<'a, N: IndexableNum>(
     let boxes = cast_slice_mut(boxes_buf);
     let indices = MutableIndices::new(indices_buf, metadata.num_nodes());
     (boxes, indices)
+}
+
+#[cfg(test)]
+mod test {
+    use crate::rtree::sort::HilbertSort;
+    use crate::rtree::RTreeIndex;
+
+    use super::*;
+
+    #[test]
+    fn does_not_panic_length_1_tree() {
+        let mut builder = RTreeBuilder::<f64>::new(1);
+        builder.add(-20., -20., 1020., 1020.);
+        let tree = builder.finish::<HilbertSort>();
+        let result = tree.search(0., 0., 0., 0.);
+        assert_eq!(result, vec![0]);
+    }
 }
