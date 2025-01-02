@@ -1,24 +1,21 @@
 use arrow_array::builder::UInt32Builder;
 use arrow_array::cast::AsArray;
 use arrow_array::types::{Float32Type, Float64Type};
-use arrow_array::{ArrayRef, ArrowPrimitiveType, PrimitiveArray};
-use arrow_buffer::alloc::Allocation;
-use arrow_buffer::{ArrowNativeType, Buffer, ScalarBuffer};
 use arrow_cast::cast;
 use arrow_schema::DataType;
 use geo_index::rtree::sort::{HilbertSort, STRSort};
 use geo_index::rtree::util::f64_box_to_f32;
 use geo_index::rtree::{RTree, RTreeBuilder, RTreeIndex, DEFAULT_RTREE_NODE_SIZE};
-use pyo3::exceptions::{PyIndexError, PyValueError};
+use pyo3::exceptions::PyValueError;
 use pyo3::ffi;
 use pyo3::prelude::*;
 use pyo3::pybacked::PyBackedStr;
 use pyo3_arrow::PyArray;
 use std::os::raw::c_int;
-use std::ptr::NonNull;
 use std::sync::Arc;
 
 use crate::coord_type::CoordType;
+use crate::rtree::metadata::PyRTreeMetadata;
 
 #[allow(clippy::upper_case_acronyms)]
 pub enum RTreeMethod {
@@ -348,13 +345,6 @@ impl PyRTreeInner {
         }
     }
 
-    fn num_nodes(&self) -> usize {
-        match self {
-            Self::Float32(index) => index.num_nodes(),
-            Self::Float64(index) => index.num_nodes(),
-        }
-    }
-
     fn node_size(&self) -> u16 {
         match self {
             Self::Float32(index) => index.node_size(),
@@ -362,40 +352,10 @@ impl PyRTreeInner {
         }
     }
 
-    fn num_levels(&self) -> usize {
-        match self {
-            Self::Float32(index) => index.num_levels(),
-            Self::Float64(index) => index.num_levels(),
-        }
-    }
-
-    fn num_bytes(&self) -> usize {
-        self.buffer().len()
-    }
-
     fn buffer(&self) -> &[u8] {
         match self {
             Self::Float32(index) => index.as_ref().as_ref(),
             Self::Float64(index) => index.as_ref().as_ref(),
-        }
-    }
-
-    fn boxes_at_level<'py>(&'py self, py: Python<'py>, level: usize) -> PyResult<PyObject> {
-        match self {
-            Self::Float32(index) => {
-                let boxes = index
-                    .boxes_at_level(level)
-                    .map_err(|err| PyIndexError::new_err(err.to_string()))?;
-                PyArray::from_array_ref(boxes_at_level::<Float32Type>(boxes, index.clone()))
-                    .to_arro3(py)
-            }
-            Self::Float64(index) => {
-                let boxes = index
-                    .boxes_at_level(level)
-                    .map_err(|err| PyIndexError::new_err(err.to_string()))?;
-                PyArray::from_array_ref(boxes_at_level::<Float64Type>(boxes, index.clone()))
-                    .to_arro3(py)
-            }
         }
     }
 }
@@ -435,58 +395,11 @@ impl PyRTree {
         )
     }
 
-    /// The total number of items contained in this RTree.
     #[getter]
-    pub fn num_items(&self) -> u32 {
-        self.0.num_items()
+    pub fn metadata(&self) -> PyRTreeMetadata {
+        match &self.0 {
+            PyRTreeInner::Float32(tree) => tree.metadata().clone().into(),
+            PyRTreeInner::Float64(tree) => tree.metadata().clone().into(),
+        }
     }
-
-    /// The total number of nodes in this RTree, including both leaf and intermediate nodes.
-    #[getter]
-    pub fn num_nodes(&self) -> usize {
-        self.0.num_nodes()
-    }
-
-    /// The maximum number of elements in each node.
-    #[getter]
-    pub fn node_size(&self) -> u16 {
-        self.0.node_size()
-    }
-
-    /// The height of the tree
-    #[getter]
-    fn num_levels(&self) -> usize {
-        self.0.num_levels()
-    }
-
-    /// The number of bytes taken up in memory.
-    #[getter]
-    fn num_bytes(&self) -> usize {
-        self.0.num_bytes()
-    }
-
-    /// Access the bounding boxes at the given level of the tree.
-    ///
-    /// The tree is laid out from bottom to top. Level 0 is the _base_ of the tree. Each integer
-    /// higher is one level higher of the tree.
-    fn boxes_at_level<'py>(&'py self, py: Python<'py>, level: usize) -> PyResult<PyObject> {
-        self.0.boxes_at_level(py, level)
-    }
-}
-
-fn boxes_at_level<T: ArrowPrimitiveType>(
-    boxes: &[T::Native],
-    owner: Arc<dyn Allocation>,
-) -> ArrayRef {
-    let ptr = NonNull::new(boxes.as_ptr() as *mut _).unwrap();
-    let len = boxes.len();
-    let bytes_len = len * T::Native::get_byte_width();
-
-    // Safety:
-    // ptr is a non-null pointer owned by the RTree, which is passed in as the Allocation
-    let buffer = unsafe { Buffer::from_custom_allocation(ptr, bytes_len, owner) };
-    Arc::new(PrimitiveArray::<T>::new(
-        ScalarBuffer::new(buffer, 0, len),
-        None,
-    ))
 }

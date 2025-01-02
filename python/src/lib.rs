@@ -3,6 +3,7 @@
 mod coord_type;
 mod kdtree;
 mod rtree;
+pub(crate) mod util;
 
 use pyo3::exceptions::PyRuntimeWarning;
 use pyo3::intern;

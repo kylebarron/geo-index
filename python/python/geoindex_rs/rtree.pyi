@@ -4,7 +4,7 @@ import sys
 from typing import Literal, Union
 
 import numpy as np
-from arro3.core import Array
+from arro3.core import Array, RecordBatch
 from arro3.core.types import ArrowArrayExportable
 
 if sys.version_info > (3, 12):
@@ -12,9 +12,36 @@ if sys.version_info > (3, 12):
 else:
     from typing_extensions import Buffer
 
-ArrayLike = Union[np.ndarray, ArrowArrayExportable, memoryview, bytes]
-IndexLike = Union[np.ndarray, ArrowArrayExportable, memoryview, bytes, RTree]
+ArrayLike = Union[np.ndarray, ArrowArrayExportable, Buffer]
+IndexLike = Union[np.ndarray, ArrowArrayExportable, Buffer, RTree]
 
+def boxes_at_level(index: IndexLike, level: int) -> Array:
+    """
+
+    /// Access the bounding boxes at the given level of the tree.
+    ///
+    /// The tree is laid out from bottom to top. Level 0 is the _base_ of the tree. Each integer
+    /// higher is one level higher of the tree.
+
+    This is shared as a zero-copy view from Rust. Note that it will keep the entire
+    index memory alive until the returned array is garbage collected.
+
+    """
+
+def intersection_candidates(
+    left: IndexLike,
+    right: IndexLike,
+) -> RecordBatch: ...
+def neighbors(
+    index: IndexLike,
+    x: int | float,
+    y: int | float,
+    *,
+    max_results: int | None,
+    max_distance: int | float | None,
+) -> Array: ...
+def partitions(index: IndexLike) -> RecordBatch: ...
+def partition_boxes(index: IndexLike) -> RecordBatch: ...
 def search(
     index: IndexLike,
     min_x: int | float,
@@ -22,13 +49,29 @@ def search(
     max_x: int | float,
     max_y: int | float,
 ) -> Array: ...
-def intersection_candidates(
-    left: IndexLike,
-    right: IndexLike,
-) -> Array: ...
 
 class RTreeMetadata:
+    def __init__(
+        self,
+        num_items: int,
+        node_size: int = 16,
+        coord_type: Literal["float32", "float64", None] = None,
+    ) -> None: ...
+    @classmethod
+    def from_index(cls, index: IndexLike) -> RTreeMetadata: ...
     def __repr__(self) -> str: ...
+    @property
+    def num_items(self) -> int: ...
+    @property
+    def num_nodes(self) -> int: ...
+    @property
+    def node_size(self) -> int: ...
+    @property
+    def level_bounds(self) -> int: ...
+    @property
+    def num_levels(self) -> int: ...
+    @property
+    def num_bytes(self) -> int: ...
 
 class RTreeBuilder:
     def __init__(
@@ -50,19 +93,4 @@ class RTreeBuilder:
 class RTree(Buffer):
     def __repr__(self) -> str: ...
     @property
-    def num_items(self) -> int: ...
-    @property
-    def num_nodes(self) -> int: ...
-    @property
-    def node_size(self) -> int: ...
-    @property
-    def num_levels(self) -> int: ...
-    @property
-    def num_bytes(self) -> int: ...
-    def boxes_at_level(self, level: int) -> Array:
-        """
-
-        This is shared as a zero-copy view from Rust. Note that it will keep the entire
-        index memory alive until the returned array is garbage collected.
-
-        """
+    def metadata(self) -> RTreeMetadata: ...

@@ -1,11 +1,11 @@
-use geo_index::rtree::{RTreeIndex, RTreeMetadata, RTreeRef, DEFAULT_RTREE_NODE_SIZE};
+use geo_index::rtree::{RTreeIndex, RTreeMetadata, DEFAULT_RTREE_NODE_SIZE};
 use pyo3::prelude::*;
 use pyo3::types::PyType;
-use pyo3_arrow::buffer::PyArrowBuffer;
 
 use crate::coord_type::CoordType;
+use crate::rtree::input::PyRTreeRef;
 
-enum PyRTreeMetadataInner {
+pub(crate) enum PyRTreeMetadataInner {
     Float32(RTreeMetadata<f32>),
     Float64(RTreeMetadata<f64>),
 }
@@ -67,20 +67,14 @@ impl PyRTreeMetadata {
     }
 
     #[classmethod]
-    fn from_index(_cls: &Bound<PyType>, index: PyArrowBuffer) -> PyResult<Self> {
-        let buffer = index.into_inner();
-        let slice = buffer.as_slice();
-        let coord_type = geo_index::CoordType::from_buffer(&slice).unwrap();
-        match coord_type {
-            geo_index::CoordType::Float32 => {
-                let tree = RTreeRef::<f32>::try_new(&slice).unwrap();
+    fn from_index(_cls: &Bound<PyType>, index: PyRTreeRef) -> PyResult<Self> {
+        match index {
+            PyRTreeRef::Float32(tree) => {
                 Ok(Self(PyRTreeMetadataInner::Float32(tree.metadata().clone())))
             }
-            geo_index::CoordType::Float64 => {
-                let tree = RTreeRef::<f64>::try_new(&slice).unwrap();
+            PyRTreeRef::Float64(tree) => {
                 Ok(Self(PyRTreeMetadataInner::Float64(tree.metadata().clone())))
             }
-            _ => todo!("Only f32 and f64 implemented so far"),
         }
     }
 
@@ -113,7 +107,24 @@ impl PyRTreeMetadata {
     }
 
     #[getter]
-    fn data_buffer_length(&self) -> usize {
+    fn num_levels(&self) -> usize {
+        self.0.level_bounds().len()
+    }
+
+    #[getter]
+    fn num_bytes(&self) -> usize {
         self.0.data_buffer_length()
+    }
+}
+
+impl From<RTreeMetadata<f32>> for PyRTreeMetadata {
+    fn from(value: RTreeMetadata<f32>) -> Self {
+        Self(PyRTreeMetadataInner::Float32(value))
+    }
+}
+
+impl From<RTreeMetadata<f64>> for PyRTreeMetadata {
+    fn from(value: RTreeMetadata<f64>) -> Self {
+        Self(PyRTreeMetadataInner::Float64(value))
     }
 }

@@ -21,7 +21,8 @@ arrow-array = "53.0.0"
 arrow-buffer = "53.0.0"
 arrow-cast = "53.0.0"
 arrow-schema = "53.0.0"
-bytes = "1"
+bytemuck = "1.21.0"
+bytes = "1.8"
 geo-index = { path = "../", features = ["rayon"] }
 numpy = "0.23"
 pyo3 = { version = "0.23.0", features = ["macros"] }

@@ -1,51 +1,33 @@
 use std::sync::Arc;
 
-use arrow_array::{StructArray, UInt32Array};
+use arrow_array::{RecordBatch, UInt32Array};
 use arrow_buffer::ScalarBuffer;
-use arrow_schema::{DataType, Field};
-use geo_index::rtree::{RTreeIndex, RTreeRef};
-use geo_index::CoordType;
+use arrow_schema::{DataType, Field, Schema};
+use geo_index::rtree::RTreeIndex;
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
-use pyo3_arrow::buffer::PyArrowBuffer;
-use pyo3_arrow::PyArray;
+use pyo3_arrow::PyRecordBatch;
+
+use crate::rtree::input::PyRTreeRef;
 
 #[pyfunction]
 pub fn intersection_candidates(
     py: Python,
-    left: PyArrowBuffer,
-    right: PyArrowBuffer,
+    left: PyRTreeRef,
+    right: PyRTreeRef,
 ) -> PyResult<PyObject> {
-    let left = left.into_inner();
-    let left = left.as_slice();
-    let right = right.into_inner();
-    let right = right.as_slice();
-
-    let left_coord_type = CoordType::from_buffer(&left).unwrap();
-    let right_coord_type = CoordType::from_buffer(&right).unwrap();
-
-    if left_coord_type != right_coord_type {
-        return Err(PyValueError::new_err(
-            "Both indexes must have the same coordinate type".to_string(),
-        ));
-    }
-
-    let (left_candidates, right_candidates): (Vec<u32>, Vec<u32>) = match left_coord_type {
-        CoordType::Float32 => {
-            let left_tree = RTreeRef::<f32>::try_new(&left).unwrap();
-            let right_tree = RTreeRef::<f32>::try_new(&right).unwrap();
-            left_tree
-                .intersection_candidates_with_other_tree(&right_tree)
-                .unzip()
+    let (left_candidates, right_candidates): (Vec<u32>, Vec<u32>) = match (left, right) {
+        (PyRTreeRef::Float32(left_tree), PyRTreeRef::Float32(right_tree)) => left_tree
+            .intersection_candidates_with_other_tree(&right_tree)
+            .unzip(),
+        (PyRTreeRef::Float64(left_tree), PyRTreeRef::Float64(right_tree)) => left_tree
+            .intersection_candidates_with_other_tree(&right_tree)
+            .unzip(),
+        _ => {
+            return Err(PyValueError::new_err(
+                "Both indexes must have the same coordinate type".to_string(),
+            ))
         }
-        CoordType::Float64 => {
-            let left_tree = RTreeRef::<f64>::try_new(&left).unwrap();
-            let right_tree = RTreeRef::<f64>::try_new(&right).unwrap();
-            left_tree
-                .intersection_candidates_with_other_tree(&right_tree)
-                .unzip()
-        }
-        _ => todo!("Only f32 and f64 implemented so far"),
     };
 
     let left_results = Arc::new(UInt32Array::new(ScalarBuffer::from(left_candidates), None));
@@ -54,6 +36,7 @@ pub fn intersection_candidates(
         Field::new("left", DataType::UInt32, false),
         Field::new("right", DataType::UInt32, false),
     ];
-    let out = StructArray::new(fields.into(), vec![left_results, right_results], None);
-    PyArray::from_array_ref(Arc::new(out)).to_arro3(py)
+    let schema = Arc::new(Schema::new(fields));
+    let batch = RecordBatch::try_new(schema, vec![left_results, right_results]).unwrap();
+    PyRecordBatch::new(batch).to_arro3(py)
 }
