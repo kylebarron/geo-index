@@ -13,7 +13,7 @@ else:
     from typing_extensions import Buffer
 
 ArrayLike = Union[np.ndarray, ArrowArrayExportable, Buffer]
-"""A type alias for accepted input to the [`KDTreeBuilder.add`][geoindex_rs.KDtree.KDTreeBuilder.add] method.
+"""A type alias for accepted input to the [`KDTreeBuilder.add`][geoindex_rs.kdtree.KDTreeBuilder.add] method.
 
 Accepted input includes numpy arrays, Arrow arrays, and C-contiguous buffer protocol
 input.
