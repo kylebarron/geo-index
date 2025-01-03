@@ -12,6 +12,7 @@ pub enum MutableIndices<'a> {
 }
 
 impl<'a> MutableIndices<'a> {
+    #[inline]
     pub(crate) fn new(slice: &'a mut [u8], num_nodes: usize) -> Self {
         if num_nodes < 16384 {
             Self::U16(cast_slice_mut(slice))

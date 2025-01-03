@@ -115,6 +115,63 @@ impl<N: IndexableNum> RTreeBuilder<N> {
     /// `RTreeIndex::search` will return this same insertion index, which allows you to reference
     /// your original collection.
     #[inline]
+    pub fn add_slice(
+        &mut self,
+        mut min_x: impl ExactSizeIterator<Item = N>,
+        mut min_y: impl ExactSizeIterator<Item = N>,
+        mut max_x: impl ExactSizeIterator<Item = N>,
+        mut max_y: impl ExactSizeIterator<Item = N>,
+    ) -> Vec<u32> {
+        let (boxes, mut indices) = split_data_borrow(&mut self.data, &self.metadata);
+        assert_eq!(min_x.len(), min_y.len());
+        assert_eq!(min_x.len(), max_x.len());
+        assert_eq!(min_x.len(), max_y.len());
+
+        let mut out = Vec::with_capacity(min_x.len());
+
+        for i in 0..min_x.len() {
+            let index = self.pos >> 2;
+
+            let this_min_x = min_x.next().unwrap();
+            let this_min_y = min_y.next().unwrap();
+            let this_max_x = max_x.next().unwrap();
+            let this_max_y = max_y.next().unwrap();
+
+            indices.set(index, index);
+            boxes[self.pos] = this_min_x;
+            self.pos += 1;
+            boxes[self.pos] = this_min_y;
+            self.pos += 1;
+            boxes[self.pos] = this_max_x;
+            self.pos += 1;
+            boxes[self.pos] = this_max_y;
+            self.pos += 1;
+
+            if this_min_x < self.min_x {
+                self.min_x = this_min_x
+            };
+            if this_min_y < self.min_y {
+                self.min_y = this_min_y
+            };
+            if this_max_x > self.max_x {
+                self.max_x = this_max_x
+            };
+            if this_max_y > self.max_y {
+                self.max_y = this_max_y
+            };
+
+            out.push(index.try_into().unwrap());
+        }
+        out
+    }
+
+    /// Add a given rectangle to the RTree.
+    ///
+    /// This returns the insertion index, which provides a lookup back into the original data.
+    ///
+    /// `RTreeIndex::search` will return this same insertion index, which allows you to reference
+    /// your original collection.
+    #[inline]
     pub fn add_rect(&mut self, rect: &impl RectTrait<T = N>) -> u32 {
         self.add(
             rect.min().x(),
@@ -239,6 +296,7 @@ impl<N: IndexableNum> RTreeBuilder<N> {
 }
 
 /// Mutable borrow of boxes and indices
+#[inline]
 fn split_data_borrow<'a, N: IndexableNum>(
     data: &'a mut [u8],
     metadata: &'a RTreeMetadata<N>,

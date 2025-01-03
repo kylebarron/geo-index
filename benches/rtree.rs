@@ -15,13 +15,12 @@ fn load_data() -> Vec<f64> {
 
 fn construct_rtree<N: IndexableNum>(boxes_buf: &[N]) -> RTree<N> {
     let mut builder = RTreeBuilder::new((boxes_buf.len() / 4) as _);
-    for box_ in boxes_buf.chunks(4) {
-        let min_x = box_[0];
-        let min_y = box_[1];
-        let max_x = box_[2];
-        let max_y = box_[3];
-        builder.add(min_x, min_y, max_x, max_y);
-    }
+    builder.add_slice(
+        boxes_buf.iter().step_by(4).copied(),
+        boxes_buf.iter().skip(1).step_by(4).copied(),
+        boxes_buf.iter().skip(2).step_by(4).copied(),
+        boxes_buf.iter().skip(3).step_by(4).copied(),
+    );
     builder.finish::<HilbertSort>()
 }
 
