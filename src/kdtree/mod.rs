@@ -1,25 +1,25 @@
 //! An immutable, ABI-stable K-D Tree.
 //!
-//! ## Creation
+//! ### Creation
 //!
 //! Use [`KDTreeBuilder`] to construct an [`KDTree`], which allows you to make queries.
 //!
-//! ## Search
+//! ### Search
 //!
 //! Use [`KDTreeIndex::range`] to search a KDTree given a bounding box query. Use
 //! [`KDTreeIndex::within`] to search a KDTree given a point and radius.
 //!
-//! ## Persisting
+//! ### Persisting
 //!
 //! You can use [`KDTree::into_inner`] to access the underlying `Vec<u8>` it contains.
 //!
-//! ## Recovering the index
+//! ### Recovering the index
 //!
 //! You can use [`KDTreeRef::try_new`] to construct a KDTree as a reference on an external byte
 //! slice. If you don't know the coordinate type used in the index, you can use
 //! [`CoordType::from_buffer`][crate::CoordType::from_buffer] to infer the coordinate type.
 //!
-//! ## Coordinate types
+//! ### Coordinate types
 //!
 //! Supported coordinate types implement [`IndexableNum`][crate::IndexableNum]. Note that float
 //! `NaN` is not supported and may panic.
