@@ -2,11 +2,11 @@ use geo_traits::{CoordTrait, RectTrait};
 use tinyvec::TinyVec;
 
 use crate::indices::Indices;
-use crate::kdtree::{KDTree, KDTreeMetadata, KDTreeRef};
+use crate::kdtree::{KDTree, KDTreeMetadata, KDTreeRef, Node};
 use crate::r#type::IndexableNum;
 
 /// A trait for searching and accessing data out of a KDTree.
-pub trait KDTreeIndex<N: IndexableNum> {
+pub trait KDTreeIndex<N: IndexableNum>: Sized {
     /// The underlying raw coordinate buffer of this tree
     fn coords(&self) -> &[N];
 
@@ -78,6 +78,7 @@ pub trait KDTreeIndex<N: IndexableNum> {
             // queue search in halves that intersect the query
             let lte = if axis == 0 { min_x <= x } else { min_y <= y };
             if lte {
+                // Note: these are pushed in backwards order to what gets popped
                 stack.push(left);
                 stack.push(m - 1);
                 stack.push(1 - axis);
@@ -85,6 +86,7 @@ pub trait KDTreeIndex<N: IndexableNum> {
 
             let gte = if axis == 0 { max_x >= x } else { max_y >= y };
             if gte {
+                // Note: these are pushed in backwards order to what gets popped
                 stack.push(m + 1);
                 stack.push(right);
                 stack.push(1 - axis);
@@ -179,6 +181,11 @@ pub trait KDTreeIndex<N: IndexableNum> {
     /// Returns indices of found items
     fn within_coord(&self, coord: &impl CoordTrait<T = N>, r: N) -> Vec<u32> {
         self.within(coord.x(), coord.y(), r)
+    }
+
+    /// Access the root node of the KDTree for manual traversal.
+    fn root(&self) -> Node<'_, N, Self> {
+        Node::from_root(self)
     }
 }
 

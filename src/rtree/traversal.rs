@@ -1,8 +1,8 @@
 //! Utilities to traverse the RTree structure.
 
-use geo_traits::{CoordTrait, RectTrait};
+use geo_traits::RectTrait;
 
-use crate::r#type::IndexableNum;
+use crate::r#type::{Coord, IndexableNum};
 use crate::rtree::util::upper_bound;
 use crate::rtree::RTreeIndex;
 use core::mem::take;
@@ -51,36 +51,43 @@ impl<'a, N: IndexableNum, T: RTreeIndex<N>> Node<'a, N, T> {
     }
 
     /// Get the minimum `x` value of this node.
+    #[inline]
     pub fn min_x(&self) -> N {
         self.tree.boxes()[self.pos]
     }
 
     /// Get the minimum `y` value of this node.
+    #[inline]
     pub fn min_y(&self) -> N {
         self.tree.boxes()[self.pos + 1]
     }
 
     /// Get the maximum `x` value of this node.
+    #[inline]
     pub fn max_x(&self) -> N {
         self.tree.boxes()[self.pos + 2]
     }
 
     /// Get the maximum `y` value of this node.
+    #[inline]
     pub fn max_y(&self) -> N {
         self.tree.boxes()[self.pos + 3]
     }
 
     /// Returns `true` if this is a leaf node without children.
+    #[inline]
     pub fn is_leaf(&self) -> bool {
         self.pos < self.tree.num_items() as usize * 4
     }
 
     /// Returns `true` if this is an intermediate node with children.
+    #[inline]
     pub fn is_parent(&self) -> bool {
         !self.is_leaf()
     }
 
     /// Returns `true` if this node intersects another node.
+    #[inline]
     pub fn intersects<T2: RTreeIndex<N>>(&self, other: &Node<N, T2>) -> bool {
         if self.max_x() < other.min_x() {
             return false;
@@ -118,41 +125,10 @@ impl<'a, N: IndexableNum, T: RTreeIndex<N>> Node<'a, N, T> {
 
     /// The original insertion index. This is only valid when this is a leaf node, which you can
     /// check with `Self::is_leaf`.
+    #[inline]
     pub fn index(&self) -> usize {
         debug_assert!(self.is_leaf());
         self.tree.indices().get(self.pos >> 2)
-    }
-}
-
-/// A single coordinate.
-///
-/// Used in the implementation of RectTrait for Node.
-pub struct Coord<N: IndexableNum> {
-    x: N,
-    y: N,
-}
-
-impl<N: IndexableNum> CoordTrait for Coord<N> {
-    type T = N;
-
-    fn dim(&self) -> geo_traits::Dimensions {
-        geo_traits::Dimensions::Xy
-    }
-
-    fn x(&self) -> Self::T {
-        self.x
-    }
-
-    fn y(&self) -> Self::T {
-        self.y
-    }
-
-    fn nth_or_panic(&self, n: usize) -> Self::T {
-        match n {
-            0 => self.x,
-            1 => self.y,
-            _ => panic!("Invalid index of coord"),
-        }
     }
 }
 

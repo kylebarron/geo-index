@@ -1,5 +1,6 @@
 use std::fmt::Debug;
 
+use geo_traits::CoordTrait;
 use num_traits::{Bounded, Num, NumCast};
 
 use crate::kdtree::constants::KDBUSH_MAGIC;
@@ -139,4 +140,36 @@ mod private {
     impl Sealed for u32 {}
     impl Sealed for f32 {}
     impl Sealed for f64 {}
+}
+
+/// A single coordinate.
+///
+/// Used in the implementation of RectTrait for Node.
+pub struct Coord<N: IndexableNum> {
+    pub(crate) x: N,
+    pub(crate) y: N,
+}
+
+impl<N: IndexableNum> CoordTrait for Coord<N> {
+    type T = N;
+
+    fn dim(&self) -> geo_traits::Dimensions {
+        geo_traits::Dimensions::Xy
+    }
+
+    fn x(&self) -> Self::T {
+        self.x
+    }
+
+    fn y(&self) -> Self::T {
+        self.y
+    }
+
+    fn nth_or_panic(&self, n: usize) -> Self::T {
+        match n {
+            0 => self.x,
+            1 => self.y,
+            _ => panic!("Invalid index of coord"),
+        }
+    }
 }
