@@ -1,27 +1,32 @@
 //! An immutable, ABI-stable RTree.
 //!
-//! ## Creation
+//! ### Creation
 //!
 //! Use [`RTreeBuilder`] to construct an [`RTree`], which allows you to make queries.
 //!
-//! ## Search
+//! ### Search
 //!
-//! Use [`RTreeIndex::search`] to search an RTree given a bounding box query.
+//! Use [`RTreeIndex::search`] to search an RTree given a bounding box query or
+//! [`RTreeIndex::neighbors`] to find the nearest neighbors from a point.
 //!
-//! ## Persisting
+//! ### Persisting
 //!
 //! You can use [`RTree::into_inner`] to access the underlying `Vec<u8>` it contains.
 //!
-//! ## Recovering the index
+//! ### Recovering the index
 //!
 //! You can use [`RTreeRef::try_new`] to construct an RTree as a reference on an external byte
 //! slice. If you don't know the coordinate type used in the index, you can use
 //! [`CoordType::from_buffer`][crate::CoordType::from_buffer] to infer the coordinate type.
 //!
-//! ## Coordinate types
+//! ### Coordinate types
 //!
 //! Supported coordinate types implement [`IndexableNum`][crate::IndexableNum]. Note that float
 //! `NaN` is not supported and may panic.
+//!
+//! ### Alternate sorting methods
+//!
+//! This crate allows for multiple sorting methods, implemented in [`sort`].
 //!
 //! ## Example
 //!
@@ -48,10 +53,6 @@
 //! // Perform search again
 //! assert_eq!(tree_ref.search(0.5, 0.5, 1.5, 1.5), vec![0, 1]);
 //! ```
-//!
-//! ## Alternate sorting methods
-//!
-//! This crate allows for multiple sorting methods, implemented in [`sort`].
 
 mod builder;
 mod constants;

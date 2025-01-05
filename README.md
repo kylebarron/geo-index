@@ -28,9 +28,9 @@ A Rust crate for packed, immutable, zero-copy spatial indexes.
 ## Drawbacks
 
 - Trees are _immutable_. After creating the index, items can no longer be added or removed.
-- Only two-dimensional data is supported. This can still be used with higher-dimensional input as long as it's fine to only index two of the dimensions.
-- Queries return positional indexes into the input set, so you must manage your own collections.
-- Only the set of coordinate types that exist in JavaScript are allowed, to maintain FFI compatibility with the reference JavaScript implementations. This does not and probably will not support other types like `u64`.
+- Only two-dimensional indexes is supported. This can still be used with higher-dimensional input data as long as it's fine to only index two of the dimensions.
+- Queries return insertion indexes into the input set, so you must manage your own collections.
+- Only the set of coordinate types that exist in JavaScript are allowed, to maintain FFI compatibility with the reference JavaScript implementations. Hence this does not support other types like `u64`.
 
 ## Alternatives
 
@@ -60,7 +60,6 @@ Currently, this library is used under the hood in [`geoarrow-rs`](https://github
 
 ## Future work
 
-- Nearest-neighbor queries on the R-tree. This is implemented in the original JS version but hasn't been ported yet.
 - Geographic queries. Currently all queries are planar.
 
 ## Benchmarks
