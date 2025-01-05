@@ -17,15 +17,22 @@ pub struct Node<'a, N: IndexableNum, T: KDTreeIndex<N>> {
     /// TODO: switch to bool
     axis: usize,
 
+    /// The index of the right child.
     right_child: usize,
+
+    /// The index of the left child.
     left_child: usize,
 
-    phantom: PhantomData<N>,
-
+    /// The min_x of this node.
     min_x: N,
+    /// The min_y of this node.
     min_y: N,
+    /// The max_x of this node.
     max_x: N,
+    /// The max_y of this node.
     max_y: N,
+
+    phantom: PhantomData<N>,
 }
 
 impl<'a, N: IndexableNum, T: KDTreeIndex<N>> Node<'a, N, T> {
@@ -35,11 +42,11 @@ impl<'a, N: IndexableNum, T: KDTreeIndex<N>> Node<'a, N, T> {
             axis: 0,
             right_child: tree.indices().len() - 1,
             left_child: 0,
-            phantom: PhantomData,
             min_x: N::max_value(),
             min_y: N::max_value(),
             max_x: N::min_value(),
             max_y: N::min_value(),
+            phantom: PhantomData,
         }
     }
 
@@ -62,8 +69,21 @@ impl<'a, N: IndexableNum, T: KDTreeIndex<N>> Node<'a, N, T> {
 
     /// The child node representing the "left" half.
     ///
+    /// Returns `None` if [`Self::is_parent`] is `false`.
+    pub fn left_child(&self) -> Option<Node<'_, N, T>> {
+        if self.is_parent() {
+            Some(self.left_child_unchecked())
+        } else {
+            None
+        }
+    }
+
+    /// The child node representing the "left" half.
+    ///
     /// Note that this **does not include** the middle index of the current node.
-    pub fn left_child(&self) -> Node<'_, N, T> {
+    pub fn left_child_unchecked(&self) -> Node<'_, N, T> {
+        debug_assert!(self.is_parent());
+
         let m = self.middle_index();
         let (x, y) = self.middle_xy(m);
 
@@ -90,8 +110,21 @@ impl<'a, N: IndexableNum, T: KDTreeIndex<N>> Node<'a, N, T> {
 
     /// The child node representing the "right" half.
     ///
+    /// Returns `None` if [`Self::is_parent`] is `false`.
+    pub fn right_child(&self) -> Option<Node<'_, N, T>> {
+        if self.is_parent() {
+            Some(self.right_child_unchecked())
+        } else {
+            None
+        }
+    }
+
+    /// The child node representing the "right" half.
+    ///
     /// Note that this **does not include** the middle index of the current node.
-    pub fn right_child(&self) -> Node<'_, N, T> {
+    pub fn right_child_unchecked(&self) -> Node<'_, N, T> {
+        debug_assert!(self.is_parent());
+
         let m = self.middle_index();
         let (x, y) = self.middle_xy(m);
 
@@ -126,6 +159,59 @@ impl<'a, N: IndexableNum, T: KDTreeIndex<N>> Node<'a, N, T> {
     #[inline]
     pub fn is_parent(&self) -> bool {
         !self.is_leaf()
+    }
+
+    /// The original insertion index of the "middle child" of this node. This is only valid when
+    /// this is a parent node, which you can check with `Self::is_parent`.
+    ///
+    /// Returns `None` if [`Self::is_parent`] is `false`.
+    #[inline]
+    pub fn middle_insertion_index(&self) -> Option<u32> {
+        if self.is_parent() {
+            Some(self.middle_insertion_index_unchecked())
+        } else {
+            None
+        }
+    }
+
+    /// The original insertion index of the "middle child" of this node. This is only valid when
+    /// this is a parent node, which you can check with `Self::is_parent`.
+    #[inline]
+    pub fn middle_insertion_index_unchecked(&self) -> u32 {
+        debug_assert!(self.is_parent());
+
+        let m = self.middle_index();
+        let indices = self.tree.indices();
+        indices.get(m) as u32
+    }
+
+    /// The original insertion indices. This is only valid when this is a leaf node, which you can
+    /// check with `Self::is_leaf`.
+    ///
+    /// Returns `None` if [`Self::is_leaf`] is `false`.
+    #[inline]
+    pub fn leaf_insertion_indices(&self) -> Option<Vec<u32>> {
+        if self.is_leaf() {
+            Some(self.leaf_insertion_indices_unchecked())
+        } else {
+            None
+        }
+    }
+
+    /// The original insertion indices. This is only valid when this is a leaf node, which you can
+    /// check with `Self::is_leaf`.
+    #[inline]
+    pub fn leaf_insertion_indices_unchecked(&self) -> Vec<u32> {
+        debug_assert!(self.is_leaf());
+
+        let mut result = Vec::with_capacity(self.tree.node_size() as _);
+
+        let indices = self.tree.indices();
+        for i in self.left_child..self.right_child + 1 {
+            result.push(indices.get(i) as u32);
+        }
+
+        result
     }
 }
 

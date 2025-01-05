@@ -108,9 +108,20 @@ impl<'a, N: IndexableNum, T: RTreeIndex<N>> Node<'a, N, T> {
         true
     }
 
-    /// Returns an iterator over the child nodes of this node. This must only be called if
-    /// `is_parent` is `true`.
-    pub fn children(&self) -> impl Iterator<Item = Node<'_, N, T>> {
+    /// Returns an iterator over the child nodes of this node.
+    ///
+    /// Returns `None` if [`Self::is_parent`] is `false`.
+    pub fn children(&self) -> Option<impl Iterator<Item = Node<'_, N, T>>> {
+        if self.is_parent() {
+            Some(self.children_unchecked())
+        } else {
+            None
+        }
+    }
+
+    /// Returns an iterator over the child nodes of this node. This is only valid when
+    /// [`Self::is_parent`] is `true`.
+    pub fn children_unchecked(&self) -> impl Iterator<Item = Node<'_, N, T>> {
         debug_assert!(self.is_parent());
 
         // find the start and end indexes of the children of this node
@@ -125,10 +136,23 @@ impl<'a, N: IndexableNum, T: RTreeIndex<N>> Node<'a, N, T> {
 
     /// The original insertion index. This is only valid when this is a leaf node, which you can
     /// check with `Self::is_leaf`.
+    ///
+    /// Returns `None` if [`Self::is_leaf`] is `false`.
     #[inline]
-    pub fn index(&self) -> usize {
+    pub fn insertion_index(&self) -> Option<u32> {
+        if self.is_leaf() {
+            Some(self.insertion_index_unchecked())
+        } else {
+            None
+        }
+    }
+
+    /// The original insertion index. This is only valid when this is a leaf node, which you can
+    /// check with `Self::is_leaf`.
+    #[inline]
+    pub fn insertion_index_unchecked(&self) -> u32 {
         debug_assert!(self.is_leaf());
-        self.tree.indices().get(self.pos >> 2)
+        self.tree.indices().get(self.pos >> 2) as u32
     }
 }
 
@@ -215,12 +239,14 @@ where
             return;
         }
 
-        let children1 = parent1.children().filter(|c1| c1.intersects(parent2));
+        let children1 = parent1
+            .children_unchecked()
+            .filter(|c1| c1.intersects(parent2));
 
         let mut children2 = take(&mut self.candidates);
         children2.extend(
             parent2
-                .children()
+                .children_unchecked()
                 .filter(|c2| c2.intersects(parent1))
                 .map(|c| c.pos),
         );
@@ -251,15 +277,15 @@ where
             match (left.is_leaf(), right.is_leaf()) {
                 (true, true) => {
                     return Some((
-                        left.index().try_into().unwrap(),
-                        right.index().try_into().unwrap(),
+                        left.insertion_index_unchecked(),
+                        right.insertion_index_unchecked(),
                     ))
                 }
                 (true, false) => right
-                    .children()
+                    .children_unchecked()
                     .for_each(|c| self.push_if_intersecting(&left, &c)),
                 (false, true) => left
-                    .children()
+                    .children_unchecked()
                     .for_each(|c| self.push_if_intersecting(&c, &right)),
                 (false, false) => self.add_intersecting_children(&left, &right),
             }
@@ -292,7 +318,7 @@ mod test {
         assert!(root_node.is_parent());
 
         let level_1_boxes = tree.boxes_at_level(1).unwrap();
-        let level_1 = root_node.children().collect::<Vec<_>>();
+        let level_1 = root_node.children_unchecked().collect::<Vec<_>>();
         assert_eq!(level_1.len(), level_1_boxes.len() / 4);
     }
 }
