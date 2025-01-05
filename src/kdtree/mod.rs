@@ -53,10 +53,12 @@ mod builder;
 pub(crate) mod constants;
 mod index;
 mod r#trait;
+mod traversal;
 
 pub use builder::{KDTreeBuilder, DEFAULT_KDTREE_NODE_SIZE};
 pub use index::{KDTree, KDTreeMetadata, KDTreeRef};
 pub use r#trait::KDTreeIndex;
+pub use traversal::Node;
 
 #[cfg(test)]
 mod test;

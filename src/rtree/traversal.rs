@@ -1,8 +1,8 @@
 //! Utilities to traverse the RTree structure.
 
-use geo_traits::{CoordTrait, RectTrait};
+use geo_traits::RectTrait;
 
-use crate::r#type::IndexableNum;
+use crate::r#type::{Coord, IndexableNum};
 use crate::rtree::util::upper_bound;
 use crate::rtree::RTreeIndex;
 use core::mem::take;
@@ -51,36 +51,43 @@ impl<'a, N: IndexableNum, T: RTreeIndex<N>> Node<'a, N, T> {
     }
 
     /// Get the minimum `x` value of this node.
+    #[inline]
     pub fn min_x(&self) -> N {
         self.tree.boxes()[self.pos]
     }
 
     /// Get the minimum `y` value of this node.
+    #[inline]
     pub fn min_y(&self) -> N {
         self.tree.boxes()[self.pos + 1]
     }
 
     /// Get the maximum `x` value of this node.
+    #[inline]
     pub fn max_x(&self) -> N {
         self.tree.boxes()[self.pos + 2]
     }
 
     /// Get the maximum `y` value of this node.
+    #[inline]
     pub fn max_y(&self) -> N {
         self.tree.boxes()[self.pos + 3]
     }
 
     /// Returns `true` if this is a leaf node without children.
+    #[inline]
     pub fn is_leaf(&self) -> bool {
         self.pos < self.tree.num_items() as usize * 4
     }
 
     /// Returns `true` if this is an intermediate node with children.
+    #[inline]
     pub fn is_parent(&self) -> bool {
         !self.is_leaf()
     }
 
     /// Returns `true` if this node intersects another node.
+    #[inline]
     pub fn intersects<T2: RTreeIndex<N>>(&self, other: &Node<N, T2>) -> bool {
         if self.max_x() < other.min_x() {
             return false;
@@ -101,9 +108,20 @@ impl<'a, N: IndexableNum, T: RTreeIndex<N>> Node<'a, N, T> {
         true
     }
 
-    /// Returns an iterator over the child nodes of this node. This must only be called if
-    /// `is_parent` is `true`.
-    pub fn children(&self) -> impl Iterator<Item = Node<'_, N, T>> {
+    /// Returns an iterator over the child nodes of this node.
+    ///
+    /// Returns `None` if [`Self::is_parent`] is `false`.
+    pub fn children(&self) -> Option<impl Iterator<Item = Node<'_, N, T>>> {
+        if self.is_parent() {
+            Some(self.children_unchecked())
+        } else {
+            None
+        }
+    }
+
+    /// Returns an iterator over the child nodes of this node. This is only valid when
+    /// [`Self::is_parent`] is `true`.
+    pub fn children_unchecked(&self) -> impl Iterator<Item = Node<'_, N, T>> {
         debug_assert!(self.is_parent());
 
         // find the start and end indexes of the children of this node
@@ -118,41 +136,23 @@ impl<'a, N: IndexableNum, T: RTreeIndex<N>> Node<'a, N, T> {
 
     /// The original insertion index. This is only valid when this is a leaf node, which you can
     /// check with `Self::is_leaf`.
-    pub fn index(&self) -> usize {
-        debug_assert!(self.is_leaf());
-        self.tree.indices().get(self.pos >> 2)
-    }
-}
-
-/// A single coordinate.
-///
-/// Used in the implementation of RectTrait for Node.
-pub struct Coord<N: IndexableNum> {
-    x: N,
-    y: N,
-}
-
-impl<N: IndexableNum> CoordTrait for Coord<N> {
-    type T = N;
-
-    fn dim(&self) -> geo_traits::Dimensions {
-        geo_traits::Dimensions::Xy
-    }
-
-    fn x(&self) -> Self::T {
-        self.x
-    }
-
-    fn y(&self) -> Self::T {
-        self.y
-    }
-
-    fn nth_or_panic(&self, n: usize) -> Self::T {
-        match n {
-            0 => self.x,
-            1 => self.y,
-            _ => panic!("Invalid index of coord"),
+    ///
+    /// Returns `None` if [`Self::is_leaf`] is `false`.
+    #[inline]
+    pub fn insertion_index(&self) -> Option<u32> {
+        if self.is_leaf() {
+            Some(self.insertion_index_unchecked())
+        } else {
+            None
         }
+    }
+
+    /// The original insertion index. This is only valid when this is a leaf node, which you can
+    /// check with `Self::is_leaf`.
+    #[inline]
+    pub fn insertion_index_unchecked(&self) -> u32 {
+        debug_assert!(self.is_leaf());
+        self.tree.indices().get(self.pos >> 2) as u32
     }
 }
 
@@ -239,12 +239,14 @@ where
             return;
         }
 
-        let children1 = parent1.children().filter(|c1| c1.intersects(parent2));
+        let children1 = parent1
+            .children_unchecked()
+            .filter(|c1| c1.intersects(parent2));
 
         let mut children2 = take(&mut self.candidates);
         children2.extend(
             parent2
-                .children()
+                .children_unchecked()
                 .filter(|c2| c2.intersects(parent1))
                 .map(|c| c.pos),
         );
@@ -275,15 +277,15 @@ where
             match (left.is_leaf(), right.is_leaf()) {
                 (true, true) => {
                     return Some((
-                        left.index().try_into().unwrap(),
-                        right.index().try_into().unwrap(),
+                        left.insertion_index_unchecked(),
+                        right.insertion_index_unchecked(),
                     ))
                 }
                 (true, false) => right
-                    .children()
+                    .children_unchecked()
                     .for_each(|c| self.push_if_intersecting(&left, &c)),
                 (false, true) => left
-                    .children()
+                    .children_unchecked()
                     .for_each(|c| self.push_if_intersecting(&c, &right)),
                 (false, false) => self.add_intersecting_children(&left, &right),
             }
@@ -316,7 +318,7 @@ mod test {
         assert!(root_node.is_parent());
 
         let level_1_boxes = tree.boxes_at_level(1).unwrap();
-        let level_1 = root_node.children().collect::<Vec<_>>();
+        let level_1 = root_node.children_unchecked().collect::<Vec<_>>();
         assert_eq!(level_1.len(), level_1_boxes.len() / 4);
     }
 }
