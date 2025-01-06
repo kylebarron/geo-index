@@ -15,15 +15,26 @@ use crate::rtree::input::PyRTreeRef;
 use crate::util::slice_to_arrow;
 
 #[pyfunction]
-pub fn partitions(py: Python, index: PyRTreeRef) -> PyResult<PyObject> {
+#[pyo3(signature = (index, *, copy = false))]
+pub fn partitions(py: Python, index: PyRTreeRef, copy: bool) -> PyResult<PyObject> {
     let (indices, partition_ids) = match index {
         PyRTreeRef::Float32(tree) => {
-            let indices = indices_to_arrow(tree.indices(), tree.num_items(), tree.buffer().clone());
+            let indices = indices_to_arrow(
+                tree.indices(),
+                tree.num_items(),
+                tree.buffer().clone(),
+                copy,
+            );
             let partition_ids = partition_id_array(tree.num_items(), tree.node_size());
             (indices, partition_ids)
         }
         PyRTreeRef::Float64(tree) => {
-            let indices = indices_to_arrow(tree.indices(), tree.num_items(), tree.buffer().clone());
+            let indices = indices_to_arrow(
+                tree.indices(),
+                tree.num_items(),
+                tree.buffer().clone(),
+                copy,
+            );
             let partition_ids = partition_id_array(tree.num_items(), tree.node_size());
             (indices, partition_ids)
         }
@@ -38,10 +49,19 @@ pub fn partitions(py: Python, index: PyRTreeRef) -> PyResult<PyObject> {
         .to_arro3(py)
 }
 
-fn indices_to_arrow(indices: Indices, num_items: u32, owner: Arc<dyn Allocation>) -> ArrayRef {
+fn indices_to_arrow(
+    indices: Indices,
+    num_items: u32,
+    owner: Arc<dyn Allocation>,
+    copy: bool,
+) -> ArrayRef {
     match indices {
-        Indices::U16(slice) => slice_to_arrow::<UInt16Type>(&slice[0..num_items as usize], owner),
-        Indices::U32(slice) => slice_to_arrow::<UInt32Type>(&slice[0..num_items as usize], owner),
+        Indices::U16(slice) => {
+            slice_to_arrow::<UInt16Type>(&slice[0..num_items as usize], owner, copy)
+        }
+        Indices::U32(slice) => {
+            slice_to_arrow::<UInt32Type>(&slice[0..num_items as usize], owner, copy)
+        }
     }
 }
 
@@ -83,8 +103,9 @@ fn partition_id_array(num_items: u32, node_size: u16) -> ArrayRef {
 // Since for now we assume that the partition level is the node level, we select the boxes at level
 // 1.
 #[pyfunction]
-pub fn partition_boxes(py: Python, index: PyRTreeRef) -> PyResult<PyObject> {
-    let array = boxes_at_level(py, index, 1)?.extract::<PyArray>(py)?;
+#[pyo3(signature = (index, *, copy = false))]
+pub fn partition_boxes(py: Python, index: PyRTreeRef, copy: bool) -> PyResult<PyObject> {
+    let array = boxes_at_level(py, index, 1, copy)?.extract::<PyArray>(py)?;
     let (array, _field) = array.into_inner();
 
     let partition_ids: ArrayRef = if array.len() < u16::MAX as _ {

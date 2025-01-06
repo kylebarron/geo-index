@@ -8,19 +8,25 @@ use crate::rtree::input::PyRTreeRef;
 use crate::util::boxes_to_arrow;
 
 #[pyfunction]
-pub fn boxes_at_level(py: Python, index: PyRTreeRef, level: usize) -> PyResult<PyObject> {
+#[pyo3(signature = (index, level, *, copy = false))]
+pub fn boxes_at_level(
+    py: Python,
+    index: PyRTreeRef,
+    level: usize,
+    copy: bool,
+) -> PyResult<PyObject> {
     let array = match index {
         PyRTreeRef::Float32(tree) => {
             let boxes = tree
                 .boxes_at_level(level)
                 .map_err(|err| PyIndexError::new_err(err.to_string()))?;
-            boxes_to_arrow::<Float32Type>(boxes, tree.buffer().clone())
+            boxes_to_arrow::<Float32Type>(boxes, tree.buffer().clone(), copy)
         }
         PyRTreeRef::Float64(tree) => {
             let boxes = tree
                 .boxes_at_level(level)
                 .map_err(|err| PyIndexError::new_err(err.to_string()))?;
-            boxes_to_arrow::<Float64Type>(boxes, tree.buffer().clone())
+            boxes_to_arrow::<Float64Type>(boxes, tree.buffer().clone(), copy)
         }
     };
     PyArray::from_array_ref(array).to_arro3(py)
