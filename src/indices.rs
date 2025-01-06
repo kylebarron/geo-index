@@ -1,4 +1,5 @@
-//! Data structures to hold indices that may be either `u16` or `u32` to save space.
+//! Data structures to hold insertion and internal tree indices that may be either `u16` or `u32`
+//! to save space.
 
 use bytemuck::{cast_slice, cast_slice_mut};
 

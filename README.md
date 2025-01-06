@@ -32,7 +32,7 @@ A Rust crate for packed, immutable, zero-copy spatial indexes.
 - Queries return insertion indexes into the input set, so you must manage your own collections.
 - Only the set of coordinate types that exist in JavaScript are allowed, to maintain FFI compatibility with the reference JavaScript implementations. Hence this does not support other types like `u64`.
 
-## Alternatives
+## Alternative crates
 
 - [`rstar`](https://github.com/georust/rstar): a dynamic RTree implementation.
 - [`kdtree`](https://github.com/mrhooray/kdtree-rs): a dynamic KDTree implementation.
