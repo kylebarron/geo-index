@@ -47,7 +47,7 @@ impl PyRTreeMetadataInner {
     }
 }
 
-#[pyclass(name = "RTreeMetadata")]
+#[pyclass(name = "RTreeMetadata", frozen)]
 pub struct PyRTreeMetadata(PyRTreeMetadataInner);
 
 #[pymethods]
