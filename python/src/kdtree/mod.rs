@@ -1,5 +1,6 @@
 mod builder;
 mod input;
+mod metadata;
 mod range;
 mod within;
 
@@ -19,6 +20,7 @@ pub fn register_kdtree_module(
 
     child_module.add_class::<builder::PyKDTree>()?;
     child_module.add_class::<builder::PyKDTreeBuilder>()?;
+    child_module.add_class::<metadata::PyKDTreeMetadata>()?;
     child_module.add_wrapped(wrap_pyfunction!(range::range))?;
     child_module.add_wrapped(wrap_pyfunction!(within::within))?;
 

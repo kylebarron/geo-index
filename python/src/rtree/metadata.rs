@@ -39,7 +39,7 @@ impl PyRTreeMetadataInner {
         }
     }
 
-    fn data_buffer_length(&self) -> usize {
+    fn num_bytes(&self) -> usize {
         match self {
             Self::Float32(meta) => meta.data_buffer_length(),
             Self::Float64(meta) => meta.data_buffer_length(),
@@ -57,12 +57,12 @@ impl PyRTreeMetadata {
     fn new(num_items: u32, node_size: u16, coord_type: Option<CoordType>) -> Self {
         let coord_type = coord_type.unwrap_or(CoordType::Float64);
         match coord_type {
-            CoordType::Float32 => Self(PyRTreeMetadataInner::Float32(
-                geo_index::rtree::RTreeMetadata::<f32>::new(num_items, node_size),
-            )),
-            CoordType::Float64 => Self(PyRTreeMetadataInner::Float64(
-                geo_index::rtree::RTreeMetadata::<f64>::new(num_items, node_size),
-            )),
+            CoordType::Float32 => Self(PyRTreeMetadataInner::Float32(RTreeMetadata::<f32>::new(
+                num_items, node_size,
+            ))),
+            CoordType::Float64 => Self(PyRTreeMetadataInner::Float64(RTreeMetadata::<f64>::new(
+                num_items, node_size,
+            ))),
         }
     }
 
@@ -113,7 +113,7 @@ impl PyRTreeMetadata {
 
     #[getter]
     fn num_bytes(&self) -> usize {
-        self.0.data_buffer_length()
+        self.0.num_bytes()
     }
 }
 
