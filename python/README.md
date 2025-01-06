@@ -124,5 +124,3 @@ assert results.to_pylist() == [2, 1, 0]
 - Trees are _immutable_. After creating the index, items can no longer be added or removed.
 - Only two-dimensional indexes is supported. This can still be used with higher-dimensional input data as long as it's fine to only index two of the dimensions.
 - Queries return insertion indexes into the input set, so you must manage your own collections.
-
-
