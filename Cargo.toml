@@ -7,14 +7,7 @@ rust-version = "1.75"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/kylebarron/geo-index"
 description = "Fast, immutable, ABI-stable spatial indexes."
-keywords = [
-    "rtree",
-    "r-tree",
-    "kdtree",
-    "spatial",
-    "spatial-index",
-    "nearest-neighbor",
-]
+keywords = ["rtree", "kdtree", "spatial", "spatial-index", "nearest-neighbor"]
 categories = ["data-structures", "algorithms", "science::geo"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
