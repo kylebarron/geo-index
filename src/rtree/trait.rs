@@ -151,7 +151,7 @@ pub trait RTreeIndex<N: IndexableNum>: Sized {
         y: N,
         max_results: Option<usize>,
         max_distance: Option<N>,
-    ) -> Vec<u32> {
+    ) -> impl Iterator<Item = u32> {
         let boxes = self.boxes();
         let indices = self.indices();
         let max_distance = max_distance.unwrap_or(N::max_value());
@@ -212,7 +212,7 @@ pub trait RTreeIndex<N: IndexableNum>: Sized {
             }
         }
 
-        results
+        results.into_iter()
     }
 
     /// Search items in order of distance from the given coordinate.
@@ -221,7 +221,7 @@ pub trait RTreeIndex<N: IndexableNum>: Sized {
         coord: &impl CoordTrait<T = N>,
         max_results: Option<usize>,
         max_distance: Option<N>,
-    ) -> Vec<u32> {
+    ) -> impl Iterator<Item = u32> {
         self.neighbors(coord.x(), coord.y(), max_results, max_distance)
     }
 
