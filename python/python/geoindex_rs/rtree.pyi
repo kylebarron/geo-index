@@ -36,6 +36,7 @@ def boxes_at_level(index: IndexLike, level: int) -> Array:
             The returned array is a a zero-copy view from Rust. Note that it will keep
             the entire index memory alive until the returned array is garbage collected.
     """
+
 def tree_join(
     left: IndexLike,
     right: IndexLike,
@@ -150,6 +151,7 @@ def partitions(index: IndexLike) -> RecordBatch:
             index. Therefore, the `indices` array will have type `uint16` if the tree
             has fewer than 16,384 items; otherwise it will have type `uint32`.
     """
+
 def partition_boxes(index: IndexLike) -> RecordBatch:
     """Extract the geometries of the spatial partitions from an RTree.
 
@@ -174,6 +176,7 @@ def partition_boxes(index: IndexLike) -> RecordBatch:
             data. The `partition_id` column will be `uint16` type if there are less than
             65,536 partitions; otherwise it will be `uint32` type.
     """
+
 def search(
     index: IndexLike,
     min_x: int | float,
@@ -199,7 +202,7 @@ def search(
 class RTreeMetadata:
     """Common metadata to describe an RTree.
 
-    This can be used to know the number of items, node informatino, or total byte size
+    This can be used to know the number of items, node information, or total byte size
     of an RTree.
 
     Additionally, this can be used to know how much memory an RTree **would use** with
@@ -335,7 +338,9 @@ class RTreeBuilder:
         It's important to add _arrays_ at a time. This should usually not be called in a loop.
 
         Args:
-            min_x: array-like input
+            min_x: array-like input. If this is the only provided input, it should
+                represent the entire bounding box, as described above. Otherwise, pass
+                four separate parameters.
             min_y: array-like input. Defaults to None.
             max_x: array-like input. Defaults to None.
             max_y: array-like input. Defaults to None.
@@ -347,7 +352,10 @@ class RTreeBuilder:
         """Sort the internal index and convert this class to an RTree instance.
 
         Args:
-            method: The method used for sorting the RTree. `"hilbert"` will use a [Hilbert Curve](https://en.wikipedia.org/wiki/Hilbert_R-tree#Packed_Hilbert_R-trees) for sorting; `"str"` will use the [Sort-Tile-Recursive](https://ia600900.us.archive.org/27/items/nasa_techdoc_19970016975/19970016975.pdf) algorithm. Defaults to `"hilbert"`.
+            method: The method used for sorting the RTree. Defaults to `"hilbert"`.
+
+                - `"hilbert"` will use a [Hilbert Curve](https://en.wikipedia.org/wiki/Hilbert_R-tree#Packed_Hilbert_R-trees) for sorting.
+                - `"str"` will use the [Sort-Tile-Recursive](https://ia600900.us.archive.org/27/items/nasa_techdoc_19970016975/19970016975.pdf) algorithm.
 
         Returns:
             An immutable RTree instance, which can be used for spatial queries.

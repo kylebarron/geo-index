@@ -35,15 +35,16 @@ def range(
     Results are the insertion indexes of items that match the query.
 
     Args:
-        index: the KDTree to search
-        min_x: The `min_x` coordinate of the query bounding box
-        min_y: The `min_y` coordinate of the query bounding box
-        max_x: The `max_x` coordinate of the query bounding box
-        max_y: The `max_y` coordinate of the query bounding box
+        index: the KDTree to search.
+        min_x: The `min_x` coordinate of the query bounding box.
+        min_y: The `min_y` coordinate of the query bounding box.
+        max_x: The `max_x` coordinate of the query bounding box.
+        max_y: The `max_y` coordinate of the query bounding box.
 
     Returns:
-        An Arrow array with the insertion indexes of query results.
+        A uint32-typed Arrow array with the insertion indexes of query results.
     """
+
 def within(
     index: IndexLike,
     qx: int | float,
@@ -55,13 +56,13 @@ def within(
     Results are the insertion indexes of items that match the query.
 
     Args:
-        index: the KDTree to search
-        qx: The `x` coordinate of the query point
-        qy: The `y` coordinate of the query point
+        index: the KDTree to search.
+        qx: The `x` coordinate of the query point.
+        qy: The `y` coordinate of the query point.
         r: The radius from the query point to use for searching.
 
     Returns:
-        An Arrow array with the insertion indexes of query results.
+        A uint32-typed Arrow array with the insertion indexes of query results.
     """
 
 class KDTreeBuilder:
@@ -149,3 +150,49 @@ class KDTree(Buffer):
     object.
     """
     def __repr__(self) -> str: ...
+
+class KDTreeMetadata:
+    """Common metadata to describe a KDTree.
+
+    This can be used to know the number of items, node information, or total byte size
+    of a KDTree.
+
+    Additionally, this can be used to know how much memory a KDTree **would use** with
+    the given number of items and node size. A KDTree with 1 million items and a node
+    size of 64 (the default) would take up 20 MiB.
+
+    ```py
+    from geoindex_rs import kdtree as kd
+
+    metadata = kd.KDTreeMetadata(num_items=1_000_000, node_size=64)
+    assert metadata.num_bytes == 20_000_008
+    ```
+    """
+
+    def __init__(
+        self,
+        num_items: int,
+        node_size: int = 64,
+        coord_type: Literal["float32", "float64"] = "float64",
+    ) -> None:
+        """Create a new KDTreeMetadata given a number of items and node size.
+
+        Args:
+            num_items: The number of items in the tree
+            node_size: The node size of the tree. Defaults to 16.
+            coord_type: The coordinate type to use in the tree. Currently only float32
+                and float64 are permitted. Defaults to None.
+        """
+    @classmethod
+    def from_index(cls, index: IndexLike) -> KDTreeMetadata:
+        """Create from an existing KDTree buffer."""
+    def __repr__(self) -> str: ...
+    @property
+    def num_items(self) -> int:
+        """The number of items indexed in the tree."""
+    @property
+    def node_size(self) -> int:
+        """The maximum number of items per node."""
+    @property
+    def num_bytes(self) -> int:
+        """The number of bytes that a KDTree with this metadata would have."""
