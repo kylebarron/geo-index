@@ -61,8 +61,8 @@ jobs:
           # (usually the git tag will have v as the first character)
           # Note the `cut` index is 1-ordered
           if echo $VERSION | cut -c 2- | grep -q "[A-Za-z]"; then
-            cd python && uv run --no-project mike deploy $VERSION latest --update-aliases --push
-          else
             # For beta versions publish but don't set as latest
             cd python && uv run --no-project mike deploy $VERSION --update-aliases --push
+          else
+            cd python && uv run --no-project mike deploy $VERSION latest --update-aliases --push
           fi
