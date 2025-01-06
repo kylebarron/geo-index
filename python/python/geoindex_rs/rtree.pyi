@@ -347,6 +347,9 @@ class RTreeBuilder:
 
         Returns:
             An Arrow array with the insertion index of each element, which provides a lookup back into the original data.
+
+                This can be converted to a [`pyarrow.Array`][] by passing to
+                [`pyarrow.array`][].
         """
     def finish(self, method: Literal["hilbert", "str"] = "hilbert") -> RTree:
         """Sort the internal index and convert this class to an RTree instance.
@@ -374,6 +377,31 @@ class RTree(Buffer):
     This class implements the Python buffer protocol, so you can pass it to the Python
     `bytes` constructor to copy the underlying binary memory into a Python `bytes`
     object.
+
+    ```py
+    import numpy as np
+    from geoindex_rs import rtree as rt
+
+    min_x = np.arange(0, 3)
+    min_y = np.arange(0, 3)
+    max_x = np.arange(2, 5)
+    max_y = np.arange(2, 5)
+
+    builder = rt.RTreeBuilder(num_items=3)
+    builder.add(min_x, min_y, max_x, max_y)
+    tree = builder.finish()
+
+    # Copy to a Python bytes object
+    copied_tree = bytes(tree)
+
+    # The entire RTree is contained within this 144 byte buffer
+    assert len(copied_tree) == 144
+
+    # We can use the bytes object (or anything else implementing the Python buffer
+    protocol) directly in searches
+    results = rt.neighbors(copied_tree, 5, 5)
+    assert results.to_pylist() == [2, 1, 0]
+    ```
     """
     def __repr__(self) -> str: ...
     @property
