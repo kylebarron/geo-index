@@ -24,6 +24,7 @@ nav:
   - API Reference:
       - api/rtree.md
       - api/kdtree.md
+  - Changelog: CHANGELOG.md
 
 watch:
   - python
@@ -96,6 +97,7 @@ plugins:
               - griffe_inherited_docstrings
 
           import:
+            - https://arrow.apache.org/docs/objects.inv
             - https://docs.python.org/3/objects.inv
             - https://kylebarron.dev/arro3/latest/objects.inv
 

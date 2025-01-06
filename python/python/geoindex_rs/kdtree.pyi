@@ -34,6 +34,22 @@ def range(
 
     Results are the insertion indexes of items that match the query.
 
+    **Example:**
+
+    ```py
+    import numpy as np
+    from geoindex_rs import kdtree as kd
+
+    builder = kd.KDTreeBuilder(3)
+    x = np.arange(0, 3)
+    y = np.arange(2, 5)
+    builder.add(x, y)
+    tree = builder.finish()
+
+    results = kd.range(tree, 2, 4, 7, 9)
+    assert results.to_pylist() == [2]
+    ```
+
     Args:
         index: the KDTree to search.
         min_x: The `min_x` coordinate of the query bounding box.
@@ -79,6 +95,9 @@ class KDTreeBuilder:
     y = np.arange(2, 5)
     builder.add(x, y)
     tree = builder.finish()
+
+    results = kd.range(tree, 2, 4, 7, 9)
+    assert results.to_pylist() == [2]
     ```
     """
     def __init__(
@@ -127,6 +146,9 @@ class KDTreeBuilder:
 
         Returns:
             An Arrow array with the insertion index of each element, which provides a lookup back into the original data.
+
+                This can be converted to a [`pyarrow.Array`][] by passing to
+                [`pyarrow.array`][].
         """
     def finish(self) -> KDTree:
         """Sort the internal index and convert this class to a KDTree instance.
