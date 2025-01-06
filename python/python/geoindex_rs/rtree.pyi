@@ -23,18 +23,24 @@ IndexLike = Union[np.ndarray, ArrowArrayExportable, Buffer, RTree]
 """A type alias for accepted input as an RTree.
 """
 
-def boxes_at_level(index: IndexLike, level: int) -> Array:
+def boxes_at_level(index: IndexLike, level: int, *, copy: bool = False) -> Array:
     """Access the raw bounding box data contained in the RTree at a given tree level.
 
     Args:
         index: the RTree to search.
         level: The level of the tree to read from. Level 0 is the _base_ of the tree. Each integer higher is one level higher of the tree.
 
+    Other Args:
+        copy: if True, make a _copy_ of the data from the underlying RTree instead of
+            viewing it directly. Making a copy can be preferred if you'd like to delete
+            the index itself to save memory.
+
     Returns:
         An Arrow FixedSizeListArray containing the bounding box coordinates.
 
-            The returned array is a a zero-copy view from Rust. Note that it will keep
-            the entire index memory alive until the returned array is garbage collected.
+            If `copy` is `False`, the returned array is a a zero-copy view from Rust.
+            Note that it will keep the entire index memory alive until the returned
+            array is garbage collected.
     """
 
 def tree_join(
@@ -106,7 +112,7 @@ def neighbors(
         An Arrow array with the insertion indexes of query results.
     """
 
-def partitions(index: IndexLike) -> RecordBatch:
+def partitions(index: IndexLike, *, copy=False) -> RecordBatch:
     """Extract the spatial partitions from an RTree.
 
     This can be used to find the sorted groups for spatially partitioning the original
@@ -144,15 +150,21 @@ def partitions(index: IndexLike) -> RecordBatch:
     Args:
         index: the RTree to use.
 
+    Other Args:
+        copy: if True, make a _copy_ of the data from the underlying RTree instead of
+            viewing it directly. Making a copy can be preferred if you'd like to delete
+            the index itself to save memory.
+
     Returns:
         An Arrow `RecordBatch` with two columns: `indices` and `partition_ids`. `indices` refers to the insertion index of each row and `partition_ids` refers to the partition each row belongs to.
 
-            The `indices` column is constructed as a zero-copy view on the provided
-            index. Therefore, the `indices` array will have type `uint16` if the tree
-            has fewer than 16,384 items; otherwise it will have type `uint32`.
+            If `copy` is `False`, the `indices` column is constructed as a zero-copy
+            view on the provided index. Therefore, the `indices` array will have type
+            `uint16` if the tree has fewer than 16,384 items; otherwise it will have
+            type `uint32`.
     """
 
-def partition_boxes(index: IndexLike) -> RecordBatch:
+def partition_boxes(index: IndexLike, *, copy: bool = False) -> RecordBatch:
     """Extract the geometries of the spatial partitions from an RTree.
 
     In order for these boxes to be zero-copy from Rust, they are returned as a
@@ -169,12 +181,18 @@ def partition_boxes(index: IndexLike) -> RecordBatch:
     Args:
         index: the RTree to use.
 
+    Other Args:
+        copy: if True, make a _copy_ of the data from the underlying RTree instead of
+            viewing it directly. Making a copy can be preferred if you'd like to delete
+            the index itself to save memory.
+
     Returns:
         An Arrow `RecordBatch` with two columns: `boxes` and `partition_ids`. `boxes` stores the box geometry of each partition and `partition_ids` refers to the partition each row belongs to.
 
-            The `boxes` column is constructed as a zero-copy view on the internal boxes
-            data. The `partition_id` column will be `uint16` type if there are less than
-            65,536 partitions; otherwise it will be `uint32` type.
+            If `copy` is `False`, the `boxes` column is constructed as a zero-copy view
+            on the internal boxes data. The `partition_id` column will be `uint16` type
+            if there are less than 65,536 partitions; otherwise it will be `uint32`
+            type.
     """
 
 def search(
