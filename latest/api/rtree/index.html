@@ -169,7 +169,7 @@
     
     
     
-    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="default" data-md-color-accent="deep-orange"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="blue-grey" data-md-color-accent="deep-orange"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
     
       <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_2" hidden>
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
@@ -179,7 +179,7 @@
     
     
     
-    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="default" data-md-color-accent="deep-orange"  aria-label="Switch to system preference"  type="radio" name="__palette" id="__palette_2">
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="blue-grey" data-md-color-accent="deep-orange"  aria-label="Switch to system preference"  type="radio" name="__palette" id="__palette_2">
     
       <label class="md-header__button md-icon" title="Switch to system preference" for="__palette_0" hidden>
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
@@ -682,6 +682,26 @@
   
 
     
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../CHANGELOG/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Changelog
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
   </ul>
 </nav>
                   </div>
@@ -1060,6 +1080,29 @@ to disk, then later load it and perform queries on it.</p>
 <p>This class implements the Python buffer protocol, so you can pass it to the Python
 <code>bytes</code> constructor to copy the underlying binary memory into a Python <code>bytes</code>
 object.</p>
+<div class="highlight"><pre><span></span><code><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">geoindex_rs</span> <span class="kn">import</span> <span class="n">rtree</span> <span class="k">as</span> <span class="n">rt</span>
+
+<span class="n">min_x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+<span class="n">min_y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+<span class="n">max_x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">5</span><span class="p">)</span>
+<span class="n">max_y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">5</span><span class="p">)</span>
+
+<span class="n">builder</span> <span class="o">=</span> <span class="n">rt</span><span class="o">.</span><span class="n">RTreeBuilder</span><span class="p">(</span><span class="n">num_items</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+<span class="n">builder</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">min_x</span><span class="p">,</span> <span class="n">min_y</span><span class="p">,</span> <span class="n">max_x</span><span class="p">,</span> <span class="n">max_y</span><span class="p">)</span>
+<span class="n">tree</span> <span class="o">=</span> <span class="n">builder</span><span class="o">.</span><span class="n">finish</span><span class="p">()</span>
+
+<span class="c1"># Copy to a Python bytes object</span>
+<span class="n">copied_tree</span> <span class="o">=</span> <span class="nb">bytes</span><span class="p">(</span><span class="n">tree</span><span class="p">)</span>
+
+<span class="c1"># The entire RTree is contained within this 144 byte buffer</span>
+<span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">copied_tree</span><span class="p">)</span> <span class="o">==</span> <span class="mi">144</span>
+
+<span class="c1"># We can use the bytes object (or anything else implementing the Python buffer</span>
+<span class="n">protocol</span><span class="p">)</span> <span class="n">directly</span> <span class="ow">in</span> <span class="n">searches</span>
+<span class="n">results</span> <span class="o">=</span> <span class="n">rt</span><span class="o">.</span><span class="n">neighbors</span><span class="p">(</span><span class="n">copied_tree</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">5</span><span class="p">)</span>
+<span class="k">assert</span> <span class="n">results</span><span class="o">.</span><span class="n">to_pylist</span><span class="p">()</span> <span class="o">==</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
+</code></pre></div>
 
 
 
@@ -1165,7 +1208,11 @@ object.</p>
 
 
 <a href="#geoindex_rs.rtree.RTreeBuilder.__init__" class="headerlink" title="Permanent link">&para;</a></h4>
-<div class="doc-signature codehilite"><pre><span></span><code><span class="fm">__init__</span><span class="p">(</span><span class="nf">num_items</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#int">int</a></span><span class="p">,</span> <span class="n">node_size</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#int">int</a></span> <span class="o">=</span> <span class="mi">16</span><span class="p">,</span> <span class="n">coord_type</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" title="typing.Literal" href="https://docs.python.org/3/library/typing.html#typing.Literal">Literal</a></span><span class="p">[</span><span class="s1">&#39;float32&#39;</span><span class="p">,</span> <span class="s1">&#39;float64&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;float64&#39;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+<div class="doc-signature codehilite"><pre><span></span><code><span class="fm">__init__</span><span class="p">(</span>
+    <span class="nf">num_items</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#int">int</a></span><span class="p">,</span>
+    <span class="n">node_size</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#int">int</a></span> <span class="o">=</span> <span class="mi">16</span><span class="p">,</span>
+    <span class="n">coord_type</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" title="typing.Literal" href="https://docs.python.org/3/library/typing.html#typing.Literal">Literal</a></span><span class="p">[</span><span class="s2">&quot;float32&quot;</span><span class="p">,</span> <span class="s2">&quot;float64&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;float64&quot;</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
 </code></pre></div>
 
     <div class="doc doc-contents ">
@@ -1219,7 +1266,12 @@ and float64 are permitted. Defaults to None.</p>
 
 
 <a href="#geoindex_rs.rtree.RTreeBuilder.add" class="headerlink" title="Permanent link">&para;</a></h4>
-<div class="doc-signature codehilite"><pre><span></span><code><span class="nf">add</span><span class="p">(</span><span class="n">min_x</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="geoindex_rs.rtree.ArrayLike" href="#geoindex_rs.rtree.ArrayLike">ArrayLike</a></span><span class="p">,</span> <span class="n">min_y</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="geoindex_rs.rtree.ArrayLike" href="#geoindex_rs.rtree.ArrayLike">ArrayLike</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">max_x</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="geoindex_rs.rtree.ArrayLike" href="#geoindex_rs.rtree.ArrayLike">ArrayLike</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">max_y</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="geoindex_rs.rtree.ArrayLike" href="#geoindex_rs.rtree.ArrayLike">ArrayLike</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-external" title="arro3.core.Array" href="https://kylebarron.dev/arro3/latest/api/core/array/#arro3.core.Array">Array</a></span>
+<div class="doc-signature codehilite"><pre><span></span><code><span class="nf">add</span><span class="p">(</span>
+    <span class="n">min_x</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="geoindex_rs.rtree.ArrayLike" href="#geoindex_rs.rtree.ArrayLike">ArrayLike</a></span><span class="p">,</span>
+    <span class="n">min_y</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="geoindex_rs.rtree.ArrayLike" href="#geoindex_rs.rtree.ArrayLike">ArrayLike</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">max_x</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="geoindex_rs.rtree.ArrayLike" href="#geoindex_rs.rtree.ArrayLike">ArrayLike</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">max_y</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="geoindex_rs.rtree.ArrayLike" href="#geoindex_rs.rtree.ArrayLike">ArrayLike</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-external" title="arro3.core.Array" href="https://kylebarron.dev/arro3/latest/api/core/array/#arro3.core.Array">Array</a></span>
 </code></pre></div>
 
     <div class="doc doc-contents ">
@@ -1270,7 +1322,9 @@ geometries do not all fit in memory at once.</p>
               (<code><a class="autorefs autorefs-internal" title="geoindex_rs.rtree.ArrayLike" href="#geoindex_rs.rtree.ArrayLike">ArrayLike</a></code>)
           –
           <div class="doc-md-description">
-            <p>array-like input</p>
+            <p>array-like input. If this is the only provided input, it should
+represent the entire bounding box, as described above. Otherwise, pass
+four separate parameters.</p>
           </div>
         </li>
         <li class="doc-section-item field-body">
@@ -1313,6 +1367,8 @@ geometries do not all fit in memory at once.</p>
           –
           <div class="doc-md-description">
             <p>An Arrow array with the insertion index of each element, which provides a lookup back into the original data.</p>
+<p>This can be converted to a <a class="autorefs autorefs-external" href="https://arrow.apache.org/docs/python/generated/pyarrow.Array.html#pyarrow.Array"><code>pyarrow.Array</code></a> by passing to
+<a class="autorefs autorefs-external" href="https://arrow.apache.org/docs/python/generated/pyarrow.array.html#pyarrow.array"><code>pyarrow.array</code></a>.</p>
           </div>
         </li>
     </ul>
@@ -1346,7 +1402,11 @@ geometries do not all fit in memory at once.</p>
 )
           –
           <div class="doc-md-description">
-            <p>The method used for sorting the RTree. <code>"hilbert"</code> will use a <a href="https://en.wikipedia.org/wiki/Hilbert_R-tree#Packed_Hilbert_R-trees">Hilbert Curve</a> for sorting; <code>"str"</code> will use the <a href="https://ia600900.us.archive.org/27/items/nasa_techdoc_19970016975/19970016975.pdf">Sort-Tile-Recursive</a> algorithm. Defaults to <code>"hilbert"</code>.</p>
+            <p>The method used for sorting the RTree. Defaults to <code>"hilbert"</code>.</p>
+<ul>
+<li><code>"hilbert"</code> will use a <a href="https://en.wikipedia.org/wiki/Hilbert_R-tree#Packed_Hilbert_R-trees">Hilbert Curve</a> for sorting.</li>
+<li><code>"str"</code> will use the <a href="https://ia600900.us.archive.org/27/items/nasa_techdoc_19970016975/19970016975.pdf">Sort-Tile-Recursive</a> algorithm.</li>
+</ul>
           </div>
         </li>
     </ul>
@@ -1390,7 +1450,7 @@ geometries do not all fit in memory at once.</p>
 
 
         <p>Common metadata to describe an RTree.</p>
-<p>This can be used to know the number of items, node informatino, or total byte size
+<p>This can be used to know the number of items, node information, or total byte size
 of an RTree.</p>
 <p>Additionally, this can be used to know how much memory an RTree <strong>would use</strong> with
 the given number of items and node size. An RTree with 1 million items and a node
@@ -1542,7 +1602,11 @@ size of 20 would take up 38 MiB.</p>
 
 
 <a href="#geoindex_rs.rtree.RTreeMetadata.__init__" class="headerlink" title="Permanent link">&para;</a></h4>
-<div class="doc-signature codehilite"><pre><span></span><code><span class="fm">__init__</span><span class="p">(</span><span class="nf">num_items</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#int">int</a></span><span class="p">,</span> <span class="n">node_size</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#int">int</a></span> <span class="o">=</span> <span class="mi">16</span><span class="p">,</span> <span class="n">coord_type</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" title="typing.Literal" href="https://docs.python.org/3/library/typing.html#typing.Literal">Literal</a></span><span class="p">[</span><span class="s1">&#39;float32&#39;</span><span class="p">,</span> <span class="s1">&#39;float64&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;float64&#39;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+<div class="doc-signature codehilite"><pre><span></span><code><span class="fm">__init__</span><span class="p">(</span>
+    <span class="nf">num_items</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#int">int</a></span><span class="p">,</span>
+    <span class="n">node_size</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#int">int</a></span> <span class="o">=</span> <span class="mi">16</span><span class="p">,</span>
+    <span class="n">coord_type</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" title="typing.Literal" href="https://docs.python.org/3/library/typing.html#typing.Literal">Literal</a></span><span class="p">[</span><span class="s2">&quot;float32&quot;</span><span class="p">,</span> <span class="s2">&quot;float64&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;float64&quot;</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
 </code></pre></div>
 
     <div class="doc doc-contents ">
@@ -1627,7 +1691,7 @@ and float64 are permitted. Defaults to None.</p>
 
 
 <a href="#geoindex_rs.rtree.boxes_at_level" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="doc-signature codehilite"><pre><span></span><code><span class="nf">boxes_at_level</span><span class="p">(</span><span class="n">index</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="geoindex_rs.rtree.IndexLike" href="#geoindex_rs.rtree.IndexLike">IndexLike</a></span><span class="p">,</span> <span class="n">level</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#int">int</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-external" title="arro3.core.Array" href="https://kylebarron.dev/arro3/latest/api/core/array/#arro3.core.Array">Array</a></span>
+<div class="doc-signature codehilite"><pre><span></span><code><span class="nf">boxes_at_level</span><span class="p">(</span><span class="n">index</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="geoindex_rs.rtree.IndexLike" href="#geoindex_rs.rtree.IndexLike">IndexLike</a></span><span class="p">,</span> <span class="n">level</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#int">int</a></span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">copy</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#bool">bool</a></span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-external" title="arro3.core.Array" href="https://kylebarron.dev/arro3/latest/api/core/array/#arro3.core.Array">Array</a></span>
 </code></pre></div>
 
     <div class="doc doc-contents ">
@@ -1656,6 +1720,21 @@ and float64 are permitted. Defaults to None.</p>
     </ul>
 
 
+<p><span class="doc-section-title">Other Parameters:</span></p>
+    <ul>
+        <li class="doc-section-item field-body">
+          <b><code>copy</code></b>
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#bool">bool</a></code>)
+          –
+          <div class="doc-md-description">
+            <p>if True, make a <em>copy</em> of the data from the underlying RTree instead of
+viewing it directly. Making a copy can be preferred if you'd like to delete
+the index itself to save memory.</p>
+          </div>
+        </li>
+    </ul>
+
+
 <p><span class="doc-section-title">Returns:</span></p>
     <ul>
         <li class="doc-section-item field-body">
@@ -1663,8 +1742,9 @@ and float64 are permitted. Defaults to None.</p>
           –
           <div class="doc-md-description">
             <p>An Arrow FixedSizeListArray containing the bounding box coordinates.</p>
-<p>The returned array is a a zero-copy view from Rust. Note that it will keep
-the entire index memory alive until the returned array is garbage collected.</p>
+<p>If <code>copy</code> is <code>False</code>, the returned array is a a zero-copy view from Rust.
+Note that it will keep the entire index memory alive until the returned
+array is garbage collected.</p>
           </div>
         </li>
     </ul>
@@ -1681,7 +1761,14 @@ the entire index memory alive until the returned array is garbage collected.</p>
 
 
 <a href="#geoindex_rs.rtree.neighbors" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="doc-signature codehilite"><pre><span></span><code><span class="nf">neighbors</span><span class="p">(</span><span class="n">index</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="geoindex_rs.rtree.IndexLike" href="#geoindex_rs.rtree.IndexLike">IndexLike</a></span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#int">int</a></span> <span class="o">|</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#float">float</a></span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#int">int</a></span> <span class="o">|</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#float">float</a></span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">max_results</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#int">int</a></span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="n">max_distance</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#int">int</a></span> <span class="o">|</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#float">float</a></span> <span class="o">|</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-external" title="arro3.core.Array" href="https://kylebarron.dev/arro3/latest/api/core/array/#arro3.core.Array">Array</a></span>
+<div class="doc-signature codehilite"><pre><span></span><code><span class="nf">neighbors</span><span class="p">(</span>
+    <span class="n">index</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="geoindex_rs.rtree.IndexLike" href="#geoindex_rs.rtree.IndexLike">IndexLike</a></span><span class="p">,</span>
+    <span class="n">x</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#int">int</a></span> <span class="o">|</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#float">float</a></span><span class="p">,</span>
+    <span class="n">y</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#int">int</a></span> <span class="o">|</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#float">float</a></span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">max_results</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#int">int</a></span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">max_distance</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#int">int</a></span> <span class="o">|</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#float">float</a></span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-external" title="arro3.core.Array" href="https://kylebarron.dev/arro3/latest/api/core/array/#arro3.core.Array">Array</a></span>
 </code></pre></div>
 
     <div class="doc doc-contents ">
@@ -1774,7 +1861,7 @@ provided, all results (up to <code>max_results</code>) will be returned.</p>
 
 
 <a href="#geoindex_rs.rtree.partition_boxes" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="doc-signature codehilite"><pre><span></span><code><span class="nf">partition_boxes</span><span class="p">(</span><span class="n">index</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="geoindex_rs.rtree.IndexLike" href="#geoindex_rs.rtree.IndexLike">IndexLike</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-external" title="arro3.core.RecordBatch" href="https://kylebarron.dev/arro3/latest/api/core/record-batch/#arro3.core.RecordBatch">RecordBatch</a></span>
+<div class="doc-signature codehilite"><pre><span></span><code><span class="nf">partition_boxes</span><span class="p">(</span><span class="n">index</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="geoindex_rs.rtree.IndexLike" href="#geoindex_rs.rtree.IndexLike">IndexLike</a></span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">copy</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#bool">bool</a></span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-external" title="arro3.core.RecordBatch" href="https://kylebarron.dev/arro3/latest/api/core/record-batch/#arro3.core.RecordBatch">RecordBatch</a></span>
 </code></pre></div>
 
     <div class="doc doc-contents ">
@@ -1805,6 +1892,21 @@ which is a monotonically-increasing integer column.</p>
     </ul>
 
 
+<p><span class="doc-section-title">Other Parameters:</span></p>
+    <ul>
+        <li class="doc-section-item field-body">
+          <b><code>copy</code></b>
+              (<code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#bool">bool</a></code>)
+          –
+          <div class="doc-md-description">
+            <p>if True, make a <em>copy</em> of the data from the underlying RTree instead of
+viewing it directly. Making a copy can be preferred if you'd like to delete
+the index itself to save memory.</p>
+          </div>
+        </li>
+    </ul>
+
+
 <p><span class="doc-section-title">Returns:</span></p>
     <ul>
         <li class="doc-section-item field-body">
@@ -1812,9 +1914,10 @@ which is a monotonically-increasing integer column.</p>
           –
           <div class="doc-md-description">
             <p>An Arrow <code>RecordBatch</code> with two columns: <code>boxes</code> and <code>partition_ids</code>. <code>boxes</code> stores the box geometry of each partition and <code>partition_ids</code> refers to the partition each row belongs to.</p>
-<p>The <code>boxes</code> column is constructed as a zero-copy view on the internal boxes
-data. The <code>partition_id</code> column will be <code>uint16</code> type if there are less than
-65,536 partitions; otherwise it will be <code>uint32</code> type.</p>
+<p>If <code>copy</code> is <code>False</code>, the <code>boxes</code> column is constructed as a zero-copy view
+on the internal boxes data. The <code>partition_id</code> column will be <code>uint16</code> type
+if there are less than 65,536 partitions; otherwise it will be <code>uint32</code>
+type.</p>
           </div>
         </li>
     </ul>
@@ -1831,7 +1934,7 @@ data. The <code>partition_id</code> column will be <code>uint16</code> type if t
 
 
 <a href="#geoindex_rs.rtree.partitions" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="doc-signature codehilite"><pre><span></span><code><span class="nf">partitions</span><span class="p">(</span><span class="n">index</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="geoindex_rs.rtree.IndexLike" href="#geoindex_rs.rtree.IndexLike">IndexLike</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-external" title="arro3.core.RecordBatch" href="https://kylebarron.dev/arro3/latest/api/core/record-batch/#arro3.core.RecordBatch">RecordBatch</a></span>
+<div class="doc-signature codehilite"><pre><span></span><code><span class="nf">partitions</span><span class="p">(</span><span class="n">index</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="geoindex_rs.rtree.IndexLike" href="#geoindex_rs.rtree.IndexLike">IndexLike</a></span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-external" title="arro3.core.RecordBatch" href="https://kylebarron.dev/arro3/latest/api/core/record-batch/#arro3.core.RecordBatch">RecordBatch</a></span>
 </code></pre></div>
 
     <div class="doc doc-contents ">
@@ -1880,6 +1983,20 @@ possible (<code>65535</code>) for constructing a tree for use in spatial partiti
     </ul>
 
 
+<p><span class="doc-section-title">Other Parameters:</span></p>
+    <ul>
+        <li class="doc-section-item field-body">
+          <b><code>copy</code></b>
+          –
+          <div class="doc-md-description">
+            <p>if True, make a <em>copy</em> of the data from the underlying RTree instead of
+viewing it directly. Making a copy can be preferred if you'd like to delete
+the index itself to save memory.</p>
+          </div>
+        </li>
+    </ul>
+
+
 <p><span class="doc-section-title">Returns:</span></p>
     <ul>
         <li class="doc-section-item field-body">
@@ -1887,9 +2004,10 @@ possible (<code>65535</code>) for constructing a tree for use in spatial partiti
           –
           <div class="doc-md-description">
             <p>An Arrow <code>RecordBatch</code> with two columns: <code>indices</code> and <code>partition_ids</code>. <code>indices</code> refers to the insertion index of each row and <code>partition_ids</code> refers to the partition each row belongs to.</p>
-<p>The <code>indices</code> column is constructed as a zero-copy view on the provided
-index. Therefore, the <code>indices</code> array will have type <code>uint16</code> if the tree
-has fewer than 16,384 items; otherwise it will have type <code>uint32</code>.</p>
+<p>If <code>copy</code> is <code>False</code>, the <code>indices</code> column is constructed as a zero-copy
+view on the provided index. Therefore, the <code>indices</code> array will have type
+<code>uint16</code> if the tree has fewer than 16,384 items; otherwise it will have
+type <code>uint32</code>.</p>
           </div>
         </li>
     </ul>
@@ -1906,7 +2024,13 @@ has fewer than 16,384 items; otherwise it will have type <code>uint32</code>.</p
 
 
 <a href="#geoindex_rs.rtree.search" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="doc-signature codehilite"><pre><span></span><code><span class="nf">search</span><span class="p">(</span><span class="n">index</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="geoindex_rs.rtree.IndexLike" href="#geoindex_rs.rtree.IndexLike">IndexLike</a></span><span class="p">,</span> <span class="n">min_x</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#int">int</a></span> <span class="o">|</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#float">float</a></span><span class="p">,</span> <span class="n">min_y</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#int">int</a></span> <span class="o">|</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#float">float</a></span><span class="p">,</span> <span class="n">max_x</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#int">int</a></span> <span class="o">|</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#float">float</a></span><span class="p">,</span> <span class="n">max_y</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#int">int</a></span> <span class="o">|</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#float">float</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-external" title="arro3.core.Array" href="https://kylebarron.dev/arro3/latest/api/core/array/#arro3.core.Array">Array</a></span>
+<div class="doc-signature codehilite"><pre><span></span><code><span class="nf">search</span><span class="p">(</span>
+    <span class="n">index</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="geoindex_rs.rtree.IndexLike" href="#geoindex_rs.rtree.IndexLike">IndexLike</a></span><span class="p">,</span>
+    <span class="n">min_x</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#int">int</a></span> <span class="o">|</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#float">float</a></span><span class="p">,</span>
+    <span class="n">min_y</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#int">int</a></span> <span class="o">|</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#float">float</a></span><span class="p">,</span>
+    <span class="n">max_x</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#int">int</a></span> <span class="o">|</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#float">float</a></span><span class="p">,</span>
+    <span class="n">max_y</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#int">int</a></span> <span class="o">|</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#float">float</a></span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-external" title="arro3.core.Array" href="https://kylebarron.dev/arro3/latest/api/core/array/#arro3.core.Array">Array</a></span>
 </code></pre></div>
 
     <div class="doc doc-contents ">
