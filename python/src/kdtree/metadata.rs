@@ -33,7 +33,7 @@ impl PyKDTreeMetadataInner {
     }
 }
 
-#[pyclass(name = "KDTreeMetadata")]
+#[pyclass(name = "KDTreeMetadata", frozen)]
 pub struct PyKDTreeMetadata(PyKDTreeMetadataInner);
 
 #[pymethods]

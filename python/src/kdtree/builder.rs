@@ -216,7 +216,7 @@ impl PyKDTreeInner {
     }
 }
 
-#[pyclass(name = "KDTree")]
+#[pyclass(name = "KDTree", frozen)]
 pub struct PyKDTree(PyKDTreeInner);
 
 #[pymethods]

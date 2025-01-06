@@ -334,7 +334,7 @@ enum PyRTreeInner {
     Float64(Arc<RTree<f64>>),
 }
 
-#[pyclass(name = "RTree")]
+#[pyclass(name = "RTree", frozen)]
 pub struct PyRTree(PyRTreeInner);
 
 impl PyRTreeInner {
