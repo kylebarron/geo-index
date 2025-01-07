@@ -11,7 +11,7 @@
 [pypi_badge]: https://badge.fury.io/py/geoindex-rs.svg
 [pypi_link]: https://pypi.org/project/geoindex-rs/
 
-A Rust crate for packed, immutable, zero-copy spatial indexes.
+A Rust crate and [Python library](https://kylebarron.dev/geo-index/latest/) for packed, immutable, zero-copy spatial indexes.
 
 ## Features
 
