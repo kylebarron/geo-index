@@ -162,6 +162,10 @@ jobs:
       id-token: write
     steps:
       - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
       - uses: actions/setup-python@v4
         with:
           python-version: 3.8
