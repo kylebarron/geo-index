@@ -29,5 +29,5 @@ pub fn boxes_at_level(
             boxes_to_arrow::<Float64Type>(boxes, tree.buffer().clone(), copy)
         }
     };
-    PyArray::from_array_ref(array).to_arro3(py)
+    Ok(PyArray::from_array_ref(array).to_arro3(py)?.unbind())
 }

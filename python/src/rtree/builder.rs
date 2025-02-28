@@ -152,7 +152,9 @@ impl PyRTreeBuilder {
             }
         };
 
-        PyArray::from_array_ref(Arc::new(out_array.finish())).to_arro3(py)
+        Ok(PyArray::from_array_ref(Arc::new(out_array.finish()))
+            .to_arro3(py)?
+            .unbind())
     }
 }
 
@@ -199,7 +201,7 @@ impl PyRTreeBuilder {
         }
         let mut out_array = UInt32Builder::with_capacity(min_x.len());
 
-        let inner = self.0.as_mut().take().unwrap();
+        let inner = self.0.as_mut().unwrap();
         match (min_x.data_type(), min_y, max_x, max_y) {
             (DataType::FixedSizeList(inner_field, list_size), min_y, max_x, max_y) => {
                 assert_eq!(
@@ -301,7 +303,9 @@ impl PyRTreeBuilder {
             _ => return Err(PyValueError::new_err("Unsupported argument types")),
         };
 
-        PyArray::from_array_ref(Arc::new(out_array.finish())).to_arro3(py)
+        Ok(PyArray::from_array_ref(Arc::new(out_array.finish()))
+            .to_arro3(py)?
+            .unbind())
     }
 
     #[pyo3(signature = (method = None))]

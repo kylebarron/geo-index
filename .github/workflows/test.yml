@@ -55,12 +55,16 @@ jobs:
         uses: astral-sh/setup-uv@v3
         with:
           enable-cache: true
-          version: "0.4.x"
+          version: "0.5.x"
+
+      - name: uv sync
+        working-directory: python
+        run: uv sync --no-install-package geoindex-rs
 
       - name: maturin venv Build
         working-directory: python
-        run: uv run maturin develop
+        run: uv run --no-project maturin develop
 
       - name: Run pytest
         working-directory: python
-        run: uv run pytest
+        run: uv run --no-project pytest

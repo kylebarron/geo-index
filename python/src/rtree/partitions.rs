@@ -45,8 +45,11 @@ pub fn partitions(py: Python, index: PyRTreeRef, copy: bool) -> PyResult<PyObjec
         Field::new("partition_id", partition_ids.data_type().clone(), false),
     ];
     let schema = Schema::new(fields);
-    PyRecordBatch::new(RecordBatch::try_new(schema.into(), vec![indices, partition_ids]).unwrap())
-        .to_arro3(py)
+    Ok(PyRecordBatch::new(
+        RecordBatch::try_new(schema.into(), vec![indices, partition_ids]).unwrap(),
+    )
+    .to_arro3(py)?
+    .unbind())
 }
 
 fn indices_to_arrow(
@@ -119,6 +122,11 @@ pub fn partition_boxes(py: Python, index: PyRTreeRef, copy: bool) -> PyResult<Py
         Field::new("partition_id", partition_ids.data_type().clone(), false),
     ];
     let schema = Schema::new(fields);
-    PyRecordBatch::new(RecordBatch::try_new(schema.into(), vec![array, partition_ids]).unwrap())
-        .to_arro3(py)
+    Ok(
+        PyRecordBatch::new(
+            RecordBatch::try_new(schema.into(), vec![array, partition_ids]).unwrap(),
+        )
+        .to_arro3(py)?
+        .unbind(),
+    )
 }
