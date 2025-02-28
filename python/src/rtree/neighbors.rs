@@ -28,5 +28,7 @@ pub fn neighbors(
         PyRTreeRef::Float64(tree) => tree.neighbors(x, y, max_results, max_distance),
     };
     let results = UInt32Array::new(ScalarBuffer::from(results), None);
-    PyArray::from_array_ref(Arc::new(results)).to_arro3(py)
+    Ok(PyArray::from_array_ref(Arc::new(results))
+        .to_arro3(py)?
+        .unbind())
 }

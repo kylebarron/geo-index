@@ -34,5 +34,5 @@ pub fn tree_join(py: Python, left: PyRTreeRef, right: PyRTreeRef) -> PyResult<Py
     ];
     let schema = Arc::new(Schema::new(fields));
     let batch = RecordBatch::try_new(schema, vec![left_results, right_results]).unwrap();
-    PyRecordBatch::new(batch).to_arro3(py)
+    Ok(PyRecordBatch::new(batch).to_arro3(py)?.unbind())
 }

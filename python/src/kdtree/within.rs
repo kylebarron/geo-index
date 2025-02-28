@@ -21,5 +21,7 @@ pub fn within(
         PyKDTreeRef::Float64(tree) => tree.within(qx.extract()?, qy.extract()?, r.extract()?),
     };
     let results = UInt32Array::new(ScalarBuffer::from(results), None);
-    PyArray::from_array_ref(Arc::new(results)).to_arro3(py)
+    Ok(PyArray::from_array_ref(Arc::new(results))
+        .to_arro3(py)?
+        .unbind())
 }

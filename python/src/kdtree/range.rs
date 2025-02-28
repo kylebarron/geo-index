@@ -32,5 +32,7 @@ pub fn range(
         ),
     };
     let results = UInt32Array::new(ScalarBuffer::from(results), None);
-    PyArray::from_array_ref(Arc::new(results)).to_arro3(py)
+    Ok(PyArray::from_array_ref(Arc::new(results))
+        .to_arro3(py)?
+        .unbind())
 }

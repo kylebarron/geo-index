@@ -59,8 +59,8 @@ jobs:
 
       - name: maturin venv Build
         working-directory: python
-        run: uv run maturin develop
+        run: uv run --no-project maturin develop
 
       - name: Run pytest
         working-directory: python
-        run: uv run pytest
+        run: uv run --no-project pytest

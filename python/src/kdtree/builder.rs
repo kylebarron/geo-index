@@ -74,7 +74,7 @@ impl PyKDTreeBuilder {
         }
         let mut out_array = UInt32Builder::with_capacity(x_array.len());
 
-        let inner = self.0.as_mut().take().unwrap();
+        let inner = self.0.as_mut().unwrap();
 
         match (x_field.data_type(), y) {
             (DataType::FixedSizeList(_inner_field, list_size), y) => {
@@ -172,7 +172,9 @@ impl PyKDTreeBuilder {
             _ => return Err(PyValueError::new_err("Unsupported argument types")),
         };
 
-        PyArray::from_array_ref(Arc::new(out_array.finish())).to_arro3(py)
+        Ok(PyArray::from_array_ref(Arc::new(out_array.finish()))
+            .to_arro3(py)?
+            .unbind())
     }
 
     fn finish(&mut self) -> PyResult<PyKDTree> {
