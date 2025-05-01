@@ -1,13 +1,21 @@
 #!/bin/bash
 mkdir -p ./benches/bench_data  
 cd ./benches/bench_data 
-if [ ! -f "8dc58605f9dd484295c7d065694cdc0f_0.geojson" ]
+if [ ! -f "Utah.geojson.zip" ]
   then 
     echo "Downloading geojson benchmark data..."
-    wget https://opendata.arcgis.com/datasets/8dc58605f9dd484295c7d065694cdc0f_0.geojson 
+    wget https://minedbuildings.z5.web.core.windows.net/legacy/usbuildings-v2/Utah.geojson.zip 
   else
     echo "Benchmark data already downloaded"
-fi    
+fi  
+if [ ! -f "Utah.geojson" ]
+  then 
+    echo "Unzipping Utah.geojson.zip.."
+    unzip Utah.geojson.zip
+  else 
+    echo "Utah.geojson already unzipped "
+fi
+
 if [ ! -f "taxi_zones_4326.parquet" ]
   then 
     echo "Downloading parquet benchmark data..."
@@ -18,12 +26,13 @@ fi
 
 
 cd ../
-pip install -r requirements.txt
-python generate_data.py
+uv venv 
+uv pip install -r pyproject.toml  
+uv run generate_data.py
 cd ../
 echo "Running base benchmarks..."
 cargo bench --bench rtree  
 echo "Running benchmarks with rayon feature..."
 cargo bench --bench rtree --features rayon
 cd ./benches
-python rtree.py
+uv run rtree.py
