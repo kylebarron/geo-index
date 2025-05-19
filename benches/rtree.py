@@ -31,7 +31,10 @@ def construct_shapely_tree(bounds):
 if __name__ == "__main__":
     bounds = load_data()
 
-    print(timeit.timeit(stmt='construct_wsg84_tree(bounds)', number=100, globals=globals()))
+    time = timeit.timeit(stmt='construct_wsg84_tree(bounds)', number=100, 
+                         globals=globals())
+    print(f"Rtree time: {time:.2f} seconds for 100 iterations") 
+
 
 
 
