@@ -8,8 +8,8 @@ import requests
 def load_data():
     path = "./bench_data/nz-building-outlines.parquet"
     gdf = gpd.read_parquet(path)
-
-    bounds = gdf.bounds
+    wgs84_gdf = gdf.to_crs("epsg:4326")
+    bounds = wgs84_gdf.bounds
     print(bounds)
     return bounds
 
@@ -23,10 +23,8 @@ def construct_wsg84_tree(bounds):
     builder.add(min_x, min_y, max_x, max_y)
     return builder.finish()
 
-def construct_shapely_tree():
-    path = "./bench_data/taxi_zones_4326.parquet"
-    gdf = gpd.read_parquet(path)
-    tree = shapely.SRTree(gdf.geometry)
+def construct_shapely_tree(bounds):
+    tree = shapely.SRTree(bounds.shape[0])
     return tree
 
 

@@ -16,14 +16,14 @@ if [ ! -f "Utah.geojson" ]
     echo "Utah.geojson already unzipped "
 fi
 
-if [ ! -f "taxi_zones_4326.parquet" ]
+if [ ! -f "nz-building-outlines.parquet" ]
   then 
     echo "Downloading parquet benchmark data..."
-    wget https://data.source.coop/cholmes/nyc-taxi-zones/taxi_zones_4326.parquet 
+    wget  https://storage.googleapis.com/open-geodata/linz-examples/nz-building-outlines.parquet 
   else
     echo "Parquet Benchmark data already downloaded"
 fi    
-wget https://storage.googleapis.com/open-geodata/linz-examples/nz-building-outlines.parquet
+
 
 cd ../
 uv venv 
