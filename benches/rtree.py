@@ -6,7 +6,7 @@ import timeit
 import pyogrio
 import requests
 def load_data():
-    path = "./bench_data/taxi_zones_4326.parquet"
+    path = "./bench_data/nz-building-outlines.parquet"
     gdf = gpd.read_parquet(path)
 
     bounds = gdf.bounds
@@ -32,6 +32,7 @@ def construct_shapely_tree():
 
 if __name__ == "__main__":
     bounds = load_data()
+
     print(timeit.timeit(stmt='construct_wsg84_tree(bounds)', number=100, globals=globals()))
 
 

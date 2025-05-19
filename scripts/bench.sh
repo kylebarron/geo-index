@@ -23,10 +23,11 @@ if [ ! -f "taxi_zones_4326.parquet" ]
   else
     echo "Parquet Benchmark data already downloaded"
 fi    
-
+wget https://storage.googleapis.com/open-geodata/linz-examples/nz-building-outlines.parquet
 
 cd ../
 uv venv 
+source .venv/bin/activate
 uv pip install -r pyproject.toml  
 uv run generate_data.py
 cd ../
