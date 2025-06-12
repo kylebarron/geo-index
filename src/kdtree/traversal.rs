@@ -1,6 +1,10 @@
 //! Utilities to traverse the KDTree structure.
 
-use geo_traits::RectTrait;
+use geo_traits::{
+    GeometryTrait, RectTrait, UnimplementedGeometryCollection, UnimplementedLine,
+    UnimplementedLineString, UnimplementedMultiLineString, UnimplementedMultiPoint,
+    UnimplementedMultiPolygon, UnimplementedPoint, UnimplementedPolygon, UnimplementedTriangle,
+};
 
 use crate::kdtree::KDTreeIndex;
 use crate::r#type::{Coord, IndexableNum};
@@ -216,15 +220,10 @@ impl<'a, N: IndexableNum, T: KDTreeIndex<N>> Node<'a, N, T> {
 }
 
 impl<N: IndexableNum, T: KDTreeIndex<N>> RectTrait for Node<'_, N, T> {
-    type T = N;
     type CoordType<'a>
         = Coord<N>
     where
         Self: 'a;
-
-    fn dim(&self) -> geo_traits::Dimensions {
-        geo_traits::Dimensions::Xy
-    }
 
     fn min(&self) -> Self::CoordType<'_> {
         Coord {
@@ -238,5 +237,81 @@ impl<N: IndexableNum, T: KDTreeIndex<N>> RectTrait for Node<'_, N, T> {
             x: self.max_x,
             y: self.max_y,
         }
+    }
+}
+
+impl<N: IndexableNum, T: KDTreeIndex<N>> GeometryTrait for Node<'_, N, T> {
+    type T = N;
+
+    type PointType<'a>
+        = UnimplementedPoint<N>
+    where
+        Self: 'a;
+
+    type LineStringType<'a>
+        = UnimplementedLineString<N>
+    where
+        Self: 'a;
+
+    type PolygonType<'a>
+        = UnimplementedPolygon<N>
+    where
+        Self: 'a;
+
+    type MultiPointType<'a>
+        = UnimplementedMultiPoint<N>
+    where
+        Self: 'a;
+
+    type MultiLineStringType<'a>
+        = UnimplementedMultiLineString<N>
+    where
+        Self: 'a;
+
+    type MultiPolygonType<'a>
+        = UnimplementedMultiPolygon<N>
+    where
+        Self: 'a;
+
+    type GeometryCollectionType<'a>
+        = UnimplementedGeometryCollection<N>
+    where
+        Self: 'a;
+
+    type RectType<'a>
+        = Node<'a, N, T>
+    where
+        Self: 'a;
+
+    type TriangleType<'a>
+        = UnimplementedTriangle<N>
+    where
+        Self: 'a;
+
+    type LineType<'a>
+        = UnimplementedLine<N>
+    where
+        Self: 'a;
+
+    fn dim(&self) -> geo_traits::Dimensions {
+        geo_traits::Dimensions::Xy
+    }
+
+    fn as_type(
+        &self,
+    ) -> geo_traits::GeometryType<
+        '_,
+        Self::PointType<'_>,
+        Self::LineStringType<'_>,
+        Self::PolygonType<'_>,
+        Self::MultiPointType<'_>,
+        Self::MultiLineStringType<'_>,
+        Self::MultiPolygonType<'_>,
+        Self::GeometryCollectionType<'_>,
+        Self::RectType<'_>,
+        Self::TriangleType<'_>,
+        Self::LineType<'_>,
+    > {
+        geo_traits::GeometryType::Rect(self)
     }
 }
