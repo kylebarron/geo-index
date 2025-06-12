@@ -2,6 +2,13 @@
 
 **This is the changelog for the core Rust library**. There's a [separate changelog](./python/CHANGELOG.md) for the Python bindings.
 
+## [0.3.0] - <RELEASE DATE>
+
+### Breaking
+
+- Upgrade geo-traits to 0.3 by @kontinuation in https://github.com/kylebarron/geo-index/pull/127
+- Update geo to 0.30.0 by @kontinuation in https://github.com/kylebarron/geo-index/pull/127
+
 ## [0.2.0] - 2025-01-06
 
 ### Breaking
