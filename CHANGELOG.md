@@ -2,7 +2,7 @@
 
 **This is the changelog for the core Rust library**. There's a [separate changelog](./python/CHANGELOG.md) for the Python bindings.
 
-## [0.3.0] - <RELEASE DATE>
+## [0.3.0] - 2025-06-13
 
 ### Breaking
 
