@@ -2,6 +2,13 @@
 
 **This is the changelog for the core Rust library**. There's a [separate changelog](./python/CHANGELOG.md) for the Python bindings.
 
+## [0.3.1] - <RELEASE_DATE>
+
+## Bug fixes
+
+- Fix hanging when building RTree with 0 items by @kontinuation in https://github.com/kylebarron/geo-index/pull/129
+- Fix panic when building STR tree with certain number of items by @kontinuation in https://github.com/kylebarron/geo-index/pull/129
+
 ## [0.3.0] - 2025-06-13
 
 ### Breaking
