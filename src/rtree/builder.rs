@@ -142,8 +142,8 @@ impl<N: IndexableNum> RTreeBuilder<N> {
 
         let (boxes, mut indices) = split_data_borrow(&mut self.data, &self.metadata);
 
-        if self.metadata.num_items() == 1 {
-            // Only one item, we don't even have a root node to fill
+        if self.metadata.num_items() <= 1 {
+            // Empty or only one item, we don't even have a root node to fill
             return RTree {
                 buffer: self.data,
                 metadata: self.metadata,
@@ -253,7 +253,7 @@ fn split_data_borrow<'a, N: IndexableNum>(
 
 #[cfg(test)]
 mod test {
-    use crate::rtree::sort::HilbertSort;
+    use crate::rtree::sort::{HilbertSort, STRSort};
     use crate::rtree::RTreeIndex;
 
     use super::*;
@@ -265,5 +265,38 @@ mod test {
         let tree = builder.finish::<HilbertSort>();
         let result = tree.search(0., 0., 0., 0.);
         assert_eq!(result, vec![0]);
+    }
+
+    #[test]
+    fn build_str_index_with_various_items() {
+        let num_items_arr = [0, 1, 4, 8, 16, 20, 40, 80];
+        for num_items in num_items_arr {
+            build_index_with_various_items::<STRSort>(num_items);
+        }
+    }
+
+    #[test]
+    fn build_hilbert_index_with_various_items() {
+        let num_items_arr = [0, 1, 4, 8, 16, 20, 40, 80];
+        for num_items in num_items_arr {
+            build_index_with_various_items::<HilbertSort>(num_items);
+        }
+    }
+
+    fn build_index_with_various_items<S: Sort<f64>>(num_items: u32) {
+        let mut builder = RTreeBuilder::<f64>::new(num_items);
+        for i in 0..num_items {
+            builder.add(i as f64, i as f64, i as f64, i as f64);
+        }
+        let tree = builder.finish::<S>();
+        assert_eq!(tree.num_items(), num_items);
+        if num_items == 0 {
+            assert!(tree.search(0., 0., 0., 0.).is_empty());
+        } else {
+            for i in 0..num_items {
+                let results = tree.search(i as f64, i as f64, i as f64, i as f64);
+                assert_eq!(results, vec![i]);
+            }
+        }
     }
 }

@@ -71,6 +71,7 @@ impl MutableIndices<'_> {
         }
     }
 
+    #[allow(dead_code)]
     pub(crate) fn chunks_mut(&mut self, chunk_size: usize) -> Vec<MutableIndices> {
         match self {
             Self::U16(arr) => arr

@@ -74,8 +74,11 @@ pub trait RTreeIndex<N: IndexableNum>: Sized {
     fn search(&self, min_x: N, min_y: N, max_x: N, max_y: N) -> Vec<u32> {
         let boxes = self.boxes();
         let indices = self.indices();
+        if boxes.is_empty() {
+            return vec![];
+        }
 
-        let mut outer_node_index = Some(boxes.len() - 4);
+        let mut outer_node_index = boxes.len().checked_sub(4);
 
         let mut queue = vec![];
         let mut results = vec![];

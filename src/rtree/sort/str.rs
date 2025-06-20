@@ -47,7 +47,8 @@ impl<N: IndexableNum> Sort<N> for STRSort {
 
         let num_leaf_nodes = (params.num_items as f64 / params.node_size as f64).ceil();
         let num_vertical_slices = num_leaf_nodes.sqrt().ceil() as usize;
-        let num_items_per_slice = num_vertical_slices * params.node_size;
+        let num_items_per_slice =
+            (params.num_items as f64 / num_vertical_slices as f64).ceil() as usize;
 
         #[cfg(feature = "rayon")]
         {
