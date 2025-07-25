@@ -54,7 +54,7 @@ impl<N: IndexableNum> KDTreeMetadata<N> {
         let version = version_and_type >> 4;
         if version != KDBUSH_VERSION {
             return Err(GeoIndexError::General(
-                format!("Got v{} data when expected v{}.", version, KDBUSH_VERSION).to_string(),
+                format!("Got v{version} data when expected v{KDBUSH_VERSION}.").to_string(),
             ));
         }
 

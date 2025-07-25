@@ -59,7 +59,7 @@ impl<N: IndexableNum> RTreeMetadata<N> {
         let version = version_and_type >> 4;
         if version != VERSION {
             return Err(GeoIndexError::General(
-                format!("Got v{} data when expected v{}.", version, VERSION).to_string(),
+                format!("Got v{version} data when expected v{VERSION}.").to_string(),
             ));
         }
 

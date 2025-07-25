@@ -6,6 +6,7 @@ use geo_traits::{CoordTrait, RectTrait};
 use crate::error::Result;
 use crate::indices::Indices;
 use crate::r#type::IndexableNum;
+use crate::rtree::distance::{DistanceMetric, EuclideanDistance};
 use crate::rtree::index::{RTree, RTreeRef};
 use crate::rtree::traversal::{IntersectionIterator, Node};
 use crate::rtree::util::upper_bound;
@@ -19,7 +20,7 @@ pub trait RTreeIndex<N: IndexableNum>: Sized {
     fn boxes(&self) -> &[N];
 
     /// A slice representing the indices within the `boxes` slice, including internal nodes.
-    fn indices(&self) -> Indices;
+    fn indices(&self) -> Indices<'_>;
 
     /// Access the metadata describing this RTree
     fn metadata(&self) -> &RTreeMetadata<N>;
@@ -134,6 +135,9 @@ pub trait RTreeIndex<N: IndexableNum>: Sized {
 
     /// Search items in order of distance from the given point.
     ///
+    /// This method uses Euclidean distance by default. For other distance metrics,
+    /// use [`neighbors_with_distance`].
+    ///
     /// ```
     /// use geo_index::rtree::{RTreeBuilder, RTreeIndex, RTreeRef};
     /// use geo_index::rtree::sort::HilbertSort;
@@ -155,14 +159,47 @@ pub trait RTreeIndex<N: IndexableNum>: Sized {
         max_results: Option<usize>,
         max_distance: Option<N>,
     ) -> Vec<u32> {
+        // Use Euclidean distance by default for backward compatibility
+        let euclidean_distance = EuclideanDistance;
+        self.neighbors_with_distance(x, y, max_results, max_distance, &euclidean_distance)
+    }
+
+    /// Search items in order of distance from the given point using a custom distance metric.
+    ///
+    /// This method allows you to specify a custom distance calculation method, such as
+    /// Euclidean, Haversine, or Spheroid distance.
+    ///
+    /// ```
+    /// use geo_index::rtree::{RTreeBuilder, RTreeIndex};
+    /// use geo_index::rtree::distance::{EuclideanDistance, HaversineDistance};
+    /// use geo_index::rtree::sort::HilbertSort;
+    ///
+    /// // Create an RTree with geographic coordinates (longitude, latitude)
+    /// let mut builder = RTreeBuilder::<f64>::new(3);
+    /// builder.add(-74.0, 40.7, -74.0, 40.7); // New York
+    /// builder.add(-0.1, 51.5, -0.1, 51.5);   // London
+    /// builder.add(139.7, 35.7, 139.7, 35.7); // Tokyo
+    /// let tree = builder.finish::<HilbertSort>();
+    ///
+    /// // Find nearest neighbors using Haversine distance (great-circle distance)
+    /// let haversine = HaversineDistance::default();
+    /// let results = tree.neighbors_with_distance(-74.0, 40.7, Some(2), None, &haversine);
+    /// ```
+    fn neighbors_with_distance(
+        &self,
+        x: N,
+        y: N,
+        max_results: Option<usize>,
+        max_distance: Option<N>,
+        distance_metric: &dyn DistanceMetric<N>,
+    ) -> Vec<u32> {
         let boxes = self.boxes();
         let indices = self.indices();
-        let max_distance = max_distance.unwrap_or(N::max_value());
+        let max_distance = max_distance.unwrap_or(distance_metric.max_distance());
 
         let mut outer_node_index = Some(boxes.len() - 4);
         let mut queue = BinaryHeap::new();
         let mut results: Vec<u32> = vec![];
-        let max_dist_squared = max_distance * max_distance;
 
         'outer: while let Some(node_index) = outer_node_index {
             // find the end index of the node
@@ -173,10 +210,17 @@ pub trait RTreeIndex<N: IndexableNum>: Sized {
             for pos in (node_index..end).step_by(4) {
                 let index = indices.get(pos >> 2);
 
-                let dx = axis_dist(x, boxes[pos], boxes[pos + 2]);
-                let dy = axis_dist(y, boxes[pos + 1], boxes[pos + 3]);
-                let dist = dx * dx + dy * dy;
-                if dist > max_dist_squared {
+                // Use the custom distance metric for bbox distance calculation
+                let dist = distance_metric.distance_to_bbox(
+                    x,
+                    y,
+                    boxes[pos],
+                    boxes[pos + 1],
+                    boxes[pos + 2],
+                    boxes[pos + 3],
+                );
+
+                if dist > max_distance {
                     continue;
                 }
 
@@ -188,9 +232,14 @@ pub trait RTreeIndex<N: IndexableNum>: Sized {
                     }));
                 } else {
                     // leaf item (use odd id)
+                    // For leaf items, calculate distance to the center of the bounding box
+                    let center_x = (boxes[pos] + boxes[pos + 2]) / (N::one() + N::one());
+                    let center_y = (boxes[pos + 1] + boxes[pos + 3]) / (N::one() + N::one());
+                    let leaf_dist = distance_metric.distance(x, y, center_x, center_y);
+
                     queue.push(Reverse(NeighborNode {
                         id: (index << 1) + 1,
-                        dist,
+                        dist: leaf_dist,
                     }));
                 }
             }
@@ -198,7 +247,7 @@ pub trait RTreeIndex<N: IndexableNum>: Sized {
             // pop items from the queue
             while !queue.is_empty() && queue.peek().is_some_and(|val| (val.0.id & 1) != 0) {
                 let dist = queue.peek().unwrap().0.dist;
-                if dist > max_dist_squared {
+                if dist > max_distance {
                     break 'outer;
                 }
                 let item = queue.pop().unwrap();
@@ -226,6 +275,23 @@ pub trait RTreeIndex<N: IndexableNum>: Sized {
         max_distance: Option<N>,
     ) -> Vec<u32> {
         self.neighbors(coord.x(), coord.y(), max_results, max_distance)
+    }
+
+    /// Search items in order of distance from the given coordinate using a custom distance metric.
+    fn neighbors_coord_with_distance(
+        &self,
+        coord: &impl CoordTrait<T = N>,
+        max_results: Option<usize>,
+        max_distance: Option<N>,
+        distance_metric: &dyn DistanceMetric<N>,
+    ) -> Vec<u32> {
+        self.neighbors_with_distance(
+            coord.x(),
+            coord.y(),
+            max_results,
+            max_distance,
+            distance_metric,
+        )
     }
 
     /// Returns an iterator over the indexes of objects in this and another tree that intersect.
@@ -272,7 +338,7 @@ impl<N: IndexableNum> RTreeIndex<N> for RTree<N> {
         self.metadata.boxes_slice(&self.buffer)
     }
 
-    fn indices(&self) -> Indices {
+    fn indices(&self) -> Indices<'_> {
         self.metadata.indices_slice(&self.buffer)
     }
 
@@ -286,7 +352,7 @@ impl<N: IndexableNum> RTreeIndex<N> for RTreeRef<'_, N> {
         self.boxes
     }
 
-    fn indices(&self) -> Indices {
+    fn indices(&self) -> Indices<'_> {
         self.indices
     }
 
@@ -337,6 +403,94 @@ mod test {
             expected.sort();
 
             assert_eq!(results, expected);
+        }
+    }
+
+    mod distance_metrics {
+        use crate::rtree::distance::{EuclideanDistance, HaversineDistance, SpheroidDistance};
+        use crate::rtree::sort::HilbertSort;
+        use crate::rtree::{RTreeBuilder, RTreeIndex};
+
+        #[test]
+        fn test_euclidean_distance_neighbors() {
+            let mut builder = RTreeBuilder::<f64>::new(3);
+            builder.add(0., 0., 1., 1.);
+            builder.add(2., 2., 3., 3.);
+            builder.add(4., 4., 5., 5.);
+            let tree = builder.finish::<HilbertSort>();
+
+            let euclidean = EuclideanDistance;
+            let results = tree.neighbors_with_distance(0., 0., None, None, &euclidean);
+
+            // Should return items in order of distance from (0,0)
+            assert_eq!(results, vec![0, 1, 2]);
+        }
+
+        #[test]
+        fn test_haversine_distance_neighbors() {
+            let mut builder = RTreeBuilder::<f64>::new(3);
+            // Add some geographic points (longitude, latitude)
+            builder.add(-74.0, 40.7, -74.0, 40.7); // New York
+            builder.add(-0.1, 51.5, -0.1, 51.5); // London
+            builder.add(139.7, 35.7, 139.7, 35.7); // Tokyo
+            let tree = builder.finish::<HilbertSort>();
+
+            let haversine = HaversineDistance::default();
+            let results = tree.neighbors_with_distance(-74.0, 40.7, None, None, &haversine);
+
+            // From New York, should find New York first, then London, then Tokyo
+            assert_eq!(results, vec![0, 1, 2]);
+        }
+
+        #[test]
+        fn test_spheroid_distance_neighbors() {
+            let mut builder = RTreeBuilder::<f64>::new(3);
+            // Add some geographic points (longitude, latitude)
+            builder.add(-74.0, 40.7, -74.0, 40.7); // New York
+            builder.add(-0.1, 51.5, -0.1, 51.5); // London
+            builder.add(139.7, 35.7, 139.7, 35.7); // Tokyo
+            let tree = builder.finish::<HilbertSort>();
+
+            let spheroid = SpheroidDistance::default();
+            let results = tree.neighbors_with_distance(-74.0, 40.7, None, None, &spheroid);
+
+            // From New York, should find New York first, then London, then Tokyo
+            assert_eq!(results, vec![0, 1, 2]);
+        }
+
+        #[test]
+        fn test_backward_compatibility() {
+            let mut builder = RTreeBuilder::<f64>::new(3);
+            builder.add(0., 0., 1., 1.);
+            builder.add(2., 2., 3., 3.);
+            builder.add(4., 4., 5., 5.);
+            let tree = builder.finish::<HilbertSort>();
+
+            // Test that original neighbors method still works
+            let results_original = tree.neighbors(0., 0., None, None);
+
+            // Test that new method with Euclidean distance gives same results
+            let euclidean = EuclideanDistance;
+            let results_new = tree.neighbors_with_distance(0., 0., None, None, &euclidean);
+
+            assert_eq!(results_original, results_new);
+        }
+
+        #[test]
+        fn test_max_distance_filtering() {
+            let mut builder = RTreeBuilder::<f64>::new(3);
+            builder.add(0., 0., 1., 1.);
+            builder.add(2., 2., 3., 3.);
+            builder.add(10., 10., 11., 11.);
+            let tree = builder.finish::<HilbertSort>();
+
+            let euclidean = EuclideanDistance;
+            // Only find neighbors within distance 5
+            let results = tree.neighbors_with_distance(0., 0., None, Some(5.0), &euclidean);
+
+            // Should only find first two items, not the distant third one
+            assert_eq!(results.len(), 2);
+            assert_eq!(results, vec![0, 1]);
         }
     }
 }
