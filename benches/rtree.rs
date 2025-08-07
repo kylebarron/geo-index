@@ -94,7 +94,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     let flatbush_str_tree = construct_rtree_str(&boxes_buf);
     let flatbush_f32_tree = construct_rtree_f32_with_cast(&boxes_buf);
     let rstar_tree = construct_rstar(rect_vec.to_vec());
-    let (min_x, min_y, max_x, max_y) = (-112.007493, 40.633799, -111.920964, 40.694228);
+    let (min_x, min_y, max_x, max_y) = (-112.007_493, 40.633_799, -111.920_964, 40.694_228);
     let min_x_f32 = min_x as f32;
     let min_y_f32 = min_y as f32;
     let max_x_f32 = max_x as f32;
