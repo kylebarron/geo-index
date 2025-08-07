@@ -11,7 +11,7 @@ pub trait KDTreeIndex<N: IndexableNum>: Sized {
     fn coords(&self) -> &[N];
 
     /// The underlying raw indices buffer of this tree
-    fn indices(&self) -> Indices;
+    fn indices(&self) -> Indices<'_>;
 
     /// Access the metadata describing this KDTree
     fn metadata(&self) -> &KDTreeMetadata<N>;
@@ -194,7 +194,7 @@ impl<N: IndexableNum> KDTreeIndex<N> for KDTree<N> {
         self.metadata.coords_slice(&self.buffer)
     }
 
-    fn indices(&self) -> Indices {
+    fn indices(&self) -> Indices<'_> {
         self.metadata.indices_slice(&self.buffer)
     }
 
@@ -208,7 +208,7 @@ impl<N: IndexableNum> KDTreeIndex<N> for KDTreeRef<'_, N> {
         self.coords
     }
 
-    fn indices(&self) -> Indices {
+    fn indices(&self) -> Indices<'_> {
         self.indices
     }
 

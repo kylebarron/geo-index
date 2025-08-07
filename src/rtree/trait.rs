@@ -19,7 +19,7 @@ pub trait RTreeIndex<N: IndexableNum>: Sized {
     fn boxes(&self) -> &[N];
 
     /// A slice representing the indices within the `boxes` slice, including internal nodes.
-    fn indices(&self) -> Indices;
+    fn indices(&self) -> Indices<'_>;
 
     /// Access the metadata describing this RTree
     fn metadata(&self) -> &RTreeMetadata<N>;
@@ -272,7 +272,7 @@ impl<N: IndexableNum> RTreeIndex<N> for RTree<N> {
         self.metadata.boxes_slice(&self.buffer)
     }
 
-    fn indices(&self) -> Indices {
+    fn indices(&self) -> Indices<'_> {
         self.metadata.indices_slice(&self.buffer)
     }
 
@@ -286,7 +286,7 @@ impl<N: IndexableNum> RTreeIndex<N> for RTreeRef<'_, N> {
         self.boxes
     }
 
-    fn indices(&self) -> Indices {
+    fn indices(&self) -> Indices<'_> {
         self.indices
     }
 
