@@ -131,7 +131,7 @@ impl<N: IndexableNum> KDTreeBuilder<N> {
 fn split_data_borrow<N: IndexableNum>(
     data: &mut [u8],
     metadata: KDTreeMetadata<N>,
-) -> (&mut [N], MutableIndices) {
+) -> (&mut [N], MutableIndices<'_>) {
     let (ids_buf, padded_coords_buf) =
         data[KDBUSH_HEADER_SIZE..].split_at_mut(metadata.indices_byte_size);
     let coords_buf = &mut padded_coords_buf[metadata.pad_coords_byte_size..];
