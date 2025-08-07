@@ -55,7 +55,7 @@ pub trait KDTreeIndex<N: IndexableNum>: Sized {
 
             // if we reached "tree node", search linearly
             if right - left <= node_size as usize {
-                for i in left..right + 1 {
+                for i in left..=right {
                     let x = coords[2 * i];
                     let y = coords[2 * i + 1];
                     if x >= min_x && x <= max_x && y >= min_y && y <= max_y {
@@ -137,7 +137,7 @@ pub trait KDTreeIndex<N: IndexableNum>: Sized {
 
             // if we reached "tree node", search linearly
             if right - left <= node_size as usize {
-                for i in left..right + 1 {
+                for i in left..=right {
                     if sq_dist(coords[2 * i], coords[2 * i + 1], qx, qy) <= r2 {
                         result.push(indices.get(i).try_into().unwrap());
                     }
