@@ -48,6 +48,13 @@ impl<N: IndexableNum> RTreeMetadata<N> {
     /// Construct a new [`RTreeMetadata`] from an existing byte slice conforming to the "flatbush
     /// ABI", such as what [`RTreeBuilder`] generates.
     pub fn from_slice(data: &[u8]) -> Result<Self> {
+        if data.len() < 8 {
+            return Err(GeoIndexError::General(format!(
+                "Expected at least 8 bytes but received {}",
+                data.len()
+            )));
+        }
+
         let magic = data[0];
         if magic != 0xfb {
             return Err(GeoIndexError::General(
@@ -211,5 +218,16 @@ impl<'a, N: IndexableNum> RTreeRef<'a, N> {
             indices,
             metadata,
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn rejects_short_buffers() {
+        assert!(RTreeMetadata::<f64>::from_slice(&[]).is_err());
+        assert!(RTreeMetadata::<f64>::from_slice(&[0; 7]).is_err());
     }
 }
