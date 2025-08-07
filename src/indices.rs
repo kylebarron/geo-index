@@ -58,7 +58,7 @@ impl MutableIndices<'_> {
     }
 
     #[allow(dead_code)]
-    pub(crate) fn split_at_mut(&mut self, mid: usize) -> (MutableIndices, MutableIndices) {
+    pub(crate) fn split_at_mut(&mut self, mid: usize) -> (MutableIndices<'_>, MutableIndices<'_>) {
         match self {
             Self::U16(arr) => {
                 let (left, right) = arr.split_at_mut(mid);
@@ -72,7 +72,7 @@ impl MutableIndices<'_> {
     }
 
     #[allow(dead_code)]
-    pub(crate) fn chunks_mut(&mut self, chunk_size: usize) -> Vec<MutableIndices> {
+    pub(crate) fn chunks_mut(&mut self, chunk_size: usize) -> Vec<MutableIndices<'_>> {
         match self {
             Self::U16(arr) => arr
                 .chunks_mut(chunk_size)
