@@ -15,6 +15,7 @@ categories = ["data-structures", "algorithms", "science::geo"]
 [dependencies]
 bytemuck = "1"
 float_next_after = "1"
+geo = "0.30.0"
 geo-traits = "0.3"
 geo-types = "0.7.16"
 num-traits = "0.2"
@@ -25,7 +26,6 @@ wkt = "0.14.0"
 
 [dev-dependencies]
 criterion = { version = "0.5", features = ["html_reports"] }
-geo = "0.30.0"
 geozero = "0.12"
 rstar = "0.12"
 zip = "2.2.2"
@@ -39,3 +39,13 @@ harness = false
 [[bench]]
 name = "real_world_case"
 harness = false
+
+[[bench]]
+name = "distance"
+harness = false
+
+[[example]]
+name = "distance_metrics"
+
+[[example]]
+name = "geometry_neighbors"

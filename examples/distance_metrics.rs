@@ -93,9 +93,7 @@ fn spheroid_distance_example() {
         tree.neighbors_with_distance(query_point.0, query_point.1, Some(3), None, &spheroid);
 
     println!("  Nearest neighbors (by insertion order): {:?}", results);
-    println!("  Distance metric: Spheroid (distance on ellipsoid)");
-    println!("  Semi-major axis: {} meters", spheroid.semi_major_axis);
-    println!("  Semi-minor axis: {} meters", spheroid.semi_minor_axis);
+    println!("  Distance metric: Spheroid (distance on ellipsoid using Geodesic calculations)");
 }
 
 fn comparison_example() {
