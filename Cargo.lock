@@ -463,12 +463,16 @@ dependencies = [
  "float_next_after",
  "geo",
  "geo-traits",
+ "geo-types",
  "geozero",
  "num-traits",
+ "once_cell",
+ "rand",
  "rayon",
  "rstar",
  "thiserror 1.0.49",
  "tinyvec",
+ "wkt 0.14.0",
  "zip",
 ]
 
@@ -526,7 +530,7 @@ dependencies = [
  "log",
  "serde_json",
  "thiserror 1.0.49",
- "wkt",
+ "wkt 0.10.3",
 ]
 
 [[package]]
@@ -789,9 +793,9 @@ dependencies = [
 
 [[package]]
 name = "once_cell"
-version = "1.20.2"
+version = "1.21.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1261fe7e33c73b354eab43b1273a57c8f967d0391e80353e51f764ac02cf6775"
+checksum = "42f5e15c9953c5e4ccceeb2e7382a716482c34515315f7b03532b8b4e8393d2d"
 
 [[package]]
 name = "oorandom"
@@ -1386,6 +1390,19 @@ version = "0.10.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c3c2252781f8927974e8ba6a67c965a759a2b88ea2b1825f6862426bbb1c8f41"
 dependencies = [
+ "geo-types",
+ "log",
+ "num-traits",
+ "thiserror 1.0.49",
+]
+
+[[package]]
+name = "wkt"
+version = "0.14.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "efb2b923ccc882312e559ffaa832a055ba9d1ac0cc8e86b3e25453247e4b81d7"
+dependencies = [
+ "geo-traits",
  "geo-types",
  "log",
  "num-traits",
