@@ -1,11 +1,13 @@
 {
   "type": "module",
-  "scripts": {},
+  "scripts": {
+    "generate_fixtures": "node fixtures/flatbush_generate.js"
+  },
   "volta": {
     "node": "20.9.0"
   },
   "devDependencies": {
     "@tsconfig/node20": "^20.1.2",
-    "flatbush": "^4.2.0"
+    "flatbush": "^4.5.0"
   }
 }
