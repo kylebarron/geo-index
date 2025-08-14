@@ -223,11 +223,47 @@ impl<'a, N: IndexableNum> RTreeRef<'a, N> {
 
 #[cfg(test)]
 mod tests {
+    use crate::rtree::sort::{HilbertSort, STRSort, Sort};
+    use crate::rtree::{RTreeBuilder, RTreeIndex};
+
     use super::*;
 
     #[test]
     fn rejects_short_buffers() {
         assert!(RTreeMetadata::<f64>::from_slice(&[]).is_err());
         assert!(RTreeMetadata::<f64>::from_slice(&[0; 7]).is_err());
+    }
+
+    fn linspace(start: usize, stop: usize, num: usize, endpoint: bool) -> Vec<f64> {
+        let div = if endpoint { num - 1 } else { num };
+        let step = (stop - start) as f64 / div as f64;
+        (0..num).map(|i| start as f64 + step * i as f64).collect()
+    }
+
+    #[test]
+    // https://github.com/mourner/flatbush/pull/65
+    fn quicksort_should_work_with_an_inbalanced_dataset() {
+        _quicksort_should_work_with_an_inbalanced_dataset::<HilbertSort>();
+        _quicksort_should_work_with_an_inbalanced_dataset::<STRSort>();
+    }
+
+    fn _quicksort_should_work_with_an_inbalanced_dataset<S: Sort<f64>>() {
+        let n = 15000;
+        let mut builder = RTreeBuilder::new(2 * n);
+
+        let items = linspace(0, 1000, n as usize, true);
+        let items2 = linspace(0, 1000, n as usize, true);
+
+        for item in items {
+            builder.add(item, 0., item, 0.);
+        }
+
+        for item in items2 {
+            builder.add(item, 0., item, 0.);
+        }
+
+        let index = builder.finish::<S>();
+
+        index.search(-100., -1., 15000., 1.);
     }
 }

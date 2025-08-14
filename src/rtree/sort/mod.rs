@@ -3,6 +3,7 @@
 mod hilbert;
 mod str;
 mod r#trait;
+mod util;
 
 pub use hilbert::HilbertSort;
 pub use r#str::STRSort;
