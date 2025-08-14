@@ -99,6 +99,17 @@ impl<N: IndexableNum> Sort<N> for STRSort {
     }
 }
 
+/// Max is only implemented for `Ord` types, but float types do not implement `Ord`.
+///
+/// So we use this as a hack to get the maximum of two PartialOrd values.
+fn partial_ord_max<N: IndexableNum>(a: N, b: N) -> N {
+    if a > b {
+        a
+    } else {
+        b
+    }
+}
+
 /// Custom quicksort that partially sorts bbox data alongside their sort values.
 // Partially taken from static_aabb2d_index under the MIT/Apache license
 fn sort<N: IndexableNum>(
@@ -115,8 +126,22 @@ fn sort<N: IndexableNum>(
         return;
     }
 
-    let midpoint = (left + right) / 2;
-    let pivot = values[midpoint];
+    // apply median of three method
+    let start = values[left];
+    let mid = values[(left + right) >> 1];
+    let end = values[right];
+
+    let x = partial_ord_max(start, mid);
+    let pivot = if end > x {
+        x
+    } else if x == start {
+        partial_ord_max(mid, end)
+    } else if x == mid {
+        partial_ord_max(start, end)
+    } else {
+        end
+    };
+
     let mut i = left.wrapping_sub(1);
     let mut j = right.wrapping_add(1);
 

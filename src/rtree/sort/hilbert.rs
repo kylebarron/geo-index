@@ -71,8 +71,22 @@ fn sort<N: IndexableNum>(
         return;
     }
 
-    let midpoint = (left + right) / 2;
-    let pivot = values[midpoint];
+    // apply median of three method
+    let start = values[left];
+    let mid = values[(left + right) >> 1];
+    let end = values[right];
+
+    let x = start.max(mid);
+    let pivot = if end > x {
+        x
+    } else if x == start {
+        mid.max(end)
+    } else if x == mid {
+        start.max(end)
+    } else {
+        end
+    };
+
     let mut i = left.wrapping_sub(1);
     let mut j = right.wrapping_add(1);
 
