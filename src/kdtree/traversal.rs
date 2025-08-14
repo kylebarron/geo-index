@@ -211,7 +211,7 @@ impl<'a, N: IndexableNum, T: KDTreeIndex<N>> Node<'a, N, T> {
         let mut result = Vec::with_capacity(self.tree.node_size() as _);
 
         let indices = self.tree.indices();
-        for i in self.left_child..self.right_child + 1 {
+        for i in self.left_child..=self.right_child {
             result.push(indices.get(i) as u32);
         }
 

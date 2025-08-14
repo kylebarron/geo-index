@@ -44,6 +44,14 @@ impl<N: IndexableNum> KDTreeMetadata<N> {
     /// Construct a new [`KDTreeMetadata`] from an existing byte slice conforming to the "kdbush
     /// ABI", such as what [`KDTreeBuilder`] generates.
     pub fn from_slice(data: &[u8]) -> Result<Self> {
+        if data.len() < KDBUSH_HEADER_SIZE {
+            return Err(GeoIndexError::General(format!(
+                "Expected at least {} bytes but received {}",
+                KDBUSH_HEADER_SIZE,
+                data.len()
+            )));
+        }
+
         if data[0] != KDBUSH_MAGIC {
             return Err(GeoIndexError::General(
                 "Data not in Kdbush format.".to_string(),
@@ -201,5 +209,16 @@ impl<'a, N: IndexableNum> KDTreeRef<'a, N> {
             indices,
             metadata,
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn rejects_short_buffers() {
+        assert!(KDTreeMetadata::<f64>::from_slice(&[]).is_err());
+        assert!(KDTreeMetadata::<f64>::from_slice(&[0; 7]).is_err());
     }
 }
