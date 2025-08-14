@@ -3,6 +3,7 @@ use rayon::iter::{IndexedParallelIterator, IntoParallelIterator, ParallelIterato
 
 use crate::indices::MutableIndices;
 use crate::r#type::IndexableNum;
+use crate::rtree::sort::util::swap;
 use crate::rtree::sort::{Sort, SortParams};
 
 /// An implementation of sort-tile-recursive (STR) sorting.
@@ -143,25 +144,4 @@ fn sort<N: IndexableNum>(
 
     sort(values, boxes, indices, left, j, node_size);
     sort(values, boxes, indices, j.wrapping_add(1), right, node_size);
-}
-
-/// Swap two values and two corresponding boxes.
-#[inline]
-fn swap<N: IndexableNum>(
-    values: &mut [N],
-    boxes: &mut [N],
-    indices: &mut MutableIndices,
-    i: usize,
-    j: usize,
-) {
-    values.swap(i, j);
-
-    let k = 4 * i;
-    let m = 4 * j;
-    boxes.swap(k, m);
-    boxes.swap(k + 1, m + 1);
-    boxes.swap(k + 2, m + 2);
-    boxes.swap(k + 3, m + 3);
-
-    indices.swap(i, j);
 }
