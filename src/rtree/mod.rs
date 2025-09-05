@@ -56,6 +56,7 @@
 
 mod builder;
 mod constants;
+pub mod distance;
 mod index;
 pub mod sort;
 mod r#trait;
@@ -63,6 +64,7 @@ mod traversal;
 pub mod util;
 
 pub use builder::{RTreeBuilder, DEFAULT_RTREE_NODE_SIZE};
+pub use distance::{DistanceMetric, EuclideanDistance, HaversineDistance, SpheroidDistance};
 pub use index::{RTree, RTreeMetadata, RTreeRef};
 pub use r#trait::RTreeIndex;
 pub use traversal::Node;
