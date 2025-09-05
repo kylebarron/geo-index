@@ -14,7 +14,7 @@ pub fn boxes_at_level(
     index: PyRTreeRef,
     level: usize,
     copy: bool,
-) -> PyResult<PyObject> {
+) -> PyResult<Py<PyAny>> {
     let array = match index {
         PyRTreeRef::Float32(tree) => {
             let boxes = tree

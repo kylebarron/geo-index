@@ -17,7 +17,7 @@ pub fn neighbors(
     y: f64,
     max_results: Option<usize>,
     max_distance: Option<f64>,
-) -> PyResult<PyObject> {
+) -> PyResult<Py<PyAny>> {
     let results = match index {
         PyRTreeRef::Float32(tree) => tree.neighbors(
             x as f32,

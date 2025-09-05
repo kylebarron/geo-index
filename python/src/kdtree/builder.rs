@@ -67,7 +67,7 @@ impl PyKDTreeBuilder {
     }
 
     #[pyo3(signature = (x, y = None))]
-    fn add(&mut self, py: Python, x: PyArray, y: Option<PyArray>) -> PyResult<PyObject> {
+    fn add(&mut self, py: Python, x: PyArray, y: Option<PyArray>) -> PyResult<Py<PyAny>> {
         let (x_array, x_field) = x.into_inner();
         if x_array.null_count() > 0 {
             return Err(PyValueError::new_err("Cannot pass array with null values"));

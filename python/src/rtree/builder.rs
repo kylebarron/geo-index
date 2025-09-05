@@ -69,7 +69,7 @@ impl PyRTreeBuilder {
         min_y: &dyn arrow_array::Array,
         max_x: &dyn arrow_array::Array,
         max_y: &dyn arrow_array::Array,
-    ) -> PyResult<PyObject> {
+    ) -> PyResult<Py<PyAny>> {
         assert_eq!(min_x.data_type(), min_y.data_type());
         assert_eq!(min_x.data_type(), max_x.data_type());
         assert_eq!(min_x.data_type(), max_y.data_type());
@@ -194,7 +194,7 @@ impl PyRTreeBuilder {
         min_y: Option<PyArray>,
         max_x: Option<PyArray>,
         max_y: Option<PyArray>,
-    ) -> PyResult<PyObject> {
+    ) -> PyResult<Py<PyAny>> {
         let min_x = min_x.as_ref();
         if min_x.null_count() > 0 {
             return Err(PyValueError::new_err("Cannot pass array with null values"));

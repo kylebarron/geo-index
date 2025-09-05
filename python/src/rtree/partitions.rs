@@ -16,7 +16,7 @@ use crate::util::slice_to_arrow;
 
 #[pyfunction]
 #[pyo3(signature = (index, *, copy = false))]
-pub fn partitions(py: Python, index: PyRTreeRef, copy: bool) -> PyResult<PyObject> {
+pub fn partitions(py: Python, index: PyRTreeRef, copy: bool) -> PyResult<Py<PyAny>> {
     let (indices, partition_ids) = match index {
         PyRTreeRef::Float32(tree) => {
             let indices = indices_to_arrow(
@@ -107,7 +107,7 @@ fn partition_id_array(num_items: u32, node_size: u16) -> ArrayRef {
 // 1.
 #[pyfunction]
 #[pyo3(signature = (index, *, copy = false))]
-pub fn partition_boxes(py: Python, index: PyRTreeRef, copy: bool) -> PyResult<PyObject> {
+pub fn partition_boxes(py: Python, index: PyRTreeRef, copy: bool) -> PyResult<Py<PyAny>> {
     let array = boxes_at_level(py, index, 1, copy)?.extract::<PyArray>(py)?;
     let (array, _field) = array.into_inner();
 

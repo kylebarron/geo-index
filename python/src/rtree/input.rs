@@ -19,7 +19,7 @@ impl<N: IndexableNum> RTreeIndex<N> for ExternalRTree<N> {
         self.metadata.boxes_slice(&self.buffer)
     }
 
-    fn indices(&self) -> Indices {
+    fn indices(&self) -> Indices<'_> {
         self.metadata.indices_slice(&self.buffer)
     }
 
