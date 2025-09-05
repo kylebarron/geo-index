@@ -15,7 +15,7 @@ pub fn within(
     qx: Bound<PyAny>,
     qy: Bound<PyAny>,
     r: Bound<PyAny>,
-) -> PyResult<PyObject> {
+) -> PyResult<Py<PyAny>> {
     let results = match index {
         PyKDTreeRef::Float32(tree) => tree.within(qx.extract()?, qy.extract()?, r.extract()?),
         PyKDTreeRef::Float64(tree) => tree.within(qx.extract()?, qy.extract()?, r.extract()?),

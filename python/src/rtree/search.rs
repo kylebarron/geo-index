@@ -25,7 +25,7 @@ pub fn search(
     min_y: Bound<PyAny>,
     max_x: Bound<PyAny>,
     max_y: Bound<PyAny>,
-) -> PyResult<PyObject> {
+) -> PyResult<Py<PyAny>> {
     let results = match index {
         PyRTreeRef::Float32(tree) => tree.search(
             min_x.extract()?,

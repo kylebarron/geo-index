@@ -16,7 +16,7 @@ pub fn range(
     min_y: Bound<PyAny>,
     max_x: Bound<PyAny>,
     max_y: Bound<PyAny>,
-) -> PyResult<PyObject> {
+) -> PyResult<Py<PyAny>> {
     let results = match index {
         PyKDTreeRef::Float32(tree) => tree.range(
             min_x.extract()?,

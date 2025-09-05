@@ -11,7 +11,7 @@ use pyo3_arrow::PyRecordBatch;
 use crate::rtree::input::PyRTreeRef;
 
 #[pyfunction]
-pub fn tree_join(py: Python, left: PyRTreeRef, right: PyRTreeRef) -> PyResult<PyObject> {
+pub fn tree_join(py: Python, left: PyRTreeRef, right: PyRTreeRef) -> PyResult<Py<PyAny>> {
     let (left_candidates, right_candidates): (Vec<u32>, Vec<u32>) = match (left, right) {
         (PyRTreeRef::Float32(left_tree), PyRTreeRef::Float32(right_tree)) => left_tree
             .intersection_candidates_with_other_tree(&right_tree)

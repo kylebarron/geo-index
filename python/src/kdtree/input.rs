@@ -19,7 +19,7 @@ impl<N: IndexableNum> KDTreeIndex<N> for ExternalKDTree<N> {
         self.metadata.coords_slice(&self.buffer)
     }
 
-    fn indices(&self) -> Indices {
+    fn indices(&self) -> Indices<'_> {
         self.metadata.indices_slice(&self.buffer)
     }
 
