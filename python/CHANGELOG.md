@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.2.1] - 2025-09-05
+
+### What's Changed
+
+- Fix panic when building STR tree with certain number of items; fix hanging when building empty index by @Kontinuation in https://github.com/kylebarron/geo-index/pull/129
+- Check buffer length before parsing tree headers by @kylebarron in https://github.com/kylebarron/geo-index/pull/131
+- perf: Optimize the performance of RTree search by @kylebarron in https://github.com/kylebarron/geo-index/pull/136
+- fix: Fix stack overflow in degenerate cases by @kylebarron in https://github.com/kylebarron/geo-index/pull/137
+- Bump deps and fix lints by @kylebarron in https://github.com/kylebarron/geo-index/pull/138
+
+### New Contributors
+
+- @Kontinuation made their first contribution in https://github.com/kylebarron/geo-index/pull/127
+
+**Full Changelog**: https://github.com/kylebarron/geo-index/compare/py-v0.2.0...py-v0.2.1
+
 ## [0.2.0] - 2025-01-06
 
 ### New Features
