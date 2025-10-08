@@ -145,7 +145,7 @@ impl CoordType {
             u32::TYPE_INDEX => CoordType::UInt32,
             f32::TYPE_INDEX => CoordType::Float32,
             f64::TYPE_INDEX => CoordType::Float64,
-            t => return Err(GeoIndexError::General(format!("Unexpected type {t}."))),
+            t => return Err(GeoIndexError::General(format!("Unexpected type {}.", t))),
         };
         Ok(result)
     }
