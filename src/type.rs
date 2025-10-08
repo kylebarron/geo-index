@@ -13,7 +13,7 @@ use crate::GeoIndexError;
 /// JavaScript ([rtree](https://github.com/mourner/flatbush),
 /// [kdtree](https://github.com/mourner/kdbush))
 pub trait IndexableNum:
-private::Sealed + Num + NumCast + PartialOrd + Debug + Send + Sync + bytemuck::Pod + Bounded
+    private::Sealed + Num + NumCast + PartialOrd + Debug + Send + Sync + bytemuck::Pod + Bounded
 {
     /// The type index to match the array order of `ARRAY_TYPES` in flatbush JS
     const TYPE_INDEX: u8;
