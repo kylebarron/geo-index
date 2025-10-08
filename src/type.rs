@@ -13,12 +13,35 @@ use crate::GeoIndexError;
 /// JavaScript ([rtree](https://github.com/mourner/flatbush),
 /// [kdtree](https://github.com/mourner/kdbush))
 pub trait IndexableNum:
-    private::Sealed + Num + NumCast + PartialOrd + Debug + Send + Sync + bytemuck::Pod + Bounded
+private::Sealed + Num + NumCast + PartialOrd + Debug + Send + Sync + bytemuck::Pod + Bounded
 {
     /// The type index to match the array order of `ARRAY_TYPES` in flatbush JS
     const TYPE_INDEX: u8;
     /// The number of bytes per element
     const BYTES_PER_ELEMENT: usize;
+
+    /// Convert to f64 for distance calculations
+    fn to_f64(self) -> Option<f64> {
+        NumCast::from(self)
+    }
+
+    /// Convert from f64 for distance calculations
+    fn from_f64(value: f64) -> Option<Self> {
+        NumCast::from(value)
+    }
+
+    /// Get the square root of this value
+    fn sqrt(self) -> Option<Self> {
+        self.to_f64()
+            .and_then(|value| {
+                if value >= 0.0 {
+                    Some(value.sqrt())
+                } else {
+                    None
+                }
+            })
+            .and_then(NumCast::from)
+    }
 }
 
 impl IndexableNum for i8 {
@@ -122,7 +145,7 @@ impl CoordType {
             u32::TYPE_INDEX => CoordType::UInt32,
             f32::TYPE_INDEX => CoordType::Float32,
             f64::TYPE_INDEX => CoordType::Float64,
-            t => return Err(GeoIndexError::General(format!("Unexpected type {}.", t))),
+            t => return Err(GeoIndexError::General(format!("Unexpected type {t}."))),
         };
         Ok(result)
     }
