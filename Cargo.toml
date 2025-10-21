@@ -12,12 +12,15 @@ categories = ["data-structures", "algorithms", "science::geo"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[features]
+default = []
+use-geo_0_31 = ["geo_0_31"]
+
 [dependencies]
 bytemuck = "1"
 float_next_after = "1"
+geo_0_31 = { package = "geo", version = "0.31", optional = true }
 geo-traits = "0.3"
-geo-types = "0.7.17"
-geo = "0.31.0"
 num-traits = "0.2"
 rayon = { version = "1.8.0", optional = true }
 thiserror = "1"
@@ -25,7 +28,7 @@ tinyvec = { version = "1", features = ["alloc", "rustc_1_40"] }
 
 [dev-dependencies]
 criterion = { version = "0.5", features = ["html_reports"] }
-geo = "0.31.0"
+geo_0_31 = { package = "geo", version = "0.31.0" }
 geozero = { version = "0.14", features = ["with-wkb", "with-geo"] }
 rstar = "0.12"
 zip = "2.2.2"
@@ -38,3 +41,4 @@ harness = false
 [[bench]]
 name = "distance"
 harness = false
+required-features = ["use-geo_0_31"]

@@ -404,8 +404,8 @@ mod test_issue_42 {
 
     use crate::rtree::sort::HilbertSort;
     use crate::rtree::{RTreeBuilder, RTreeIndex};
-    use geo::Polygon;
-    use geo::{BoundingRect, Geometry};
+    use geo_0_31::Polygon;
+    use geo_0_31::{BoundingRect, Geometry};
     use geozero::geo_types::GeoWriter;
     use geozero::geojson::read_geojson_fc;
     use rstar::primitives::GeomWithData;

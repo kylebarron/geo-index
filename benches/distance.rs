@@ -1,20 +1,19 @@
 use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
-use geo::algorithm::{Distance, Euclidean};
-use geo::{Geometry, LineString, Point, Polygon};
+use geo_0_31::algorithm::{Distance, Euclidean};
+use geo_0_31::{coord, Geometry, LineString, Point, Polygon};
 use geo_index::rtree::distance::{
     DistanceMetric, EuclideanDistance, HaversineDistance, SliceGeometryAccessor, SpheroidDistance,
 };
 use geo_index::rtree::sort::HilbertSort;
-use geo_index::rtree::{RTreeBuilder, RTreeIndex};
+use geo_index::rtree::{RTreeBuilder, RTreeIndex, SimpleDistanceMetric};
 use geo_index::IndexableNum;
-use geo_types::coord;
 use rand::rngs::StdRng;
 use rand::{Rng, SeedableRng};
 
 // Simple distance metric for benchmarks
 struct SimpleMetric;
 
-impl<N: IndexableNum> DistanceMetric<N> for SimpleMetric {
+impl<N: IndexableNum> SimpleDistanceMetric<N> for SimpleMetric {
     fn distance(&self, x1: N, y1: N, x2: N, y2: N) -> N {
         let dx = x2 - x1;
         let dy = y2 - y1;
@@ -38,7 +37,9 @@ impl<N: IndexableNum> DistanceMetric<N> for SimpleMetric {
         };
         (dx * dx + dy * dy).sqrt().unwrap_or(N::max_value())
     }
+}
 
+impl<N: IndexableNum> DistanceMetric<N> for SimpleMetric {
     fn distance_to_geometry(&self, geom1: &Geometry<f64>, geom2: &Geometry<f64>) -> N {
         N::from_f64(Euclidean.distance(geom1, geom2)).unwrap_or(N::max_value())
     }

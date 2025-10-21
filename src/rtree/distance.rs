@@ -4,29 +4,24 @@
 //! including Euclidean, Haversine, and Spheroid distance calculations.
 
 use crate::r#type::IndexableNum;
-use geo::algorithm::{Distance, Euclidean, Geodesic, Haversine};
-use geo::{Geometry, Point};
+use crate::rtree::r#trait::{axis_dist, SimpleDistanceMetric};
+use geo_0_31::algorithm::{Distance, Euclidean, Geodesic, Haversine};
+use geo_0_31::{Geometry, Point};
 
 pub use crate::rtree::r#trait::GeometryAccessor;
 
 /// A trait for calculating distances between geometries and points.
-pub trait DistanceMetric<N: IndexableNum> {
-    /// Calculate the distance between two points (x1, y1) and (x2, y2).
-    fn distance(&self, x1: N, y1: N, x2: N, y2: N) -> N;
-
-    /// Calculate the distance from a point to a bounding box.
-    /// This is used for spatial index optimization during tree traversal.
-    fn distance_to_bbox(&self, x: N, y: N, min_x: N, min_y: N, max_x: N, max_y: N) -> N;
-
+///
+/// This trait extends `SimpleDistanceMetric` to add geometry-to-geometry distance calculations.
+pub trait DistanceMetric<N: IndexableNum>: SimpleDistanceMetric<N> {
     /// Calculate the distance between two geometries.
     /// This method is used by geometry-based neighbor searches to compute the actual
     /// distance between a query geometry and an item geometry.
+    ///
+    /// TODO: Consider changing to accept `&impl GeometryTrait<T = f64>` instead of concrete
+    /// `Geometry<f64>` type for better flexibility and integration with geo-traits.
+    /// This would be a non-breaking change since Geometry implements GeometryTrait.
     fn distance_to_geometry(&self, geom1: &Geometry<f64>, geom2: &Geometry<f64>) -> N;
-
-    /// Return the maximum distance value for this metric.
-    fn max_distance(&self) -> N {
-        N::max_value()
-    }
 }
 
 /// Euclidean distance metric.
@@ -37,7 +32,7 @@ pub trait DistanceMetric<N: IndexableNum> {
 #[derive(Debug, Clone, Copy, Default)]
 pub struct EuclideanDistance;
 
-impl<N: IndexableNum> DistanceMetric<N> for EuclideanDistance {
+impl<N: IndexableNum> SimpleDistanceMetric<N> for EuclideanDistance {
     #[inline]
     fn distance(&self, x1: N, y1: N, x2: N, y2: N) -> N {
         let p1 = Point::new(x1.to_f64().unwrap_or(0.0), y1.to_f64().unwrap_or(0.0));
@@ -51,7 +46,9 @@ impl<N: IndexableNum> DistanceMetric<N> for EuclideanDistance {
         let dy = axis_dist(y, min_y, max_y);
         (dx * dx + dy * dy).sqrt().unwrap_or(N::max_value())
     }
+}
 
+impl<N: IndexableNum> DistanceMetric<N> for EuclideanDistance {
     fn distance_to_geometry(&self, geom1: &Geometry<f64>, geom2: &Geometry<f64>) -> N {
         N::from_f64(Euclidean.distance(geom1, geom2)).unwrap_or(N::max_value())
     }
@@ -84,7 +81,7 @@ impl HaversineDistance {
     }
 }
 
-impl<N: IndexableNum> DistanceMetric<N> for HaversineDistance {
+impl<N: IndexableNum> SimpleDistanceMetric<N> for HaversineDistance {
     fn distance(&self, lon1: N, lat1: N, lon2: N, lat2: N) -> N {
         let p1 = Point::new(lon1.to_f64().unwrap_or(0.0), lat1.to_f64().unwrap_or(0.0));
         let p2 = Point::new(lon2.to_f64().unwrap_or(0.0), lat2.to_f64().unwrap_or(0.0));
@@ -115,10 +112,12 @@ impl<N: IndexableNum> DistanceMetric<N> for HaversineDistance {
         let closest_point = Point::new(closest_lon, closest_lat);
         N::from_f64(Haversine.distance(point, closest_point)).unwrap_or(N::max_value())
     }
+}
 
+impl<N: IndexableNum> DistanceMetric<N> for HaversineDistance {
     fn distance_to_geometry(&self, geom1: &Geometry<f64>, geom2: &Geometry<f64>) -> N {
         // For Haversine, use centroid-to-centroid distance as approximation
-        use geo::algorithm::Centroid;
+        use geo_0_31::algorithm::Centroid;
         let c1 = geom1.centroid().unwrap_or(Point::new(0.0, 0.0));
         let c2 = geom2.centroid().unwrap_or(Point::new(0.0, 0.0));
         N::from_f64(Haversine.distance(c1, c2)).unwrap_or(N::max_value())
@@ -141,7 +140,7 @@ impl SpheroidDistance {
     }
 }
 
-impl<N: IndexableNum> DistanceMetric<N> for SpheroidDistance {
+impl<N: IndexableNum> SimpleDistanceMetric<N> for SpheroidDistance {
     fn distance(&self, lon1: N, lat1: N, lon2: N, lat2: N) -> N {
         let p1 = Point::new(lon1.to_f64().unwrap_or(0.0), lat1.to_f64().unwrap_or(0.0));
         let p2 = Point::new(lon2.to_f64().unwrap_or(0.0), lat2.to_f64().unwrap_or(0.0));
@@ -172,10 +171,12 @@ impl<N: IndexableNum> DistanceMetric<N> for SpheroidDistance {
         let closest_point = Point::new(closest_lon, closest_lat);
         N::from_f64(Geodesic.distance(point, closest_point)).unwrap_or(N::max_value())
     }
+}
 
+impl<N: IndexableNum> DistanceMetric<N> for SpheroidDistance {
     fn distance_to_geometry(&self, geom1: &Geometry<f64>, geom2: &Geometry<f64>) -> N {
         // For Geodesic, use centroid-to-centroid distance as approximation
-        use geo::algorithm::Centroid;
+        use geo_0_31::algorithm::Centroid;
         let c1 = geom1.centroid().unwrap_or(Point::new(0.0, 0.0));
         let c2 = geom2.centroid().unwrap_or(Point::new(0.0, 0.0));
         N::from_f64(Geodesic.distance(c1, c2)).unwrap_or(N::max_value())
@@ -189,7 +190,7 @@ impl<N: IndexableNum> DistanceMetric<N> for SpheroidDistance {
 /// # Example
 /// ```
 /// use geo_index::rtree::distance::{EuclideanDistance, SliceGeometryAccessor};
-/// use geo::{Geometry, Point};
+/// use geo_0_31::{Geometry, Point};
 ///
 /// let geometries = vec![
 ///     Geometry::Point(Point::new(0.0, 0.0)),
@@ -217,22 +218,10 @@ impl<'a> GeometryAccessor for SliceGeometryAccessor<'a> {
     }
 }
 
-/// 1D distance from a value to a range.
-#[inline]
-fn axis_dist<N: IndexableNum>(k: N, min: N, max: N) -> N {
-    if k < min {
-        min - k
-    } else if k <= max {
-        N::zero()
-    } else {
-        k - max
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
-    use geo::LineString;
+    use geo_0_31::{coord, LineString};
 
     #[test]
     fn test_euclidean_distance() {
@@ -269,8 +258,8 @@ mod tests {
 
         // Test distance to line
         let line = Geometry::LineString(LineString::new(vec![
-            geo_types::coord! { x: 0.0, y: 5.0 },
-            geo_types::coord! { x: 10.0, y: 5.0 },
+            coord! { x: 0.0, y: 5.0 },
+            coord! { x: 10.0, y: 5.0 },
         ]));
         let query = Geometry::Point(Point::new(0.0, 0.0));
         let distance: f64 = Euclidean.distance(&query, &line);
@@ -312,7 +301,7 @@ mod tests {
             }
         }
 
-        impl<'a, N: IndexableNum> DistanceMetric<N> for WkbDistanceMetric<'a> {
+        impl<'a, N: IndexableNum> SimpleDistanceMetric<N> for WkbDistanceMetric<'a> {
             fn distance(&self, x1: N, y1: N, x2: N, y2: N) -> N {
                 EuclideanDistance.distance(x1, y1, x2, y2)
             }
@@ -320,7 +309,9 @@ mod tests {
             fn distance_to_bbox(&self, x: N, y: N, min_x: N, min_y: N, max_x: N, max_y: N) -> N {
                 EuclideanDistance.distance_to_bbox(x, y, min_x, min_y, max_x, max_y)
             }
+        }
 
+        impl<'a, N: IndexableNum> DistanceMetric<N> for WkbDistanceMetric<'a> {
             fn distance_to_geometry(&self, geom1: &Geometry<f64>, geom2: &Geometry<f64>) -> N {
                 N::from_f64(Euclidean.distance(geom1, geom2)).unwrap_or(N::max_value())
             }
@@ -406,7 +397,7 @@ mod tests {
             }
         }
 
-        impl<'a, N: IndexableNum> DistanceMetric<N> for CachedDistanceMetric<'a> {
+        impl<'a, N: IndexableNum> SimpleDistanceMetric<N> for CachedDistanceMetric<'a> {
             fn distance(&self, x1: N, y1: N, x2: N, y2: N) -> N {
                 EuclideanDistance.distance(x1, y1, x2, y2)
             }
@@ -414,7 +405,9 @@ mod tests {
             fn distance_to_bbox(&self, x: N, y: N, min_x: N, min_y: N, max_x: N, max_y: N) -> N {
                 EuclideanDistance.distance_to_bbox(x, y, min_x, min_y, max_x, max_y)
             }
+        }
 
+        impl<'a, N: IndexableNum> DistanceMetric<N> for CachedDistanceMetric<'a> {
             fn distance_to_geometry(&self, geom1: &Geometry<f64>, geom2: &Geometry<f64>) -> N {
                 N::from_f64(Euclidean.distance(geom1, geom2)).unwrap_or(N::max_value())
             }
