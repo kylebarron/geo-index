@@ -612,7 +612,7 @@ mod test {
 
     #[cfg(feature = "use-geo_0_31")]
     mod distance_metrics {
-        use crate::rtree::distance::{EuclideanDistance, HaversineDistance, SpheroidDistance};
+        use crate::rtree::distance::{EuclideanDistance, HaversineDistance};
         use crate::rtree::r#trait::SimpleDistanceMetric;
         use crate::rtree::sort::HilbertSort;
         use crate::rtree::{RTreeBuilder, RTreeIndex};
@@ -643,22 +643,6 @@ mod test {
 
             let haversine = HaversineDistance::default();
             let results = tree.neighbors_with_distance(-74.0, 40.7, None, None, &haversine);
-
-            // From New York, should find New York first, then London, then Tokyo
-            assert_eq!(results, vec![0, 1, 2]);
-        }
-
-        #[test]
-        fn test_spheroid_distance_neighbors() {
-            let mut builder = RTreeBuilder::<f64>::new(3);
-            // Add some geographic points (longitude, latitude)
-            builder.add(-74.0, 40.7, -74.0, 40.7); // New York
-            builder.add(-0.1, 51.5, -0.1, 51.5); // London
-            builder.add(139.7, 35.7, 139.7, 35.7); // Tokyo
-            let tree = builder.finish::<HilbertSort>();
-
-            let spheroid = SpheroidDistance;
-            let results = tree.neighbors_with_distance(-74.0, 40.7, None, None, &spheroid);
 
             // From New York, should find New York first, then London, then Tokyo
             assert_eq!(results, vec![0, 1, 2]);

@@ -1,11 +1,11 @@
 //! Distance metrics for spatial queries.
 //!
 //! This module provides different distance calculation methods for spatial queries,
-//! including Euclidean, Haversine, and Spheroid distance calculations.
+//! including Euclidean and Haversine distance calculations.
 
 use crate::r#type::IndexableNum;
 use crate::rtree::r#trait::{axis_dist, SimpleDistanceMetric};
-use geo_0_31::algorithm::{Distance, Euclidean, Geodesic, Haversine};
+use geo_0_31::algorithm::{Distance, Euclidean, Haversine};
 use geo_0_31::{Geometry, Point};
 
 pub use crate::rtree::r#trait::GeometryAccessor;
@@ -124,65 +124,6 @@ impl<N: IndexableNum> DistanceMetric<N> for HaversineDistance {
     }
 }
 
-/// Spheroid distance metric (using Geodesic/Vincenty's formula).
-///
-/// This calculates the shortest distance between two points on the surface
-/// of a spheroid (ellipsoid), providing a more accurate Earth model than
-/// a simple sphere. The input coordinates should be in longitude/latitude
-/// (degrees), and the output distance is in meters.
-#[derive(Debug, Clone, Copy, Default)]
-pub struct SpheroidDistance;
-
-impl SpheroidDistance {
-    /// Create a new Spheroid distance metric for GRS80 ellipsoid.
-    pub fn grs80() -> Self {
-        Self
-    }
-}
-
-impl<N: IndexableNum> SimpleDistanceMetric<N> for SpheroidDistance {
-    fn distance(&self, lon1: N, lat1: N, lon2: N, lat2: N) -> N {
-        let p1 = Point::new(lon1.to_f64().unwrap_or(0.0), lat1.to_f64().unwrap_or(0.0));
-        let p2 = Point::new(lon2.to_f64().unwrap_or(0.0), lat2.to_f64().unwrap_or(0.0));
-        N::from_f64(Geodesic.distance(p1, p2)).unwrap_or(N::max_value())
-    }
-
-    fn distance_to_bbox(
-        &self,
-        lon: N,
-        lat: N,
-        min_lon: N,
-        min_lat: N,
-        max_lon: N,
-        max_lat: N,
-    ) -> N {
-        // Similar to haversine, approximate using closest point on bbox
-        let lon_f = lon.to_f64().unwrap_or(0.0);
-        let lat_f = lat.to_f64().unwrap_or(0.0);
-        let min_lon_f = min_lon.to_f64().unwrap_or(0.0);
-        let min_lat_f = min_lat.to_f64().unwrap_or(0.0);
-        let max_lon_f = max_lon.to_f64().unwrap_or(0.0);
-        let max_lat_f = max_lat.to_f64().unwrap_or(0.0);
-
-        let closest_lon = lon_f.clamp(min_lon_f, max_lon_f);
-        let closest_lat = lat_f.clamp(min_lat_f, max_lat_f);
-
-        let point = Point::new(lon_f, lat_f);
-        let closest_point = Point::new(closest_lon, closest_lat);
-        N::from_f64(Geodesic.distance(point, closest_point)).unwrap_or(N::max_value())
-    }
-}
-
-impl<N: IndexableNum> DistanceMetric<N> for SpheroidDistance {
-    fn distance_to_geometry(&self, geom1: &Geometry<f64>, geom2: &Geometry<f64>) -> N {
-        // For Geodesic, use centroid-to-centroid distance as approximation
-        use geo_0_31::algorithm::Centroid;
-        let c1 = geom1.centroid().unwrap_or(Point::new(0.0, 0.0));
-        let c2 = geom2.centroid().unwrap_or(Point::new(0.0, 0.0));
-        N::from_f64(Geodesic.distance(c1, c2)).unwrap_or(N::max_value())
-    }
-}
-
 /// Simple geometry accessor that wraps a slice of geometries.
 ///
 /// This accessor provides access to geometries by index for use with distance metrics.
@@ -236,15 +177,6 @@ mod tests {
         // Distance between New York and London (approximately)
         let distance = metric.distance(-74.0f64, 40.7f64, -0.1f64, 51.5f64);
         // Should be approximately 5585 km
-        assert!((distance - 5585000.0f64).abs() < 50000.0f64);
-    }
-
-    #[test]
-    fn test_spheroid_distance() {
-        let metric = SpheroidDistance;
-        // Distance between New York and London (approximately)
-        let distance = metric.distance(-74.0f64, 40.7f64, -0.1f64, 51.5f64);
-        // Should be approximately 5585 km (slightly different from Haversine)
         assert!((distance - 5585000.0f64).abs() < 50000.0f64);
     }
 

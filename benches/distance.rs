@@ -2,7 +2,7 @@ use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
 use geo_0_31::algorithm::{Distance, Euclidean};
 use geo_0_31::{coord, Geometry, LineString, Point, Polygon};
 use geo_index::rtree::distance::{
-    DistanceMetric, EuclideanDistance, HaversineDistance, SliceGeometryAccessor, SpheroidDistance,
+    DistanceMetric, EuclideanDistance, HaversineDistance, SliceGeometryAccessor,
 };
 use geo_index::rtree::sort::HilbertSort;
 use geo_index::rtree::{RTreeBuilder, RTreeIndex, SimpleDistanceMetric};
@@ -107,7 +107,6 @@ fn benchmark_distance_metrics(c: &mut Criterion) {
 
         let euclidean = EuclideanDistance;
         let haversine = HaversineDistance::default();
-        let spheroid = SpheroidDistance::default();
 
         // Benchmark neighbors_with_distance with different metrics
         let mut group = c.benchmark_group("neighbors_with_distance");
@@ -136,18 +135,6 @@ fn benchmark_distance_metrics(c: &mut Criterion) {
             })
         });
 
-        group.bench_with_input(BenchmarkId::new("spheroid", size), &size, |b, _| {
-            b.iter(|| {
-                tree.neighbors_with_distance(
-                    query_point.x(),
-                    query_point.y(),
-                    Some(10),
-                    None,
-                    &spheroid,
-                )
-            })
-        });
-
         group.finish();
 
         // Benchmark neighbors_geometry with different metrics
@@ -167,7 +154,6 @@ fn benchmark_distance_metrics(c: &mut Criterion) {
 fn benchmark_distance_calculations(c: &mut Criterion) {
     let euclidean = EuclideanDistance;
     let haversine = HaversineDistance::default();
-    let spheroid = SpheroidDistance::default();
 
     let p1 = Point::new(-74.0, 40.7); // New York
     let p2 = Point::new(-0.1, 51.5); // London
@@ -185,10 +171,6 @@ fn benchmark_distance_calculations(c: &mut Criterion) {
         b.iter(|| haversine.distance(p1.x(), p1.y(), p2.x(), p2.y()))
     });
 
-    group.bench_function("spheroid_point_to_point", |b| {
-        b.iter(|| spheroid.distance(p1.x(), p1.y(), p2.x(), p2.y()))
-    });
-
     group.bench_function("euclidean_geometry_to_geometry", |b| {
         b.iter(|| Euclidean.distance(&geom1, &geom2))
     });
@@ -202,10 +184,6 @@ fn benchmark_distance_calculations(c: &mut Criterion) {
 
     group.bench_function("haversine_distance_to_bbox", |b| {
         b.iter(|| haversine.distance_to_bbox(p2.x(), p2.y(), bbox.0, bbox.1, bbox.2, bbox.3))
-    });
-
-    group.bench_function("spheroid_distance_to_bbox", |b| {
-        b.iter(|| spheroid.distance_to_bbox(p2.x(), p2.y(), bbox.0, bbox.1, bbox.2, bbox.3))
     });
 
     group.finish();
