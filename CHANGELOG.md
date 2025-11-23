@@ -2,6 +2,24 @@
 
 **This is the changelog for the core Rust library**. There's a [separate changelog](./python/CHANGELOG.md) for the Python bindings.
 
+## [0.3.2] - 2025-11-23
+
+## What's Changed
+* chore: Fix lints in clippy 1.89 by @kylebarron in https://github.com/kylebarron/geo-index/pull/132
+* Check buffer length before parsing tree headers by @kylebarron in https://github.com/kylebarron/geo-index/pull/131
+* Codex format suggestions by @kylebarron in https://github.com/kylebarron/geo-index/pull/133
+* perf: Optimize the performance of RTree search by @kylebarron in https://github.com/kylebarron/geo-index/pull/136
+* fix: Fix stack overflow in degenerate cases by @kylebarron in https://github.com/kylebarron/geo-index/pull/137
+* Bump deps and fix lints by @kylebarron in https://github.com/kylebarron/geo-index/pull/138
+* ci: Set up Rust trusted publishing by @kylebarron in https://github.com/kylebarron/geo-index/pull/142
+* feat: Add distance metric support for RTree neighbor queries by @zhangfengcdt in https://github.com/kylebarron/geo-index/pull/141
+
+## New Contributors
+
+* @zhangfengcdt made their first contribution in https://github.com/kylebarron/geo-index/pull/141
+
+**Full Changelog**: https://github.com/kylebarron/geo-index/compare/v0.3.1...v0.3.2
+
 ## [0.3.1] - 2025-06-20
 
 ## Bug fixes
