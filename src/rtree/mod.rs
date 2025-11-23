@@ -56,6 +56,8 @@
 
 mod builder;
 mod constants;
+#[cfg(feature = "use-geo_0_31")]
+pub mod distance;
 mod index;
 pub mod sort;
 mod r#trait;
@@ -64,5 +66,5 @@ pub mod util;
 
 pub use builder::{RTreeBuilder, DEFAULT_RTREE_NODE_SIZE};
 pub use index::{RTree, RTreeMetadata, RTreeRef};
-pub use r#trait::RTreeIndex;
+pub use r#trait::{RTreeIndex, SimpleDistanceMetric};
 pub use traversal::Node;
